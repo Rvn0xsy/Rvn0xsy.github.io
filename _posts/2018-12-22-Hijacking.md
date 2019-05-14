@@ -8,10 +8,16 @@ description: 将之前都学习到的知识进行汇总，顺便把分享转化�
 ---
 
 
+> 在线地址：[https://www.bilibili.com/video/av51718274/](https://www.bilibili.com/video/av51718274/)
+
+
+<iframe src="//player.bilibili.com/player.html?aid=51718274&page=1&cid" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="95%" height="450"> </iframe>
+
+
 * 目录
 {:toc}
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/1ErymFEn3rg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 
 ## 0x00 前言
 
