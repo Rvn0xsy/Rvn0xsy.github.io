@@ -19,7 +19,11 @@ description: 在内部分享的《彻底理解Windows认证》议题解读
 
 <!--more-->
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/-FgWkU5awQE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+> 在线地址：[https://www.bilibili.com/video/av51717543/](https://www.bilibili.com/video/av51717543/)
+
+
+<iframe src="//player.bilibili.com/player.html?aid=51717543&cid=&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="95%" height="450">
+</iframe>
 
 * 目录
 {:toc}
