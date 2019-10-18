@@ -1,12 +1,12 @@
 # Site settings
 title: 倾旋的博客
-url: "https://payloads.online"    # the protocol and hostname of your site, eg. `http://laobubu.github.io`
+url: "https://payloads.online"
 baseurl: "" # the prefix of your site uri, eg. `"/jekyll-theme-EasyBook"` or empty string `""`
-#timezone: Asia/Chongqing
+timezone: Asia/Chongqing
 description: >
   这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
 
-# Your information
+# 个人信息
 email: rvn0xsy@gmail.com
 author: 倾旋
 avatar: "//avatars0.githubusercontent.com/u/19944759?s=150&v=4"
@@ -28,10 +28,12 @@ profile_links:
 excerpt_separator: <!--more-->
 
 header:
-  links:             # Links on the header. Link to in-site page with a slash as prefix
+  links:
     About: /about/
-    Category: /category/
+    Category: /posts/
+    Links: /links/
     Cooolis: https://cooolis.payloads.online/
+    RSS: /feed.xml
 
 permalink: /archivers/:title
 plugins:
