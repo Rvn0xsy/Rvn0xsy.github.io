@@ -30,7 +30,7 @@ excerpt_separator: <!--more-->
 header:
   links:
     About: /about/
-    Category: /posts/
+    Posts: /posts/
     Links: /links/
     Cooolis: https://cooolis.payloads.online/
     RSS: /feed.xml
