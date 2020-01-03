@@ -16,7 +16,7 @@ description: 通常情况下，遇到SQL Server注入点，我会比较关注是
 
 一开始在一处比较复杂的功能点发现了SQL Server的注入，也是首先利用AND进行判断：
 
-![image.png](/img/20191226185758638482480.png)
+![2020-01-03-13-13-15](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ff14d4d92d1d2c87226c80bf934d541f.png)
 
 参数：ModuleType存在注入点，但是后面有一层站点全局输入的检测机制，从简单的测试来看，是不存在语法分析的一种，比较容易绕过。
 
@@ -32,13 +32,13 @@ description: 通常情况下，遇到SQL Server注入点，我会比较关注是
 
 那么我猜想到了一个简单的表达式，似乎和这个过滤规则比较相向：`/*\w{0,}*/`
 
-![image.png](/img/20191226185758638482481.png)
+![2020-01-03-13-13-28](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6698199e49414f5cdf5e0cb74725decb.png)
 
 ## 0x03 tamper 自动化实现
 
 这里我比较懒，直接改了以下space2comment.py，这个脚本在Kali Linux中的sqlmap目录下：
 
-![image.png](/img/20191220134904145200994.png)
+![2020-01-03-13-13-37](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b5b958529f18b8b570f16eca2cd1ac03.png)
 
 核心代码：
 
@@ -63,15 +63,15 @@ for i in xrange(len(payload)):
 
 只需要替换`/**/`即可：
 
-![image.png](/img/20191220135355736439598.png)
+![2020-01-03-13-13-49](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/cb7b577625d7a6106e39687558cdc6c7.png)
 
 接着，就可以跑出注入了\~
 
 PS：我比较习惯于添加`--random-agent`参数，理由是在注入的过程中，避免被流量感知设备发现。
 
-![image.png](/img/20191220135413284061845.png)
+![2020-01-03-13-14-00](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1ea40c2f77061bc94c939aaf8a1c01a5.png)
 
-## 0x04 xp\_cmdshell
+## 0x04 xp_cmdshell
 
 到这一步的时候，我遇到了一个问题，SQLMAP调用exec master..xp_cmshell的时候被拦截了，因为后端还检测是否有`exec`、`master`，于是我还要将tamper加两句：
 
@@ -84,7 +84,7 @@ payload = payload.replace("master..","/***//***/")
 
 点击发包，还是无法执行，被360拦截了！
 
-![image.png](/img/20191220140250490531933.png)
+![2020-01-03-13-14-22](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/fc6bd35eb07d11206d2bcf9ccb701553.png)
 
 这个Error Code 5 ，是Windows的错误代码，中文意思就是：“拒绝访问”。
 
@@ -120,7 +120,7 @@ declare @shell int exec sp_oacreate 'wscript.shell',@shell output exec sp_oameth
 
 还记得之前的IIS 7.5吗，**IIS在接收到一个请求后，会自动将数据进行Unicode解码，如果流量设备、WAF不支持此特性的话，就可以进行绕过**，这里我着重解决中文目录的问题。
 
-![image.png](/img/2019122014115644454134.png)
+![2020-01-03-13-14-38](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/259de32b7fe3faac8fa6bff186660e07.png)
 
 到这此文就结束了，我并没有成功Getshell，只是回顾我解决问题的思维方式，希望能对大家有用！
 
