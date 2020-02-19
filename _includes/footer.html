@@ -3,6 +3,15 @@
 &copy; {{ site.time | date: '%Y' }} {{ site.author }}
 </div>
 </footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
 
 <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
 <script src="{{ "/js/easybook.js" | prepend: site.baseurl }}"></script>
