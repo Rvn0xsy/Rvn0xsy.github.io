@@ -40,7 +40,7 @@ plugins:
  - jekyll-paginate
  - jekyll-gist
  - jemoji
- - jekyll-plantuml
+ - jekyll-spaceship
 
 # Build settings
 paginate: 5
