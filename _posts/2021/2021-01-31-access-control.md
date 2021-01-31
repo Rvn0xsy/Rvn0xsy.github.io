@@ -216,7 +216,7 @@ Windows 的令牌类型：
 
 - 当前用户必须拥有SeImpersonatePrivilege或SeAssignPrimaryTokenPrivilege特权
 - 拥有目标进程的PROCESS_QUERY_INFORMATION权限
-- 拥有目标进程访问令牌的TOKEN_DUPLICATE | TOKEN_IMPERSONATE权限
+- 拥有目标进程访问令牌的`TOKEN_DUPLICATE | TOKEN_IMPERSONATE`权限
 
 Windows将每一个权限都以二进制位标示，但在C语言头文件中是以16禁止标示的。
 
@@ -399,7 +399,7 @@ DS-Replication-Get-Changes扩展权限支持的系统版本：
 Add-DomainObjectAcl -TargetIdentity "DC=Domain,DC=com" -PrincipalIdentity <UserName> -Rights DCSync -Verbose
 ```
 
-我这里实现了一个C++版本的：![https://github.com/Rvn0xsy/PDacl](https://github.com/Rvn0xsy/PDacl)
+我这里实现了一个C++版本的：[https://github.com/Rvn0xsy/PDacl](https://github.com/Rvn0xsy/PDacl)
 
 ![2021-01-31-22-33-32](https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f6516259d175c841e63575cacd95a7aa.png)
 

