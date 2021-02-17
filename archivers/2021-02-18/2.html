@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Pricking 项目（二） ：JS模块开发 « 倾旋的博客</title>
+  <meta name="description" content="  视频介绍：bv1SK4y1n7xx0x00 目录结构介绍.├── access.log # 日志文件├── docker-compose.yml # 容器配置文件├── README.md  # 说明文档└── static  # 静态文件夹    ├── index.html # 测试页面    ├── m...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2021-02-18/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Pricking 项目（二） ：JS模块开发</h1>
+    <p class="post-meta">Feb 18, 2021</p>
+  </header>
+
+  <article class="post-content">
+    <blockquote>
+  <p>视频介绍：<a href="https://www.bilibili.com/video/bv1SK4y1n7xx">bv1SK4y1n7xx</a></p>
+</blockquote>
+
+<h2 id="0x00-目录结构介绍">0x00 目录结构介绍</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.
+├── access.log # 日志文件
+├── docker-compose.yml # 容器配置文件
+├── README.md  # 说明文档
+└── static  # 静态文件夹
+    ├── index.html # 测试页面
+    ├── modules # JS模块目录
+    │   └── cookie.js  # cookie相关模块
+    ├── README.md  # JS模块文档
+    └── static.js  # 主静态文件，会被默认加载到页面中
+
+2 directories, 7 files
+</code></pre></div></div>
+<h2 id="0x01-新建模块---窃取凭证">0x01 新建模块 - 窃取凭证</h2>
+
+<p>首先用VScode打开项目目录，在modules中新建一个<code class="language-plaintext highlighter-rouge">getpass.js</code>文件：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/91f74f861a47b14a69d9a40596642ffb.png" alt="2021-02-18-01-05-16"></p>
+
+<p>写入代码：</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+模拟一个对话框
+prompt("请输入账号：")
+
+用户输入 账号
+用户输入 密码
+
+保存凭证
+
+*/</span>
+
+<span class="k">export</span> <span class="kd">function</span> <span class="nx">getPassword</span><span class="p">(</span><span class="nx">u_info</span><span class="p">,</span> <span class="nx">p_info</span><span class="p">){</span>
+
+    <span class="kd">var</span> <span class="nx">cert</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Object</span><span class="p">();</span>
+    <span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+    <span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+
+    <span class="k">while</span><span class="p">(</span><span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">==</span> <span class="dl">""</span> <span class="p">){</span>
+        <span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">=</span> <span class="nx">prompt</span><span class="p">(</span><span class="nx">u_info</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">while</span><span class="p">(</span><span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">==</span> <span class="dl">""</span><span class="p">){</span>
+        <span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">=</span> <span class="nx">prompt</span><span class="p">(</span><span class="nx">p_info</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">cert</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>最后在<code class="language-plaintext highlighter-rouge">static.js</code>中引入：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7a4050bb1bbc64687ea77fd0b6482a20.png" alt="2021-02-18-01-07-02"></p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="o">*</span> <span class="k">as</span> <span class="nx">GetPassword</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">./modules/getpass.js</span><span class="dl">"</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">GetPassword</span><span class="p">.</span><span class="nx">getPassword</span><span class="p">(</span><span class="dl">"</span><span class="s2">请输入账号：</span><span class="dl">"</span><span class="p">,</span> <span class="dl">"</span><span class="s2">请输入密码：</span><span class="dl">"</span><span class="p">));</span>
+</code></pre></div></div>
+
+<p>查看站点：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/424eedccafdde55ecbf8152c96b831fe.png" alt="2021-02-18-01-09-04"></p>
+
+<p>访问页面就会自动弹出提示框，当完成输入后，控制台会打印明文账号密码。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/4d15d223c8c24d184c4004a20b5801e6.png" alt="2021-02-18-01-10-02"></p>
+
+<h2 id="0x02-窃取凭证模块的思考">0x02 窃取凭证模块的思考</h2>
+
+<p>现阶段大部分网站已经解决了明文传输的问题，基本上很多都是通过JS进行加密，这让获取明文密码变得更加“麻烦了点”。</p>
+
+<p>上述演示的模块是在每一个HTTP请求中都会执行，肯定是不友好的，因此可以根据判断页面内容来进行弹出，还需要不断优化。</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

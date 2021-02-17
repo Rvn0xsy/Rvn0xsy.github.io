@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Nmap扩展开发（二） « 倾旋的博客</title>
+  <meta name="description" content="0x01 NSE引擎执行流程Nmap的扩展脚本语言都基于lua来开发的，执行也是调用了内部封装的lua解释器。正常情况下，调用任何一个扩展脚本会首先执行nse_main.lua，该脚本主要做了以下几件事：  加载一些Nmap的核心库（nselib文件夹中）  定义多线程函数  定义输出结果处理函数  读取、加载扩...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-04-24/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Nmap扩展开发（二）</h1>
+    <p class="post-meta">Apr 24, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x01-nse引擎执行流程">0x01 NSE引擎执行流程</h2>
+
+<p>Nmap的扩展脚本语言都基于lua来开发的，执行也是调用了内部封装的lua解释器。</p>
+
+<p>正常情况下，调用任何一个扩展脚本会首先执行<code class="language-plaintext highlighter-rouge">nse_main.lua</code>，该脚本主要做了以下几件事：</p>
+
+<ul>
+  <li>加载一些Nmap的核心库（<code class="language-plaintext highlighter-rouge">nselib</code>文件夹中）</li>
+  <li>定义多线程函数</li>
+  <li>定义输出结果处理函数</li>
+  <li>读取、加载扩展脚本</li>
+  <li>定义扩展脚本函数接口</li>
+  <li>执行扩展脚本</li>
+  <li>……</li>
+</ul>
+
+<h2 id="0x02-验证nse_mainlua最先执行">0x02 验证nse_main.lua最先执行</h2>
+
+<p>使用vim编辑器修改<code class="language-plaintext highlighter-rouge">nse_main.lua</code></p>
+
+<p><code class="language-plaintext highlighter-rouge">vim /usr/share/nmap/nse_mai.lua</code></p>
+
+<p>在第一行添加：</p>
+
+<p><code class="language-plaintext highlighter-rouge">print("[*] nse_main.lua first excute ... \n")</code></p>
+
+<p>保存后，使用一个脚本观察效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f49c27bfcd565d76e90d9ddb703c9724.png" alt="2019-04-24-09-57-34"></p>
+
+<p>可以发现，在nmap启动后就会执行nse_main.lua中的代码。</p>
+
+<h2 id="0x03-扩展脚本执行规则">0x03 扩展脚本执行规则</h2>
+
+<p>在nse_main.lua的64行左右，定义了一些规则：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">-- Table of different supported rules.</span>
+<span class="kd">local</span> <span class="n">NSE_SCRIPT_RULES</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">prerule</span> <span class="o">=</span> <span class="s2">"prerule"</span><span class="p">,</span>
+  <span class="n">hostrule</span> <span class="o">=</span> <span class="s2">"hostrule"</span><span class="p">,</span>
+  <span class="n">portrule</span> <span class="o">=</span> <span class="s2">"portrule"</span><span class="p">,</span>
+  <span class="n">postrule</span> <span class="o">=</span> <span class="s2">"postrule"</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>每一个规则代表了函数，由函数的返回值决定执行流程</p>
+
+<ul>
+  <li>prerule 在扫描任何主机之前，prerule函数运行一次</li>
+  <li>hostrule 在扫描一个主机后运行一次</li>
+  <li>portrule 在扫描一个主机的端口后运行一次</li>
+  <li>postrule 在全部扫描完毕以后运行一次</li>
+</ul>
+
+<p>也就是说，prerule和postrule是在开始和结束运行，并且只运行一次，hostrule是扫描一个主机就运行一次，有N个主机就会运行N次，portrule是扫描到一个端口就运行一次，有N个端口就运行N次。</p>
+
+<p>为了验证我得出的结论，写了一个测试脚本：</p>
+
+<p><code class="language-plaintext highlighter-rouge">vim /usr/share/nmap/scripts/test.nse</code></p>
+
+<p>内容如下：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"prerule()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"hostrule()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"portrule()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">action</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"action()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"postrule()"</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>使用nmap扫描一个主机调用这个脚本看看执行效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0e02fc3de8ab518d7526b6b68245222d.png" alt="2019-04-24-09-59-40"></p>
+
+<p>至此我们就清楚了扩展脚本的执行流程，后续我们将会慢慢细化其中的知识点。</p>
+
+<h2 id="0x04-扩展脚本action函数">0x04 扩展脚本—action函数</h2>
+
+<p>在前面一小节的代码中，我们发现了action这个函数，它的主要作用是用于在portrule或hostrule返回true之后自动执行的函数。</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">local</span> <span class="n">stdnse</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"stdnse"</span>
+<span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+	<span class="k">return</span> <span class="kc">true</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+	<span class="k">return</span> <span class="kc">true</span>
+<span class="k">end</span>
+<span class="n">action</span> <span class="o">=</span> <span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"[*]action ..."</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>我本机开启了一个80端口，但是action执行了两次：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/57adafe5f7191efea541d46accaee428.png" alt="2019-04-24-10-00-22"></p>
+
+<p>第一次是hostrule返回true而调用的，第二次是由portrule函数扫描到80端口返回true而调用的。</p>
+
+<p>下一章：扩展脚本-主机、端口对象</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

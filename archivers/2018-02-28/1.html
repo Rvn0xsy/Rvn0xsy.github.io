@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>C++/C实现DNS查询 « 倾旋的博客</title>
+  <meta name="description" content="本文简述一下使用C++/C发送A记录的DNS数据请求程序的开发过程。">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-02-28/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">C++/C实现DNS查询</h1>
+    <p class="post-meta">Feb 18, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文简述一下使用C++/C发送A记录的DNS数据请求程序的开发过程。
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E5%89%8D%E8%A8%80" id="markdown-toc-0x00-前言">0x00 前言</a></li>
+  <li>
+<a href="#0x01-%E5%9F%BA%E7%A1%80%E9%93%BA%E5%9E%AB" id="markdown-toc-0x01-基础铺垫">0x01 基础铺垫</a>    <ul>
+      <li><a href="#%E6%8A%A5%E6%96%87%E6%A0%BC%E5%BC%8F" id="markdown-toc-报文格式">报文格式</a></li>
+    </ul>
+  </li>
+  <li>
+<a href="#0x02-%E6%95%B0%E7%BB%84%E7%9A%84%E5%86%85%E5%AD%98%E6%A6%82%E5%BF%B5" id="markdown-toc-0x02-数组的内存概念">0x02 数组的内存概念</a>    <ul>
+      <li><a href="#%E5%A1%AB%E5%85%85%E5%9F%9F%E5%90%8D" id="markdown-toc-填充域名">填充域名</a></li>
+      <li><a href="#%E8%AE%BE%E7%BD%AE%E6%9F%A5%E8%AF%A2%E7%B1%BB%E5%9E%8B" id="markdown-toc-设置查询类型">设置查询类型</a></li>
+      <li><a href="#%E8%AF%B7%E6%B1%82%E5%87%BD%E6%95%B0" id="markdown-toc-请求函数">请求函数</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x03-%E5%B0%81%E8%A3%85%E8%B5%B7%E6%9D%A5" id="markdown-toc-0x03-封装起来">0x03 封装起来</a></li>
+  <li>
+<a href="#0x04-%E8%A7%A3%E6%9E%90%E6%8E%A5%E6%94%B6%E7%9A%84%E6%95%B0%E6%8D%AE" id="markdown-toc-0x04-解析接收的数据">0x04 解析接收的数据</a>    <ul>
+      <li><a href="#%E8%8E%B7%E5%8F%96%E8%AE%B0%E5%BD%95%E7%BB%93%E6%9E%9C" id="markdown-toc-获取记录结果">获取记录结果</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>转眼间已经是2018年的二月末了，这一年来的太快，让我手忙脚乱……去年想做的事情都没有做的很成功，让我深感遗憾。</p>
+
+<hr>
+
+<p>创业不谈，谈一谈自己的收获和生活吧</p>
+
+<ul>
+  <li>
+    <p>1.安全内容运营</p>
+
+    <p>起初大家好像都在注册自己的微信公众号，通过自己的积累，让自己能有更好的工作、更多的出路、亦或是一种分享精神。</p>
+  </li>
+</ul>
+
+<p>我注册了 “知安小酒馆” ，目前并没有太多人关注，也就在恰逢值得纪念的日子给大家一些祝福。但在此之前从知乎引流到微信平台，再到我自己开发的漏洞平台，我敢说它就可以成为产品，只要坚持那么一点点，只要有人给我鼓励……</p>
+
+<p>作为干了两三个月的小编来说，码字已经是常事，写作这个习惯也潜移默化的改变我，让我的表达更加流畅，错别字越来越少，文章越来越有层次。</p>
+
+<ul>
+  <li>
+    <p>2.编程一直是我的习惯</p>
+
+    <p>喜欢对自己刨根问底，在计算机刚开始发展的时候，协议、网络、软件、操作系统都在变化，而这些东西中包罗万象了许多科技进步留下的有趣故事。
+我更看重的是知识。是那“黑客”的本质所吸引我的一些“优点”。</p>
+  </li>
+  <li>
+    <p>3.读书</p>
+
+    <p>这个在年底的时候并没有坚持，仿佛对生活充满了厌恶，总想改变点什么，可却非常无力……</p>
+  </li>
+  <li>
+    <p>4.看电影</p>
+
+    <p>这项活动快成了我的生活不可或缺的一部分，看了很多高票房的电影，总是感触很深，尤其是《缝纫机乐队》，看哭了。</p>
+  </li>
+  <li>
+    <p>5.吃火锅</p>
+
+    <p>喜欢吃辣的，所以经常去一家火锅店，然后没太多闲钱，有时候还觉得不该花。可真的很好吃…… 大半夜的都饿了。。 <code class="language-plaintext highlighter-rouge">此时凌晨 04:53</code></p>
+  </li>
+</ul>
+
+<h2 id="0x01-基础铺垫">0x01 基础铺垫</h2>
+
+<p>请结合前面一篇文章：http://payloads.online/archivers/2018-02-10/1</p>
+
+<h3 id="报文格式">报文格式</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+    +---------------------+
+    |        Header       | 报文头
+    +---------------------+
+    |       Question      | 查询的问题
+    +---------------------+
+    |        Answer       | 应答
+    +---------------------+
+    |      Authority      | 授权应答
+    +---------------------+
+    |      Additional     | 附加信息
+    +---------------------+
+</code></pre></div></div>
+
+<p>之前的方法是采用了拼接二进制数据包进行发送，后来我感觉这不是一个完整的请求，并且获取结果集还是需要定义结构体的，绕不过那就只能自己实现了~</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">DNS_HEADER</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">id</span><span class="p">;</span> <span class="c1">// identification number</span>
+
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">rd</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// recursion desired</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">tc</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// truncated message</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">aa</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// authoritive answer</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">opcode</span> <span class="o">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// purpose of message</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">qr</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// query/response flag</span>
+
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">rcode</span> <span class="o">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// response code</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">cd</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// checking disabled</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">ad</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// authenticated data</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">z</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// its z! reserved</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">ra</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// recursion available</span>
+
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">q_count</span><span class="p">;</span> <span class="c1">// number of question entries</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">ans_count</span><span class="p">;</span> <span class="c1">// number of answer entries</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">auth_count</span><span class="p">;</span> <span class="c1">// number of authority entries</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">add_count</span><span class="p">;</span> <span class="c1">// number of resource entries</span>
+<span class="p">};</span>
+
+<span class="c1">//Constant sized fields of query structure</span>
+<span class="k">struct</span> <span class="nc">QUESTION</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">qtype</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">qclass</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">//Constant sized fields of the resource record structure</span>
+<span class="cp">#pragma pack(push, 1)
+</span><span class="k">struct</span> <span class="nc">R_DATA</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">type</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">_class</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ttl</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">data_len</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="cp">#pragma pack(pop)
+</span>
+<span class="c1">//Pointers to resource record contents</span>
+<span class="k">struct</span> <span class="nc">RES_RECORD</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">R_DATA</span> <span class="o">*</span><span class="n">resource</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">rdata</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">//Structure of a Query</span>
+<span class="k">typedef</span> <span class="k">struct</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="n">ques</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">QUERY</span><span class="p">;</span>
+
+</code></pre></div></div>
+
+<p>上面是固定的结构体，如果你要进行DNS客户端编程，完全可以直接拿来用。</p>
+
+<h2 id="0x02-数组的内存概念">0x02 数组的内存概念</h2>
+
+<p>大家都知道 <code class="language-plaintext highlighter-rouge">char buff[65535]</code> 意味着什么，65535个字节的<code class="language-plaintext highlighter-rouge">char</code>数组，也就是可以存储65535个字符。而我们的数据包没有那么大，可以先给它用<code class="language-plaintext highlighter-rouge">memset</code>清空为零。</p>
+
+<p>首先我们要设置一个DNS头</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      ID                       |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |QR|   Opcode |AA|TC|RD|RA|   Z    |   RCODE    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    QDCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    ANCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    NSCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                    ARCOUNT                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+</code></pre></div></div>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="mi">65535</span><span class="p">];</span>
+<span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span> <span class="n">dns</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="n">dns</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span> <span class="p">)</span><span class="o">&amp;</span><span class="n">buff</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">id</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">short</span><span class="p">)</span> <span class="n">htons</span><span class="p">(</span><span class="n">getpid</span><span class="p">());</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">qr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//This is a query</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">opcode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//This is a standard query</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">aa</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//Not Authoritative</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">tc</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//This message is not truncated</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">rd</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//Recursion Desired</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">ra</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//Recursion not available! hey we dont have it (lol)</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">z</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">ad</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">cd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">rcode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">q_count</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="c1">//we have only 1 question</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">auth_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">add_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>这块也是固定格式，当然在某些情况下你可以自行更改，具体看前一篇文章介绍…… <code class="language-plaintext highlighter-rouge">标志位</code>能看懂就可以</p>
+
+<p>此时假设<code class="language-plaintext highlighter-rouge">buff</code>的长度为<code class="language-plaintext highlighter-rouge">100%</code>，那么把<code class="language-plaintext highlighter-rouge">40%</code>已经给了DNS头。</p>
+
+<p>剩下的我们还需要指针不断的向下移动，不断向里面按照数据包规定的格式填充数据。</p>
+
+<h3 id="填充域名">填充域名</h3>
+
+<p>这里需要一个域名转换函数，因为：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|                                               |
+|                     QNAME                     |
+|                                               |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|                     QTYPE                     |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|                     QCLASS                    |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">QNAME</code>  域名被编码为一些labels序列，每个labels包含一个字节表示后续字符串长度，以及这个字符串，以0长度和空字符串来表示域名结束。</p>
+
+<p>那么仅仅只需要一个<code class="language-plaintext highlighter-rouge">char * qname</code>来指向除去DNS头部后面的起始位置就可以了。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kt">char</span> <span class="o">*</span> <span class="n">qname</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">buff</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)];</span>
+
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">changeToDnsNameFormat</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">dns</span><span class="p">,</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">host</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">lock</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">,</span> <span class="n">i</span><span class="p">;</span>
+    <span class="n">strcat</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">host</span><span class="p">,</span><span class="s">"."</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">strlen</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">host</span><span class="p">)</span> <span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">host</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="sc">'.'</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="o">*</span><span class="n">dns</span><span class="o">++</span> <span class="o">=</span> <span class="n">i</span><span class="o">-</span><span class="n">lock</span><span class="p">;</span>
+            <span class="k">for</span><span class="p">(;</span><span class="n">lock</span><span class="o">&lt;</span><span class="n">i</span><span class="p">;</span><span class="n">lock</span><span class="o">++</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="o">*</span><span class="n">dns</span><span class="o">++=</span><span class="n">host</span><span class="p">[</span><span class="n">lock</span><span class="p">];</span>
+            <span class="p">}</span>
+            <span class="n">lock</span><span class="o">++</span><span class="p">;</span> <span class="c1">//or lock=i+1;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="o">*</span><span class="n">dns</span><span class="o">++=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">15</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>上面的函数主要是用来将域名<code class="language-plaintext highlighter-rouge">payloads.online</code>转换为<code class="language-plaintext highlighter-rouge">8payloads6online0</code></p>
+
+<p>此时<code class="language-plaintext highlighter-rouge">buff</code>的<code class="language-plaintext highlighter-rouge">50%</code>已经满了 ~</p>
+
+<p>继续使用其他结构体指针指向后面的剩余部分。</p>
+
+<h3 id="设置查询类型">设置查询类型</h3>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">QTYPE</code>  <code class="language-plaintext highlighter-rouge">2个字节</code>表示查询类型，.取值可以为任何可用的类型值，以及通配码来表示所有的资源记录。</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">QCLASS</code> <code class="language-plaintext highlighter-rouge">2个字节</code>表示查询的协议类，比如，IN代表Internet</li>
+</ul>
+
+<p>使用<code class="language-plaintext highlighter-rouge">struct QUESTION *</code>来填充。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span> <span class="n">qinfo</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">buff</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)</span><span class="o">+</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">qname</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>
+<span class="n">qinfo</span><span class="o">-&gt;</span><span class="n">qtype</span><span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">qinfo</span><span class="o">-&gt;</span><span class="n">qclass</span><span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h3 id="请求函数">请求函数</h3>
+
+<p>只需要发送一个UDP数据包即可~</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">requestDnsServer</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="n">sockaddr_in</span> <span class="n">dest</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">dest</span><span class="p">);</span>
+    <span class="n">dnsSock</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span> <span class="p">,</span> <span class="n">SOCK_DGRAM</span> <span class="p">,</span> <span class="n">IPPROTO_UDP</span><span class="p">);</span> <span class="c1">//UDP packet for DNS queries</span>
+    <span class="n">dest</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+    <span class="n">dest</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">53</span><span class="p">);</span>
+    <span class="n">dest</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="s">"114.114.114.114"</span><span class="p">);</span> <span class="c1">//dns servers</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">sendto</span><span class="p">(</span><span class="n">dnsSock</span><span class="p">,(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">buff</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">qname</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span><span class="p">),</span><span class="mi">0</span><span class="p">,(</span><span class="k">struct</span> <span class="nc">sockaddr</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">dest</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">dest</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">recvfrom</span> <span class="p">(</span><span class="n">dnsSock</span><span class="p">,(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">buff</span> <span class="p">,</span> <span class="mi">65536</span> <span class="p">,</span> <span class="mi">0</span> <span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">sockaddr</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">dest</span> <span class="p">,</span> <span class="p">(</span><span class="n">socklen_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">i</span> <span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">perror</span><span class="p">(</span><span class="s">"recvfrom failed"</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>整个数据包的长度 = sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION)</p>
+
+<p>DNS头部+域名+查询类型+查询协议类</p>
+
+<h2 id="0x03-封装起来">0x03 封装起来</h2>
+
+<ul>
+  <li>dns.h</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="c1">//</span>
+<span class="c1">// Created by payloads on 18-2-27.</span>
+<span class="c1">//</span>
+
+<span class="cp">#ifndef NEWPRO_DNS_H
+#define NEWPRO_DNS_H
+#include &lt;cstring&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;cstdlib&gt;
+#include &lt;arpa/inet.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;cstdio&gt;
+#include &lt;iostream&gt;
+#include &lt;map&gt;
+#define T_A 1 //Ipv4 address
+#define T_NS 2 //Nameserver
+#define T_CNAME 5 // canonical name
+#define T_SOA 6 </span><span class="cm">/* start of authority zone */</span><span class="cp">
+#define T_PTR 12 </span><span class="cm">/* domain name pointer */</span><span class="cp">
+#define T_MX 15 //Mail server
+</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">id</span><span class="p">;</span> <span class="c1">// identification number</span>
+
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">rd</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// recursion desired</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">tc</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// truncated message</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">aa</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// authoritive answer</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">opcode</span> <span class="o">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// purpose of message</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">qr</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// query/response flag</span>
+
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">rcode</span> <span class="o">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// response code</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">cd</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// checking disabled</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">ad</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// authenticated data</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">z</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// its z! reserved</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">ra</span> <span class="o">:</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// recursion available</span>
+
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">q_count</span><span class="p">;</span> <span class="c1">// number of question entries</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">ans_count</span><span class="p">;</span> <span class="c1">// number of answer entries</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">auth_count</span><span class="p">;</span> <span class="c1">// number of authority entries</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">add_count</span><span class="p">;</span> <span class="c1">// number of resource entries</span>
+<span class="p">};</span>
+
+<span class="c1">//Constant sized fields of query structure</span>
+<span class="k">struct</span> <span class="nc">QUESTION</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">qtype</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">qclass</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">//Constant sized fields of the resource record structure</span>
+<span class="cp">#pragma pack(push, 1)
+</span><span class="k">struct</span> <span class="nc">R_DATA</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">type</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">_class</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ttl</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">data_len</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="cp">#pragma pack(pop)
+</span>
+<span class="c1">//Pointers to resource record contents</span>
+<span class="k">struct</span> <span class="nc">RES_RECORD</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">R_DATA</span> <span class="o">*</span><span class="n">resource</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">rdata</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">//Structure of a Query</span>
+<span class="k">typedef</span> <span class="k">struct</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="n">ques</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">QUERY</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">dns</span> <span class="p">{</span>
+
+<span class="nl">public:</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">dnsServer</span><span class="p">;</span>
+
+<span class="nl">public:</span>
+    <span class="n">dns</span><span class="p">();</span>
+    <span class="o">~</span><span class="n">dns</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="n">request</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">hostname</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="n">changeToDnsNameFormat</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">dns</span><span class="p">,</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">host</span><span class="p">);</span>
+    <span class="kt">int</span>  <span class="n">setDnsServer</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">dnsServer</span><span class="p">);</span>
+
+<span class="nl">private:</span>
+    <span class="kt">void</span> <span class="n">setDnsHeader</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span> <span class="n">dns</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="n">setQname</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">hostname</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="n">setQinfo</span><span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="n">qinfo</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="n">requestDnsServer</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span><span class="n">dns</span><span class="p">);</span>
+    <span class="n">u_char</span><span class="o">*</span> <span class="n">ReadName</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">reader</span><span class="p">,</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span><span class="kt">int</span><span class="o">*</span> <span class="n">count</span><span class="p">);</span>
+<span class="nl">private:</span>
+    <span class="kt">int</span> <span class="n">dnsSock</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">Server</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">hostname</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="mi">65535</span><span class="p">];</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">qname</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">reader</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">RES_RECORD</span> <span class="n">answers</span><span class="p">[</span><span class="mi">20</span><span class="p">],</span><span class="n">auth</span><span class="p">[</span><span class="mi">20</span><span class="p">],</span><span class="n">addit</span><span class="p">[</span><span class="mi">20</span><span class="p">];</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">aResult</span><span class="p">;</span>
+    <span class="n">sockaddr_in</span> <span class="n">dest</span><span class="p">,</span><span class="n">a</span><span class="p">;</span>
+<span class="p">};</span>
+
+
+<span class="cp">#endif //NEWPRO_DNS_H
+</span>
+</code></pre></div></div>
+
+<ul>
+  <li>dns.cpp</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="c1">//</span>
+<span class="c1">// Created by payloads on 18-2-27.</span>
+<span class="c1">//</span>
+
+<span class="cp">#include "dns.h"
+</span>
+
+<span class="n">dns</span><span class="o">::</span><span class="n">dns</span><span class="p">(){</span>
+    <span class="n">strncpy</span><span class="p">(</span><span class="n">Server</span><span class="p">,</span><span class="s">"114.114.114.114"</span><span class="p">,</span><span class="mi">20</span><span class="p">);</span>
+    <span class="c1">//aResult.insert(std::pair&lt;std::string,std::string&gt;("aaaaa","bbbbb"));</span>
+<span class="p">}</span>
+
+
+<span class="n">dns</span><span class="o">::~</span><span class="n">dns</span><span class="p">(){</span>
+
+    <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">aResult</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(;</span> <span class="n">it</span> <span class="o">!=</span> <span class="n">aResult</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">it</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[*]"</span> <span class="o">&lt;&lt;</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">hostname</span> <span class="o">&lt;&lt;</span> <span class="s">" =&gt; "</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it</span><span class="p">).</span><span class="n">second</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ *
+ * @param hostname
+ */</span>
+ <span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">request</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">hostname</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">strcpy</span><span class="p">((</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">hostname</span><span class="p">,</span><span class="n">hostname</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+
+    <span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span> <span class="n">dns</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="n">qinfo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+    <span class="n">setDnsHeader</span><span class="p">(</span><span class="n">dns</span><span class="p">);</span>
+    <span class="n">setQname</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">hostname</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+    <span class="n">setQinfo</span><span class="p">(</span><span class="n">qinfo</span><span class="p">);</span>
+
+
+    <span class="n">requestDnsServer</span><span class="p">(</span><span class="n">dns</span><span class="p">);</span>
+    <span class="n">dns</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="o">*</span><span class="p">)</span><span class="n">buff</span><span class="p">;</span>
+
+
+
+    <span class="n">reader</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">buff</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">qname</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span><span class="p">)];</span>
+    <span class="cm">/*
+    printf("\nThe response contains : ");
+    printf("\n %d Questions.",ntohs(dns-&gt;q_count));
+    printf("\n %d Answers.",ntohs(dns-&gt;ans_count));
+    printf("\n %d Authoritative Servers.",ntohs(dns-&gt;auth_count));
+    printf("\n %d Additional records.\n\n",ntohs(dns-&gt;add_count));
+    */</span>
+    <span class="kt">int</span> <span class="n">stop</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">);</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">name</span><span class="o">=</span><span class="n">ReadName</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span><span class="n">buff</span><span class="p">,</span><span class="o">&amp;</span><span class="n">stop</span><span class="p">);</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="n">stop</span><span class="p">;</span>
+        <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">R_DATA</span><span class="o">*</span><span class="p">)(</span><span class="n">reader</span><span class="p">);</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">R_DATA</span><span class="p">);</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">//if its an ipv4 address</span>
+        <span class="p">{</span>
+            <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">));</span>
+
+            <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span> <span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">)</span> <span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">=</span><span class="n">reader</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+            <span class="p">}</span>
+
+            <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">[</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">)]</span> <span class="o">=</span> <span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">28</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span> <span class="o">=</span> <span class="n">ReadName</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span><span class="n">buff</span><span class="p">,</span><span class="o">&amp;</span><span class="n">stop</span><span class="p">);</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="n">stop</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Answer Records : %d </span><span class="se">\n</span><span class="s">"</span> <span class="p">,</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">)</span> <span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="c1">//printf("Name : %s ",answers[i].name);</span>
+
+        <span class="k">if</span><span class="p">(</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="n">T_A</span><span class="p">)</span> <span class="c1">//IPv4 address</span>
+        <span class="p">{</span>
+
+            <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">ipAddress</span><span class="p">;</span>
+            <span class="kt">long</span> <span class="o">*</span><span class="n">p</span><span class="p">;</span>
+            <span class="n">p</span><span class="o">=</span><span class="p">(</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">;</span>
+            <span class="n">a</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">);</span> <span class="c1">//working without ntohl</span>
+            <span class="c1">//printf("has IPv4 address : %s",inet_ntoa(a.sin_addr));</span>
+            <span class="n">ipAddress</span><span class="o">=</span><span class="n">inet_ntoa</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">);</span>
+            <span class="n">aResult</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ipAddress</span><span class="p">));</span>
+            <span class="c1">//ipAddress.clear();</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span><span class="o">==</span><span class="mi">5</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="c1">//Canonical name for an alias</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"has alias name : %s"</span><span class="p">,</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">//printf("\n");</span>
+    <span class="p">}</span>
+
+    <span class="cm">/*
+    for (int k = 0; k &lt; ntohs(dns-&gt;ans_count); ++k) {
+        free(answers[i].rdata);
+    }
+    */</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">dnsSock</span><span class="p">);</span>
+
+    <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">aResult</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(;</span> <span class="n">it</span> <span class="o">!=</span> <span class="n">aResult</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">it</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[*]"</span> <span class="o">&lt;&lt;</span> <span class="n">hostname</span> <span class="o">&lt;&lt;</span> <span class="s">" =&gt; "</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it</span><span class="p">).</span><span class="n">second</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">)</span> <span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">//if its an ipv4 address</span>
+        <span class="p">{</span>
+            <span class="n">free</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">aResult</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">this</span><span class="o">-&gt;</span><span class="n">hostname</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">28</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ *
+ * @param dns
+ * @param host
+ */</span>
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">changeToDnsNameFormat</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">dns</span><span class="p">,</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">host</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">lock</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">,</span> <span class="n">i</span><span class="p">;</span>
+    <span class="n">strcat</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">host</span><span class="p">,</span><span class="s">"."</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">strlen</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">host</span><span class="p">)</span> <span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">host</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="sc">'.'</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="o">*</span><span class="n">dns</span><span class="o">++</span> <span class="o">=</span> <span class="n">i</span><span class="o">-</span><span class="n">lock</span><span class="p">;</span>
+            <span class="k">for</span><span class="p">(;</span><span class="n">lock</span><span class="o">&lt;</span><span class="n">i</span><span class="p">;</span><span class="n">lock</span><span class="o">++</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="o">*</span><span class="n">dns</span><span class="o">++=</span><span class="n">host</span><span class="p">[</span><span class="n">lock</span><span class="p">];</span>
+            <span class="p">}</span>
+            <span class="n">lock</span><span class="o">++</span><span class="p">;</span> <span class="c1">//or lock=i+1;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="o">*</span><span class="n">dns</span><span class="o">++=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">28</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ *
+ * @param dns
+ */</span>
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">setDnsHeader</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span><span class="n">dns</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">dns</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span> <span class="p">)</span><span class="o">&amp;</span><span class="n">buff</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">id</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">short</span><span class="p">)</span> <span class="n">htons</span><span class="p">(</span><span class="n">getpid</span><span class="p">());</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">qr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//This is a query</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">opcode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//This is a standard query</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">aa</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//Not Authoritative</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">tc</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//This message is not truncated</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">rd</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//Recursion Desired</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">ra</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">//Recursion not available! hey we dont have it (lol)</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">z</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">ad</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">cd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">rcode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">q_count</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="c1">//we have only 1 question</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">auth_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">dns</span><span class="o">-&gt;</span><span class="n">add_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ *
+ * @param hostname
+ */</span>
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">setQname</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">qname</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">buff</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)];</span>
+    <span class="n">changeToDnsNameFormat</span><span class="p">(</span><span class="n">qname</span><span class="p">,</span><span class="n">hostname</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ *
+ * @param qinfo
+ */</span>
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">setQinfo</span><span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="n">qinfo</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">qinfo</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">buff</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)</span><span class="o">+</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">qname</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">qinfo</span><span class="o">-&gt;</span><span class="n">qtype</span><span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="n">qinfo</span><span class="o">-&gt;</span><span class="n">qclass</span><span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+
+<span class="cm">/**
+ *
+ * @param reader
+ * @param buffer
+ * @param count
+ * @return
+ */</span>
+<span class="n">u_char</span> <span class="o">*</span> <span class="n">dns</span><span class="o">::</span><span class="n">ReadName</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">reader</span><span class="p">,</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span><span class="kt">int</span><span class="o">*</span> <span class="n">count</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">jumped</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">offset</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="p">,</span> <span class="n">j</span><span class="p">;</span>
+
+    <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="mi">256</span><span class="p">);</span>
+
+    <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">28</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+
+    <span class="c1">//read the names in 3www6google3com format</span>
+    <span class="k">while</span><span class="p">(</span><span class="o">*</span><span class="n">reader</span><span class="o">!=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">if</span><span class="p">(</span><span class="o">*</span><span class="n">reader</span><span class="o">&gt;=</span><span class="mi">192</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">reader</span><span class="p">)</span><span class="o">*</span><span class="mi">256</span> <span class="o">+</span> <span class="o">*</span><span class="p">(</span><span class="n">reader</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">49152</span><span class="p">;</span> <span class="c1">//49152 = 11000000 00000000 ;)</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">buffer</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+            <span class="n">jumped</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//we have jumped to another location so counting wont go up!</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">name</span><span class="p">[</span><span class="n">p</span><span class="o">++</span><span class="p">]</span><span class="o">=*</span><span class="n">reader</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">jumped</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="o">*</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//if we havent jumped to another location then we can count up</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">name</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">28</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span> <span class="c1">//string complete</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">jumped</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="o">*</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//number of steps we actually moved forward in the packet</span>
+    <span class="p">}</span>
+
+    <span class="c1">//now convert 3www6google3com0 to www.google.com</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">name</span><span class="p">);</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">p</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="k">for</span><span class="p">(</span><span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">j</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">p</span><span class="p">;</span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>
+            <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="sc">'.'</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">28</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span> <span class="c1">//remove the last dot</span>
+    <span class="k">return</span> <span class="n">name</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ * set name server
+ * @param dnsServer
+ * @return
+ */</span>
+<span class="kt">int</span> <span class="n">dns</span><span class="o">::</span><span class="n">setDnsServer</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">dnsServer</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">strncpy</span><span class="p">(</span><span class="n">Server</span><span class="p">,</span><span class="n">dnsServer</span><span class="p">,</span><span class="n">strlen</span><span class="p">(</span><span class="n">dnsServer</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">100</span><span class="o">?</span><span class="mi">99</span><span class="o">:</span><span class="n">strlen</span><span class="p">(</span><span class="n">dnsServer</span><span class="p">));</span>
+<span class="p">}</span>
+
+
+<span class="kt">void</span> <span class="n">dns</span><span class="o">::</span><span class="n">requestDnsServer</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span> <span class="o">*</span> <span class="n">dns</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">dest</span><span class="p">);</span>
+    <span class="n">dnsSock</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span> <span class="p">,</span> <span class="n">SOCK_DGRAM</span> <span class="p">,</span> <span class="n">IPPROTO_UDP</span><span class="p">);</span> <span class="c1">//UDP packet for DNS queries</span>
+    <span class="n">dest</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+    <span class="n">dest</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">53</span><span class="p">);</span>
+    <span class="n">dest</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="n">Server</span><span class="p">);</span> <span class="c1">//dns servers</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">sendto</span><span class="p">(</span><span class="n">dnsSock</span><span class="p">,(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">buff</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">DNS_HEADER</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">qname</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">QUESTION</span><span class="p">),</span><span class="mi">0</span><span class="p">,(</span><span class="k">struct</span> <span class="nc">sockaddr</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">dest</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">dest</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">recvfrom</span> <span class="p">(</span><span class="n">dnsSock</span><span class="p">,(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">buff</span> <span class="p">,</span> <span class="mi">65536</span> <span class="p">,</span> <span class="mi">0</span> <span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">sockaddr</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">dest</span> <span class="p">,</span> <span class="p">(</span><span class="n">socklen_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">i</span> <span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">perror</span><span class="p">(</span><span class="s">"recvfrom failed"</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<h2 id="0x04-解析接收的数据">0x04 解析接收的数据</h2>
+
+<p>由于DNS的数据包比较简单，发送的结构与响应结构基本相同。</p>
+
+<p><a href="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-02-28/0x01.png">响应数据包</a></p>
+
+<p>可以看到<code class="language-plaintext highlighter-rouge">QR</code>的标志位是1，证明是一个响应数据包。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Answer RRs</code>为2，证明有两条结果……</p>
+
+<p>我们翻到最后看出的确有两个A记录结果，且IP地址都不相同</p>
+
+<p>在C++/C里面如何获取到A记录的结果呢？</p>
+
+<p>同样的，我们还是要将接受到的数据使用结构体指针分割，这样可以很方便的获取到记录。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">if</span><span class="p">(</span><span class="n">recvfrom</span> <span class="p">(</span><span class="n">dnsSock</span><span class="p">,(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">buff</span> <span class="p">,</span> <span class="mi">65536</span> <span class="p">,</span> <span class="mi">0</span> <span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">sockaddr</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">dest</span> <span class="p">,</span> <span class="p">(</span><span class="n">socklen_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">i</span> <span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">perror</span><span class="p">(</span><span class="s">"recvfrom failed"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>这一句是将接收到的数据写入<code class="language-plaintext highlighter-rouge">buff</code>数组。</p>
+
+<p>先解析DNS头，可以获取有几条结果:</p>
+
+<p><code class="language-plaintext highlighter-rouge">dns = (struct DNS_HEADER*)buff;</code></p>
+
+<p><code class="language-plaintext highlighter-rouge">dns-&gt;ans_count</code></p>
+
+<p>接下来可以进行读取：</p>
+
+<p>reader = &amp;buff[sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION)];</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="n">u_char</span> <span class="o">*</span> <span class="n">dns</span><span class="o">::</span><span class="n">ReadName</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">reader</span><span class="p">,</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span><span class="kt">int</span><span class="o">*</span> <span class="n">count</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">jumped</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">offset</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">i</span> <span class="p">,</span> <span class="n">j</span><span class="p">;</span>
+
+    <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="mi">256</span><span class="p">);</span>
+
+    <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">35</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+
+    <span class="c1">//read the names in 3www6google3com format</span>
+    <span class="k">while</span><span class="p">(</span><span class="o">*</span><span class="n">reader</span><span class="o">!=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">if</span><span class="p">(</span><span class="o">*</span><span class="n">reader</span><span class="o">&gt;=</span><span class="mi">192</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">reader</span><span class="p">)</span><span class="o">*</span><span class="mi">256</span> <span class="o">+</span> <span class="o">*</span><span class="p">(</span><span class="n">reader</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">49152</span><span class="p">;</span> <span class="c1">//49152 = 11000000 00000000 ;)</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">buffer</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+            <span class="n">jumped</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//we have jumped to another location so counting wont go up!</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">name</span><span class="p">[</span><span class="n">p</span><span class="o">++</span><span class="p">]</span><span class="o">=*</span><span class="n">reader</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">jumped</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="o">*</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//if we havent jumped to another location then we can count up</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">name</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">35</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span> <span class="c1">//string complete</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">jumped</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="o">*</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">//number of steps we actually moved forward in the packet</span>
+    <span class="p">}</span>
+
+    <span class="c1">//now convert 3www6google3com0 to www.google.com</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">strlen</span><span class="p">((</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">name</span><span class="p">);</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">p</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="k">for</span><span class="p">(</span><span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">j</span><span class="o">&lt;</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">p</span><span class="p">;</span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>
+            <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="sc">'.'</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">35</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span> <span class="c1">//remove the last dot</span>
+    <span class="k">return</span> <span class="n">name</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>固定函数，直接可以拿来用~</p>
+
+<h3 id="获取记录结果">获取记录结果</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+	<span class="kt">int</span> <span class="n">stop</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">);</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">name</span><span class="o">=</span><span class="n">ReadName</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span><span class="n">buff</span><span class="p">,</span><span class="o">&amp;</span><span class="n">stop</span><span class="p">);</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="n">stop</span><span class="p">;</span>
+        <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">R_DATA</span><span class="o">*</span><span class="p">)(</span><span class="n">reader</span><span class="p">);</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">R_DATA</span><span class="p">);</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">//if its an ipv4 address</span>
+        <span class="p">{</span>
+            <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">));</span>
+
+            <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span> <span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">)</span> <span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">=</span><span class="n">reader</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+            <span class="p">}</span>
+
+            <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">[</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">)]</span> <span class="o">=</span> <span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">36</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">data_len</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span> <span class="o">=</span> <span class="n">ReadName</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span><span class="n">buff</span><span class="p">,</span><span class="o">&amp;</span><span class="n">stop</span><span class="p">);</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span> <span class="o">+</span> <span class="n">stop</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Answer Records : %d </span><span class="se">\n</span><span class="s">"</span> <span class="p">,</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">)</span> <span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="c1">//printf("Name : %s ",answers[i].name);</span>
+
+        <span class="k">if</span><span class="p">(</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="n">T_A</span><span class="p">)</span> <span class="c1">//IPv4 address</span>
+        <span class="p">{</span>
+
+            <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">ipAddress</span><span class="p">;</span>
+            <span class="kt">long</span> <span class="o">*</span><span class="n">p</span><span class="p">;</span>
+            <span class="n">p</span><span class="o">=</span><span class="p">(</span><span class="kt">long</span><span class="o">*</span><span class="p">)</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">;</span>
+            <span class="n">a</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">);</span> <span class="c1">//working without ntohl</span>
+            <span class="c1">//printf("has IPv4 address : %s",inet_ntoa(a.sin_addr));</span>
+            <span class="n">ipAddress</span><span class="o">=</span><span class="n">inet_ntoa</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">);</span>
+            <span class="n">aResult</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ipAddress</span><span class="p">));</span> <span class="c1">// 这里我用了容器</span>
+            <span class="c1">//ipAddress.clear();</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span><span class="o">==</span><span class="mi">5</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="c1">//Canonical name for an alias</span>
+            <span class="n">printf</span><span class="p">(</span><span class="s">"has alias name : %s"</span><span class="p">,</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">//printf("\n");</span>
+    <span class="p">}</span>
+
+    <span class="cm">/*
+    for (int k = 0; k &lt; ntohs(dns-&gt;ans_count); ++k) {
+        free(answers[i].rdata);
+    }
+    */</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">dnsSock</span><span class="p">);</span>
+
+    <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">aResult</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(;</span> <span class="n">it</span> <span class="o">!=</span> <span class="n">aResult</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">it</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"[*]"</span> <span class="o">&lt;&lt;</span> <span class="n">hostname</span> <span class="o">&lt;&lt;</span> <span class="s">" =&gt; "</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="o">*</span><span class="n">it</span><span class="p">).</span><span class="n">second</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">dns</span><span class="o">-&gt;</span><span class="n">ans_count</span><span class="p">)</span> <span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">ntohs</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">resource</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">//if its an ipv4 address</span>
+        <span class="p">{</span>
+            <span class="n">free</span><span class="p">(</span><span class="n">answers</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">rdata</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">aResult</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+    <span class="k">this</span><span class="o">-&gt;</span><span class="n">hostname</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">36</span><span class="o">&gt;</span><span class="err">'</span><span class="p">;</span>
+
+</code></pre></div></div>
+
+<p>获取到的A记录会都保存到map容器中。</p>
+
+<p>下面给出main.cpp的内容：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="cp">#include &lt;iostream&gt;
+#include "dns.h"
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+    <span class="n">dns</span> <span class="n">dd</span><span class="p">;</span>
+    <span class="n">dd</span><span class="p">.</span><span class="n">request</span><span class="p">(</span><span class="s">"payloads.online"</span><span class="p">);</span>
+
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>输出结果：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+
+Answer Records : 2 
+[*]payloads.online =&gt; 192.30.252.153
+[*]payloads.online =&gt; 192.30.252.154
+
+</code></pre></div></div>
+
+<p>后续再加把劲吧，争取把 DNS、HTTP相关的信息搜集轮子造好！！</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

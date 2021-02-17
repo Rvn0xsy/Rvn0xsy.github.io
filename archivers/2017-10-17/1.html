@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>折腾Postgresql数据库 « 倾旋的博客</title>
+  <meta name="description" content="最近学习C语言，突发奇想就想着造一些轮子吧，顺便复习一下C语言。">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-10-17/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">折腾Postgresql数据库</h1>
+    <p class="post-meta">Oct 17, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>最近学习C语言，突发奇想就想着造一些轮子吧，顺便复习一下C语言。
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E5%AE%89%E8%A3%85%E6%95%B0%E6%8D%AE%E5%BA%93" id="markdown-toc-0x00-安装数据库">0x00 安装数据库</a></li>
+  <li><a href="#0x01-%E5%88%9D%E5%A7%8B%E5%8C%96%E6%95%B0%E6%8D%AE%E5%BA%93" id="markdown-toc-0x01-初始化数据库">0x01 初始化数据库</a></li>
+  <li><a href="#0x02-%E8%AE%A4%E8%AF%81%E6%96%B9%E5%BC%8F" id="markdown-toc-0x02-认证方式">0x02 认证方式</a></li>
+  <li><a href="#0x03-%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%8F%8A%E6%95%B0%E6%8D%AE%E5%BA%93" id="markdown-toc-0x03-创建用户及数据库">0x03 创建用户及数据库</a></li>
+  <li><a href="#0x04-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E6%80%BB%E7%BB%93" id="markdown-toc-0x04-常用命令总结">0x04 常用命令总结</a></li>
+  <li><a href="#0x05-%E4%BD%BF%E7%94%A8c%E6%93%8D%E4%BD%9Cpostgresql" id="markdown-toc-0x05-使用c操作postgresql">0x05 使用C++操作Postgresql</a></li>
+</ul>
+
+<h2 id="0x00-安装数据库">0x00 安装数据库</h2>
+
+<p>在MAC OSX下，我直接使用命令：<code class="language-plaintext highlighter-rouge">brew install postgresql</code> 进行安装。</p>
+
+<p>但是MAC OSX下用的不习惯，就在Docker里面又装了一个，系统是CentOS。</p>
+
+<p>使用命令：<code class="language-plaintext highlighter-rouge">yum -y install postgresql*</code> 一步搞定~</p>
+
+<h2 id="0x01-初始化数据库">0x01 初始化数据库</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[root@5f5a39b323c9]# /etc/init.d/postgresql -h
+Usage: /etc/init.d/postgresql {start|stop|status|restart|condrestart|try-restart|reload|force-reload|initdb}
+</code></pre></div></div>
+
+<p>在这里可以启动<code class="language-plaintext highlighter-rouge">Postgresql</code>数据库，但是第一次启动需要初始化。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[root@5f5a39b323c9]# /etc/init.d/postgresql start
+
+/var/lib/pgsql/data is missing. Use "service postgresql initdb" to initialize the cluster first. // 必须初始化
+                                                           [FAILED]
+[root@5f5a39b323c9]# service postgresql initdb  # 执行初始化
+Initializing database:                                     [  OK  ]
+[root@5f5a39b323c9]# /etc/init.d/postgresql start  # 启动数据库服务
+[root@5f5a39b323c9]# netstat -ano | grep 5432
+tcp        0      0 127.0.0.1:5432              0.0.0.0:*                   LISTEN      off (0.00/0/0)
+unix  2      [ ACC ]     STREAM     LISTENING     17207  /tmp/.s.PGSQL.5432
+</code></pre></div></div>
+
+<h2 id="0x02-认证方式">0x02 认证方式</h2>
+
+<p>启动完毕后就要配置账号了，但是在此之前需要看一个认证配置文件：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[root@5f5a39b323c9]# vim /var/lib/pgsql/data/pg_hba.conf
+
+---内容如下---
+
+
+# md5 为密码认证、trust为本地认证，当然支持很多方式
+# 说明：
+# METHOD can be "trust", "reject", "md5", "password", "gss", "sspi", "krb5",
+# "ident", "pam", "ldap" or "cert".  Note that "password" sends passwords
+# in clear text; "md5" is preferred since it sends encrypted passwords.
+local   all         all                                md5 
+host    all         all         127.0.0.1/32           md5
+host    all         all         ::1/128                md5
+</code></pre></div></div>
+
+<h2 id="0x03-创建用户及数据库">0x03 创建用户及数据库</h2>
+
+<p>接下来需要创建一个子账号。 在安装完毕<code class="language-plaintext highlighter-rouge">postgresql</code>的时候，它会在系统内部自动创建一个名为<code class="language-plaintext highlighter-rouge">postgres</code>的数据库管理员账号，这个账号只能从系统内部登录（待解决），我们需要用管理员用户创建一个普通用户，以供我们以后的使用。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[root@5f5a39b323c9 cpp]# su postgres
+bash-4.1$ 
+bash-4.1$ psql
+psql (8.4.20)
+Type "help" for help.
+
+postgres=# CREATE USER pgsqler WITH PASSWORD '123456'; # 创建一个用户、密码为12356
+CREATE ROLE
+postgres=# CREATE DATABASE testdb; # 创建一个数据库
+CREATE DATABASE
+postgres=# GRANT ALL PRIVILEGES ON DATABASE testdb to pgsqler; # 将testdb这个数据库归属于pgsqler
+GRANT
+postgres=# \q # 退出
+</code></pre></div></div>
+
+<p>回到root用户，我们尝试登录数据库：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[root@5f5a39b323c9 cpp]# psql -U pgsqler -h localhost -d testdb
+Password for user pgsqler: 
+psql (8.4.20)
+Type "help" for help.
+
+testdb=&gt; 
+testdb=&gt; \q
+</code></pre></div></div>
+
+<p>一切搞定了~</p>
+
+<h2 id="0x04-常用命令总结">0x04 常用命令总结</h2>
+
+<p>登录数据库后可以输入”\?”来获得一些很方便的命令来操作数据库，而不需要去输入复杂的SQL语句：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[root@5f5a39b323c9]# psql -U pgsqler -h localhost -d testdb
+Password for user pgsqler: 
+psql (8.4.20)
+Type "help" for help.
+
+testdb=&gt; 
+testdb=&gt; \?
+General
+  \copyright             show PostgreSQL usage and distribution terms
+  \g [FILE] or ;         execute query (and send results to file or |pipe)
+  \h [NAME]              help on syntax of SQL commands, * for all commands
+  \q                     quit psql
+
+Query Buffer
+  \e [FILE]              edit the query buffer (or file) with external editor
+  \ef [FUNCNAME]         edit function definition with external editor
+  \p                     show the contents of the query buffer
+  \r                     reset (clear) the query buffer
+  \s [FILE]              display history or save it to file
+  \w FILE                write query buffer to file
+
+  ........
+
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>列举数据库：\l
+选择数据库：\c 数据库名
+查看该某个库中的所有表：\dt
+切换数据库：\c interface
+查看某个库中的某个表结构：\d 表名
+查看某个库中某个表的记录：`select * from apps limit 1`;
+显示字符集：\encoding
+退出psgl：\q
+创建数据库：createdb -h 127.0.0.1 -p 5432 -U postgres testdb
+连接数据库：psql -h 127.0.0.1 -p 5432 -U postgres testdb
+删除数据库：dropdb -h 127.0.0.1 -p 5432 -U postgres testdb
+说明：-h表示主机（Host），-p表示端口（Port），-U表示用户（User）
+创建数据表：create table tbl(a int);
+删除数据表：drop table tbl;
+插入数据：insert into tbl(a) values(1);
+查看数据：select * from tbl;
+备份数据库：pg_dump -U postgres  testdb &gt; d:/testdb.dmp
+恢复数据库：psql -U postgres testdb &lt; d:/testdb.dmp
+说明：这种方法，实际上是SQL的转储，可加参数（-t）指定多个表。
+</code></pre></div></div>
+
+<h2 id="0x05-使用c操作postgresql">0x05 使用C++操作Postgresql</h2>
+
+<p><a href="http://payloads.online/archivers/2017-10-17/2">使用C++操作Postgresql</a></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

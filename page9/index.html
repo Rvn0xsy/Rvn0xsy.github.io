@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>倾旋的博客</title>
+  <meta name="description" content="这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
+">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/page9/">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="home">
+  <a class="rss-link" href="/feed.xml">RSS Feed</a>
+  <h1 class="page-heading">Articles</h1>
+
+  <ul class="post-list">
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-04-24/3">Nmap扩展开发（三）</a>
+        </h2>
+        
+        <div class="post-meta">Apr 24, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-扩展脚本对象-主机">0X01 扩展脚本对象-主机</h2>
+
+<p>在进行主机扫描的时候会执行hostrule这个函数，从以往的nmap扩展脚本代码中我们都可以发现在hostrule这个函数中做了一些针对host操作的动作。</p>
+
+<p>hostrule有一个参数，变量名叫host，我们可以把它理解为一个对象，在这里称之为对象是为了方便读者理解，在lua中实际它的数据类型是一个多维的table（表），具有很多属性。由于这些rule函数都是被动调用的，我们只能在函数内部对形参进行操作了。</p>
+
+<p>参考：https://nmap.org/book/nse-api.html</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8aa47c1ecd155abdade1c3b457921eff.png" alt="2019-04-24-10-02-11" /></p>
+
+<p>通过上面这个表格我们能够清楚的了解到从host这个table中可以读取到哪些信息。</p>
+
+<p>为了让读者吸收，建立一个需求，请大家与我一起完成。</p>
+
+<blockquote>
+  <p>需求：使用Nmap扫描获得所有主机的MAC地址</p>
+</blockquote>
+
+<p>由于Nmap没提供这个需求的解决方案，就需要我们自己来写一个扩展脚本了~</p>
+
+<p>还是拿之前的test.nse来改一下：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">local</span> <span class="n">stdnse</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"stdnse"</span>
+<span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+	<span class="n">mac</span> <span class="o">=</span> <span class="n">host</span><span class="p">.</span><span class="n">mac_addr</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">stdnse</span><span class="p">.</span><span class="n">format_mac</span><span class="p">(</span><span class="n">mac</span><span class="p">))</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">action</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>通过host.mac_addr获取的mac地址是二进制编码的，我们要转换成字符串，需要引入stdnse这个扩展包，stdnse包中有一个format_mac函数，能够将host.mac_addr转换成字符串。</p>
+
+<p>执行效果如下：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/863e1db23982f1fbb47b8e69411185fa.png" alt="2019-04-24-10-02-57" /></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>00:50:56:ec:95:48
+00:50:56:f8:1e:b8
+00:50:56:c0:00:08
+00:0c:29:b4:48:d7
+</code></pre></div></div>
+
+<p>以上这些MAC地址就是当前内网中的所有主机了。</p>
+
+<h2 id="0x02-扩展脚本对象-端口">0X02 扩展脚本对象-端口</h2>
+
+<p>端口相对于主机来说，属性较少，主要是针对端口状态、端口协议、端口服务、端口服务版本的一些描述。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/de5b15f02b69386d59046dca2f2a7e95.png" alt="2019-04-24-10-03-27" /></p>
+
+<h3 id="0x02-完成一个需求">0X02 完成一个需求</h3>
+
+<p>还是老样子，假设一个需求，解决这个需求：</p>
+
+<blockquote>
+  <p>需求：获取当前内网中开放HTTP服务的主机的MAC地址</p>
+</blockquote>
+
+<p>首先可以分析一下这个需求：</p>
+
+<blockquote>
+  <p>条件：开放了HTTP服务
+开放了HTTP服务的主机一般都会开放80/443
+目的：获取MAC地址
+需要引入stdnse包，调用format_mac函数</p>
+</blockquote>
+
+<p>如此一来思路清晰了许多，还是从test.nse改起：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">local</span> <span class="n">stdnse</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"stdnse"</span>
+<span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">port</span><span class="p">.</span><span class="n">number</span> <span class="o">==</span> <span class="mi">80</span> <span class="ow">or</span> <span class="n">port</span><span class="p">.</span><span class="n">number</span> <span class="o">==</span> <span class="mi">443</span><span class="p">)</span><span class="k">then</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s2">"[*]Host MAC -&gt; "</span> <span class="o">..</span> <span class="n">stdnse</span><span class="p">.</span><span class="n">format_mac</span><span class="p">(</span><span class="n">host</span><span class="p">.</span><span class="n">mac_addr</span><span class="p">))</span>
+	<span class="k">end</span>
+<span class="k">end</span>
+<span class="n">action</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>既然是针对服务/端口的需求，我们可以在portrule中进行编写，肯定有读者会产生疑问，nmap的-p参数就能指定端口，为何还要再portrule中判断。</p>
+
+<p>是因为我们最终写的脚本可能不只是做这一件事，而是做多件事情，以不同的条件限定它去执行哪些代码。</p>
+
+<p>扫描结果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8286acd828509140b72d4bedac103a96.png" alt="2019-04-24-10-05-42" /></p>
+
+<p>通过上面的扫描，我们获得了内网中开启HTTP服务的主机的MAC地址，虽然Nmap已经给出了，但是学习都是一步一步来的，后面还有更复杂的需求等着你呢！</p>
+
+<h2 id="0x03-优化输出格式表table">0x03 优化输出格式——表（table）</h2>
+
+<p>在stdnse包中有一个函数叫output_table()，它能够返回一个table数据类型，通过操作这个table，将Key-&gt;Value的对应关系数据或列表数据放入，再return，就可以输出漂亮的格式~</p>
+
+<p>就拿0x01中的test.nse来演示：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">local</span> <span class="n">stdnse</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"stdnse"</span>
+<span class="n">http_table</span> <span class="o">=</span> <span class="n">stdnse</span><span class="p">.</span><span class="n">output_table</span><span class="p">()</span>
+<span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">port</span><span class="p">.</span><span class="n">number</span> <span class="o">==</span> <span class="mi">80</span> <span class="ow">or</span> <span class="n">port</span><span class="p">.</span><span class="n">number</span> <span class="o">==</span> <span class="mi">443</span><span class="p">)</span><span class="k">then</span>
+		<span class="n">http_table</span><span class="p">.</span><span class="n">http_host_mac</span> <span class="o">=</span> <span class="n">stdnse</span><span class="p">.</span><span class="n">format_mac</span><span class="p">(</span><span class="n">host</span><span class="p">.</span><span class="n">mac_addr</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">true</span>
+	<span class="k">end</span>
+<span class="k">end</span>
+<span class="n">action</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="k">return</span> <span class="n">http_table</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>执行效果如下：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/db8d23d459faf2a651a1f21dc94493c5.png" alt="2019-04-24-10-06-19" /></p>
+
+<p>可见在portrule返回true的时候才会执行action函数，在脚本刚开始执行前，声明了一个http_table全局变量，当遇到端口80/443时，会把当前主机的MAC地址装入http_table，在action中返回。</p>
+
+<p>对象结构图：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8f319658e0ec4d98f557d089c7dd99ad.png" alt="2019-04-24-10-06-46" /></p>
+
+<p>下一章：HTTP包的使用</p>
+
+<p>会介绍HTTP包的使用，并且会教大家写一些批量检测HTTP协议相关的漏洞脚本，例如：CVE-2017-12615</p>
+
+-->
+          本来是想写成一本书的，但是可能断断续续没有很好的产出，我只能以文章的形式分享出来了，希望我的研究成果能够给大家带来便利。—— 作者：倾旋
+          <p>
+            <a class="post-link" href="/archivers/2019-04-24/3">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-04-24/2">Nmap扩展开发（二）</a>
+        </h2>
+        
+        <div class="post-meta">Apr 24, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-nse引擎执行流程">0x01 NSE引擎执行流程</h2>
+
+<p>Nmap的扩展脚本语言都基于lua来开发的，执行也是调用了内部封装的lua解释器。</p>
+
+<p>正常情况下，调用任何一个扩展脚本会首先执行<code class="language-plaintext highlighter-rouge">nse_main.lua</code>，该脚本主要做了以下几件事：</p>
+
+<ul>
+  <li>加载一些Nmap的核心库（<code class="language-plaintext highlighter-rouge">nselib</code>文件夹中）</li>
+  <li>定义多线程函数</li>
+  <li>定义输出结果处理函数</li>
+  <li>读取、加载扩展脚本</li>
+  <li>定义扩展脚本函数接口</li>
+  <li>执行扩展脚本</li>
+  <li>……</li>
+</ul>
+
+<h2 id="0x02-验证nse_mainlua最先执行">0x02 验证nse_main.lua最先执行</h2>
+
+<p>使用vim编辑器修改<code class="language-plaintext highlighter-rouge">nse_main.lua</code></p>
+
+<p><code class="language-plaintext highlighter-rouge">vim /usr/share/nmap/nse_mai.lua</code></p>
+
+<p>在第一行添加：</p>
+
+<p><code class="language-plaintext highlighter-rouge">print("[*] nse_main.lua first excute ... \n")</code></p>
+
+<p>保存后，使用一个脚本观察效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f49c27bfcd565d76e90d9ddb703c9724.png" alt="2019-04-24-09-57-34" /></p>
+
+<p>可以发现，在nmap启动后就会执行nse_main.lua中的代码。</p>
+
+<h2 id="0x03-扩展脚本执行规则">0x03 扩展脚本执行规则</h2>
+
+<p>在nse_main.lua的64行左右，定义了一些规则：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">-- Table of different supported rules.</span>
+<span class="kd">local</span> <span class="n">NSE_SCRIPT_RULES</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">prerule</span> <span class="o">=</span> <span class="s2">"prerule"</span><span class="p">,</span>
+  <span class="n">hostrule</span> <span class="o">=</span> <span class="s2">"hostrule"</span><span class="p">,</span>
+  <span class="n">portrule</span> <span class="o">=</span> <span class="s2">"portrule"</span><span class="p">,</span>
+  <span class="n">postrule</span> <span class="o">=</span> <span class="s2">"postrule"</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>每一个规则代表了函数，由函数的返回值决定执行流程</p>
+
+<ul>
+  <li>prerule 在扫描任何主机之前，prerule函数运行一次</li>
+  <li>hostrule 在扫描一个主机后运行一次</li>
+  <li>portrule 在扫描一个主机的端口后运行一次</li>
+  <li>postrule 在全部扫描完毕以后运行一次</li>
+</ul>
+
+<p>也就是说，prerule和postrule是在开始和结束运行，并且只运行一次，hostrule是扫描一个主机就运行一次，有N个主机就会运行N次，portrule是扫描到一个端口就运行一次，有N个端口就运行N次。</p>
+
+<p>为了验证我得出的结论，写了一个测试脚本：</p>
+
+<p><code class="language-plaintext highlighter-rouge">vim /usr/share/nmap/scripts/test.nse</code></p>
+
+<p>内容如下：</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"prerule()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"hostrule()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"portrule()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">action</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"action()"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"postrule()"</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>使用nmap扫描一个主机调用这个脚本看看执行效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0e02fc3de8ab518d7526b6b68245222d.png" alt="2019-04-24-09-59-40" /></p>
+
+<p>至此我们就清楚了扩展脚本的执行流程，后续我们将会慢慢细化其中的知识点。</p>
+
+<h2 id="0x04-扩展脚本action函数">0x04 扩展脚本—action函数</h2>
+
+<p>在前面一小节的代码中，我们发现了action这个函数，它的主要作用是用于在portrule或hostrule返回true之后自动执行的函数。</p>
+
+<div class="language-lua highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">local</span> <span class="n">stdnse</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"stdnse"</span>
+<span class="n">prerule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+<span class="n">hostrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+	<span class="k">return</span> <span class="kc">true</span>
+<span class="k">end</span>
+<span class="n">portrule</span><span class="o">=</span><span class="k">function</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="n">port</span><span class="p">)</span>
+	<span class="k">return</span> <span class="kc">true</span>
+<span class="k">end</span>
+<span class="n">action</span> <span class="o">=</span> <span class="k">function</span><span class="p">()</span>
+	<span class="nb">print</span><span class="p">(</span><span class="s2">"[*]action ..."</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">postrule</span><span class="o">=</span><span class="k">function</span><span class="p">()</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>我本机开启了一个80端口，但是action执行了两次：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/57adafe5f7191efea541d46accaee428.png" alt="2019-04-24-10-00-22" /></p>
+
+<p>第一次是hostrule返回true而调用的，第二次是由portrule函数扫描到80端口返回true而调用的。</p>
+
+<p>下一章：扩展脚本-主机、端口对象</p>
+
+-->
+          本来是想写成一本书的，但是可能断断续续没有很好的产出，我只能以文章的形式分享出来了，希望我的研究成果能够给大家带来便利。—— 作者：倾旋
+          <p>
+            <a class="post-link" href="/archivers/2019-04-24/2">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-04-24/1">Nmap扩展开发（一）</a>
+        </h2>
+        
+        <div class="post-meta">Apr 24, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>PS ：如果你不知道你是否需要学习这个技术，那么我可以先告诉你Nmap能够做什么：</p>
+
+<ul>
+  <li>网络结构画像</li>
+  <li>漏洞扫描</li>
+  <li>漏洞利用</li>
+  <li>端口扫描</li>
+  <li>爬虫</li>
+  <li>信息搜集</li>
+  <li>….</li>
+</ul>
+
+<p>我的分类不是很清晰，但是对于一个渗透测试人员、运维人员、甲、乙方的工程师都会需要它的定制化功能，例如：将扫描结果写到数据库？新的漏洞出了POC，客户需要立即进行漏洞扫描？</p>
+
+<p>导出扫描结果这个问题，Nmap官方做出如下回应：</p>
+
+<blockquote>
+  <p><a href="https://link.zhihu.com/?target=https%3A//nmap.org/book/output-formats-output-to-database.html">Nmap Network Scanning</a></p>
+</blockquote>
+
+<blockquote>
+  <p>一个共同的愿望是将Nmap结果输出到数据库以便于查询和跟踪。这允许用户来自个人渗透测试仪 到国际企业存储他们的所有扫描结果并轻松比较它们。企业可能每天运行大型扫描，并为新打开的端口或可用计算机的邮件管理员安排查询。渗透测试人员可能会了解新漏洞并搜索受影响应用程序的所有旧扫描结果，以便他可以警告相关客户端。研究人员可以扫描数百万个IP地址，并将结果保存在数据库中，以便进行实时查询。</p>
+</blockquote>
+
+<blockquote>
+  <p>虽然这些目标值得称赞，但Nmap不提供直接的数据库输出功能。我不仅有太多不同的数据库类型支持它们，而且用户的需求变化如此之大，以至于没有单一的数据库模式是合适的。企业，笔测试员和研究人员的需求都需要不同的表结构。</p>
+</blockquote>
+
+<p>而很多朋友大多都是使用Python来调用Nmap进行格式解析，这种方式无法预估扫描进度，不能进行状态交互，效率很差，如果我们需要一个实时进行独写、漏洞检测等定制化的操作，那么就可以跟我一起来学习如何写一个自己的Nmap脚本，这本书涵盖的知识比较多，会涉及安全、网络协议、编程技术这些相关知识，相信你能够收获很多。</p>
+
+<p>笔者写扩展脚本开发系列的初衷是让大家了解nmap这个优秀的开源工具的功能，解决一些定制化的扫描需求。</p>
+
+<p>在开始之前，需要读者具备：能够熟练使用Nmap进行端口扫描、了解Nmap目录结构、懂得常见的网络知识、<strong>Lua基础（如果需要的话，我会在后期铺垫）</strong>。</p>
+
+<h2 id="0x02-nmap扩展脚本分类">0x02 Nmap扩展脚本分类</h2>
+
+<ul>
+  <li>auth	处理身份验证</li>
+  <li>broadcast 网络广播</li>
+  <li>brute	暴力猜解</li>
+  <li>default	默认</li>
+  <li>discovery	服务发现</li>
+  <li>dos	拒绝服务</li>
+  <li>exploit	漏洞利用</li>
+  <li>external	外部扩展</li>
+  <li>fuzzer	模糊测试</li>
+  <li>intrusive	扫描可能造成不良后果</li>
+  <li>malware	检测后门</li>
+  <li>safe	扫描危害较小</li>
+  <li>version	版本识别</li>
+  <li>vuln 漏洞检测</li>
+</ul>
+
+<h2 id="0x03-nmap扩展脚本铺垫">0X03 Nmap扩展脚本铺垫</h2>
+
+<p>相信网上已经有很多文章去写如何使用扩展脚本了，这块我不准备过多的铺垫。</p>
+
+<p>主要介绍如下几点：</p>
+
+<ul>
+  <li>Nmap扩展脚本用途</li>
+  <li>Nmap扩展脚本使用方法</li>
+  <li>如何查看Nmap扩展脚本的Usage（使用方法）</li>
+</ul>
+
+<h3 id="0x03-nmap扩展脚本用途">0X03 Nmap扩展脚本用途</h3>
+
+<p>Nmap扩展脚本能够帮助我们实现更多定制化的需求扫描、结果的处理、漏洞的检测、漏洞的利用等。在0x02中已经列出了扩展脚本的分类，根据说明我们能理解一个大概，这些分类代表了Nmap各个方面的能力。</p>
+
+<h3 id="0x03-nmap扩展脚本使用方法">0x03 Nmap扩展脚本使用方法</h3>
+
+<p>在很早之前，我写过一篇科普文章，主要介绍了Nmap的脚本分类、使用方法，链接：</p>
+
+<p>http://zhuanlan.zhihu.com/p/26618074</p>
+
+<p>本章没有太多概念性的东西，希望读者能够边看边做。首先设定一个需求，我有一个需要搜集某个IP或某组IP所有开放HTTP服务的中间件信息。那么Nmap有一个脚本是可以直接满足我们需求的：</p>
+
+<p><code class="language-plaintext highlighter-rouge">http-server-header.nse</code></p>
+
+<p>扫描命令：<code class="language-plaintext highlighter-rouge">nmap --script=http-server-header &lt;TARGET&gt;</code></p>
+
+<p>例如我需要扫描192.168.85.132的HTTP服务的中间件信息，使用Nmap时需要输入以下命令：</p>
+
+<p><code class="language-plaintext highlighter-rouge">nmap --script=http-server-header 192.168.85.132</code></p>
+
+<p>执行结果如下：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/db99a742aa12877dc9461564c924787e.png" alt="2019-04-24-09-51-33" /></p>
+
+<p>从扫描结果可以看出，在扫描到80端口的开放状态及服务名称下方会输出关于http-server-header脚本的结果：Apache/2.4.29 (Debian)</p>
+
+<p>一般情况下，在nmap安装目录下有一个scripts文件夹，里面存放了很多供我们调用的脚本，脚本的语言是lua，文件扩展名是nse。使用脚本时我们不需要输入脚本的全名，例如，调用http-server-header.nse时，只需要输入文件名http-server-header即可。</p>
+
+<p>下面介绍一些带参数的扩展脚本使用方法。同样的，设定一个需求，我需要扫描192.168.85.132的HTTP服务下有哪些目录或者文件，那么可以采用http-enum.nse脚本。</p>
+
+<p><strong>http-enum.nse用于枚举http服务下的目录或文件</strong></p>
+
+<p>但是单单使用这个脚本，而不根据实际情况设定内置参数，结果可能并不理想。这个脚本有一些参数：</p>
+
+<ul>
+  <li>http-enum.basepath 开始目录</li>
+  <li>http-enum.displayall 是否显示全部（默认HTTP状态码200显示，401不显示）</li>
+  <li>http-enum.fingerprintfile 指定其他文件，从中读取指纹</li>
+  <li>http-enum.category 设置类别（’attacks’,’database’, ‘general’, ‘microsoft’, ‘printer’）</li>
+  <li>http-fingerprints.nikto-db-path 指定nikto数据库的路径</li>
+</ul>
+
+<p>假设要从admin目录开始进行枚举，需要输入如下命令：</p>
+
+<p><code class="language-plaintext highlighter-rouge">nmap --script=http-enum --script-args 'http-enum.basepath=admin'
+192.168.85.132</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c5f35088a8ddc8cc8fe69c6141d5788f.png" alt="2019-04-24-09-52-35" /></p>
+
+<h3 id="0x03-如何查看nmap扩展脚本的usage使用方法">0X03 如何查看Nmap扩展脚本的Usage（使用方法）</h3>
+
+<p>使用–script-help参数</p>
+
+<p><code class="language-plaintext highlighter-rouge">nmap --script-help=http-enum</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/64917c02298f74e1d714b1ae8c6b42d4.png" alt="2019-04-24-09-53-19" /></p>
+
+<p>直接查看脚本文件</p>
+
+<p><code class="language-plaintext highlighter-rouge">cat /usr/share/nmap/scripts/http-enum.nse</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6de01f3103c731b321e75a2debb315a7.png" alt="2019-04-24-09-53-40" /></p>
+
+<p>下一章：扩展脚本（NSE引擎）执行规则</p>
+-->
+          本来是想写成一本书的，但是可能断断续续没有很好的产出，我只能以文章的形式分享出来了，希望我的研究成果能够给大家带来便利。—— 作者：倾旋
+          <p>
+            <a class="post-link" href="/archivers/2019-04-24/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-04-13/1">最快的方式搭建域环境</a>
+        </h2>
+        
+        <div class="post-meta">Apr 13, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-前言">0x00 前言</h2>
+
+<ul>
+  <li>准备环境</li>
+  <li>Windows 2008 R2 X64</li>
+  <li>Windows 10</li>
+  <li>一杯茶</li>
+  <li>一包烟</li>
+</ul>
+
+<h2 id="0x01-配置静态ip">0x01 配置静态IP</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/26e63f2b671f2fbd7f51aa72d7a6dfbd.png" alt="2019-04-13-00-08-08" /></p>
+
+<p>设置一个DNS指向本机，因为它后面是一个域控的角色。</p>
+
+<h2 id="0x02-安装活动目录角色">0x02 安装活动目录角色</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/365333da23ee51b37728451518d75b89.png" alt="2019-04-13-00-08-34" /></p>
+
+<p>点击“添加角色”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ccf84c374fc5dc2a445ebb1758b5de2f.png" alt="2019-04-13-00-08-45" /></p>
+
+<p>必须具备两点：</p>
+
+<ul>
+  <li>Administrator强密码</li>
+  <li><strong>配置静态IP</strong></li>
+</ul>
+
+<p>单击下一步：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5b6b4671a06117a11b4ff528c7ac8368.png" alt="2019-04-13-00-09-17" /></p>
+
+<p>勾选“Active Directory 域服务”，然后下一步：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f319b018f4d823bed5e8b82f9b0ed966.png" alt="2019-04-13-00-09-37" /></p>
+
+<p><strong>这里表明，后续会有安装DNS服务的过程，所以网上要先安装DNS的文章会导致域搭建失败，因为安装向导会创建一些DNS记录，以及查找域。</strong></p>
+
+<p>单击“下一步”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3b05de49e016e706a19d812fad64246e.png" alt="2019-04-13-00-09-59" /></p>
+
+<p>点击“安装”。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c5e48bb092c098aa692e59bffbf9b378.png" alt="2019-04-13-00-10-08" /></p>
+
+<p>一分钟不到就可以安装完毕，但是域的搭建还没有完成。</p>
+
+<h2 id="0x03-安装向导">0x03 安装向导</h2>
+
+<p>打开“服务器管理器”，找到Active Directory安装向导：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3e37818955594ecd70ce60a1fae7f0cd.png" alt="2019-04-13-00-10-32" /></p>
+
+<p>点击“dcpromo.exe”，就可以进入向导：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/af4a75fa453e9f91521dff65438167fa.png" alt="2019-04-13-00-10-42" /></p>
+
+<p>好奇的可以看看<strong>高级模式</strong>，为了快速搭建，就直接下一步：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/20a258eaf2dbc58b7bc501cc4d6041b4.png" alt="2019-04-13-00-10-57" /></p>
+
+<p>这里说一下，<strong>“Windows NT 4.0兼容的加密算法”</strong>，指的是低版本的SMBv1客户端，在进行NTLM网络认证的过程中采用的算法较为简单，能够轻易破解；其次，未升级到SMB v2的服务器可能会受到Pass The Hash的技术手段利用、MS17-010等漏洞的危害，为了后续的学习，我们直接选择下一步，暂时不去做加固。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/641152179f5aeb6c09f77c668ed9716f.png" alt="2019-04-13-00-11-20" /></p>
+
+<p>目前我们只有一个域，所以直接选择第二项：“在新林中新建域”，在有域的情况下，可以将域纳入“林”中。多个域称之为“林”。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8e1c8d90edec62c84cecb86e2a274205.png" alt="2019-04-13-00-11-29" /></p>
+
+<p>设置“域名”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/71bd1df09e082954bec46f1bb46e10bf.png" alt="2019-04-13-00-11-39" /></p>
+
+<p>这里必须符合DNS对域名的名称标准规范，如我就将域名定为：payloads.online：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f363012f2f7cff8ab645a9d70ad9384c.png" alt="2019-04-13-00-11-49" /></p>
+
+<p>点击下一步会有一个检查，等待即可，这是为了防止域冲突：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a1c81b795243426315150fc332f0c17b.png" alt="2019-04-13-00-11-58" /></p>
+
+<p>选择林功能级别：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3f0027905efb8e619b8a67434698497a.png" alt="2019-04-13-00-12-09" /></p>
+
+<p>为了保持向下兼容，我们选择Windows 2003的林功能级别，如果选择2008的，未来加入的域控制器必须是Windows 2008。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2e19045c55d04340f94474307c8a73ba.png" alt="2019-04-13-00-12-18" /></p>
+
+<p>单击“下一步”，选择域功能级别，上面已经解释了，是为了兼容性，我们也选择2003：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f3a65c2b2303d46dcfe69fb6331606a9.png" alt="2019-04-13-00-12-29" /></p>
+
+<p>单击下一步，此时进入DNS服务器的安装过程：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c7a68d183627bbe7f0ff57c1111c6159.png" alt="2019-04-13-00-12-42" /></p>
+
+<p>这里是由于在“payloads.online”中没有委派关系，所以我们自建：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e64d3210d9f9e27eb62fcaae0ef3f85a.png" alt="2019-04-13-00-12-51" /></p>
+
+<p>单击“是”，进入选择数据库、日志、SYSOL的存放路径，这三个东西在后续的红队目录里都会介绍攻击手段以及防御方法：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a263b2fc68c23d8ab71dbe07e4c99d37.png" alt="2019-04-13-00-13-01" /></p>
+
+<p>默认选择“下一步”，设置DC管理员(Administrator)密码：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/440016343d5edb21dd1669ce23479579.png" alt="2019-04-13-00-13-13" /></p>
+
+<p>单击“下一步”，可以看到刚才的设置:</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b1511b6b6853d1edb3835a07ef34e7f7.png" alt="2019-04-13-00-13-24" /></p>
+
+<p>这里你也可以导出设置，用于下次安装的时候自动配置。单击“下一步”就可以安装了。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/09e43f34b991f0b69a98db51c3cd5868.png" alt="2019-04-13-00-13-34" /></p>
+
+<p>勾选“重新启动”，去喝杯茶，回来它就安装完毕了！</p>
+
+<p>安装完毕后，会默认使用域内账户Administrator登录：
+<img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1c88530488a4be1d40c5aaabaa8b3639.png" alt="2019-04-13-00-13-47" /></p>
+
+<p>登录进入后，会弹出“初始化配置任务”窗口，这里有关于本机的信息：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/9a36433780d55e0b5b63b2221307c546.png" alt="2019-04-13-00-13-57" /></p>
+
+<p>出现域，就代表搭建完成了，域控的IP是：192.168.117.169，域名称是：payloads.online。</p>
+
+<h2 id="0x04-加入域">0x04 加入域</h2>
+
+<p>打开一个Windows，这里我用我的Windows 10来举例：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/17a4b3d3e990a8f42d8198842a897106.png" alt="2019-04-13-00-14-19" /></p>
+
+<p>首先要确保能与域控进行通信，然后将当前主机的DNS服务器设置为DC的IP：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/4dd178f5c9b85b6c9c5735e50c26aedd.png" alt="2019-04-13-00-14-27" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/017e5ba2b3e1bbeb81755e26efe63398.png" alt="2019-04-13-00-14-33" /></p>
+
+<p>紧接着找到系统属性：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/cd7755277ce2a65c0feee6bd18def753.png" alt="2019-04-13-00-14-41" /></p>
+
+<p>单击“网络”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0665f6a7bd37146669424bb9caacd85a.png" alt="2019-04-13-00-14-52" /></p>
+
+<p>默认“下一步”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/d193fbdaec48f4d2a25ce157ea0de5c2.png" alt="2019-04-13-00-15-03" /></p>
+
+<p>既然加域嘛，肯定选择带有域的，单击“下一步”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a588ba53566bf0a451ee15859acc2b19.png" alt="2019-04-13-00-15-34" /></p>
+
+<p>这个时候你需要在<strong>域控</strong>上创建一个用户：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/51ed3396984a8ad07629660ae53e371a.png" alt="2019-04-13-00-15-49" /></p>
+
+<p>主要填写“登录名”就可以了</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c6c1e1af3b34a75a93909bbb440e819a.png" alt="2019-04-13-00-16-05" /></p>
+
+<p>单击“下一步”，设置密码：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1f2973cd90e7d210f901df17d874310d.png" alt="2019-04-13-00-16-14" /></p>
+
+<p>下一步，创建完成。</p>
+
+<p>此时回到Windows 10，填写好这个创建好的用户：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/af25f624abf1628068dab8769121f566.png" alt="2019-04-13-00-16-28" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/53779fc5b9daee93e463eefff30b26b7.png" alt="2019-04-13-00-16-33" /></p>
+
+<p>单击“下一步”：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2eaae9ed18bfd9d07e7c8911d5a4ed88.png" alt="2019-04-13-00-16-45" /></p>
+
+<p>这里授予权限时，设置为“Users”，不然很多东西操作不了。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1b11e7508570d66900581338b824b84f.png" alt="2019-04-13-00-16-55" /></p>
+
+<p>单击“完成”，重启计算机。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/27382fbf3f5b075d1eda181e4a047fc0.png" alt="2019-04-13-00-17-05" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/56f5b5e84aa16c79fc701bd4ef93ff00.png" alt="2019-04-13-00-17-10" /></p>
+
+<p>此时，客户机既能上网，也能处于域环境下。</p>
+-->
+          网上的文章都太复杂了，我就写一个简单、详细的，刚好虚拟机都删了。
+          <p>
+            <a class="post-link" href="/archivers/2019-04-13/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-04-12/1">Active Directory Domain Services - 获取域控信息</a>
+        </h2>
+        
+        <div class="post-meta">Apr 12, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-简介">0x00 简介</h2>
+
+<p>在内网中的域环境下，获取域控的信息有很多种，但是在此之前都是以经验来判定的。</p>
+
+<p>而MSDN文档的API从未接触过，因此想多扩展一下知识面。</p>
+
+<p>地址：https://docs.microsoft.com/zh-cn/windows/desktop/api/_ad/</p>
+
+<h2 id="0x01-域用户的登录过程">0x01 域用户的登录过程</h2>
+
+<p>参考：https://blog.csdn.net/jsd2honey/article/details/54340439</p>
+
+<ul>
+  <li>1、客户端发起net logon 服务会 运行DsGetDcName这个API。</li>
+  <li>2、DsGetDcName就会从客户端收集DNS和site的信息。</li>
+  <li>3、Net logon 会根据IP地址找到相应的DNS服务器，并发送一个 DNS Query的数据包，查询site内所有DC的SRV记录和A记录。</li>
+  <li>4、DNS 服务器会返回一个 response数据包，里面包含site内所有DC的一张表格。如果DNS服务器不返回这个数据包，那么locate DC就失败了。</li>
+  <li>5、然后客户端 的netlogon就根据这张表格给每台DC都发送一个 Query 数据包。如果有多台DC都给客户端返回response的数据包，那么客户端以最先返回 response 为准，即客户端成功locate 到这台DC。但是如果没有DC返回响应数据包，那么locate DC也会失败。</li>
+</ul>
+
+<h2 id="0x02-尝试学习api">0x02 尝试学习API</h2>
+
+<p>微软有一个Example：https://docs.microsoft.com/zh-cn/windows/desktop/AD/enumerating-domain-controllers</p>
+
+<p>准备花时间慢慢啃～</p>
+
+<p>第一个API - <a href="https://docs.microsoft.com/zh-cn/windows/desktop/api/dsgetdc/nf-dsgetdc-dsgetdcnamea">DsGetDcName</a></p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">DSGETDCAPI</span> <span class="n">DWORD</span> <span class="nf">DsGetDcNameA</span><span class="p">(</span>
+  <span class="n">IN</span> <span class="n">LPCSTR</span>                    <span class="n">ComputerName</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">LPCSTR</span>                    <span class="n">DomainName</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">GUID</span>                      <span class="o">*</span><span class="n">DomainGuid</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">LPCSTR</span>                    <span class="n">SiteName</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">ULONG</span>                     <span class="n">Flags</span><span class="p">,</span>
+  <span class="n">OUT</span> <span class="n">PDOMAIN_CONTROLLER_INFOA</span> <span class="o">*</span><span class="n">DomainControllerInfo</span>
+<span class="p">);</span>
+</code></pre></div></div>
+<p>关于参数的介绍都在文档中。</p>
+
+<h2 id="0x03-获取域控信息">0x03 获取域控信息</h2>
+
+<p>我写了一个例子，获取域控的地址、GUID等信息，都保存在<code class="language-plaintext highlighter-rouge">DomainControllerInfo</code>：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// ConsoleApplication1.cpp : 定义控制台应用程序的入口点。</span>
+<span class="c1">//</span>
+
+<span class="cp">#include "stdafx.h"
+#include &lt;Windows.h&gt;
+#include &lt;DsGetDC.h&gt;
+#include &lt;Lm.h&gt;
+#pragma  comment(lib, "NetApi32.lib")
+</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="n">PDOMAIN_CONTROLLER_INFO</span>  <span class="n">dcInfo</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">DsGetDcName</span><span class="p">(</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="n">DS_KDC_REQUIRED</span><span class="p">,</span>
+		<span class="o">&amp;</span><span class="n">dcInfo</span>
+	<span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="n">ERROR_SUCCESS</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">GUID</span> <span class="o">*</span> <span class="n">dc_guid</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">dcInfo</span><span class="o">-&gt;</span><span class="n">DomainGuid</span><span class="p">;</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"DomainControllerName : %s </span><span class="se">\n</span><span class="s"> "</span><span class="p">,</span> <span class="n">dcInfo</span><span class="o">-&gt;</span><span class="n">DomainControllerName</span><span class="p">);</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"DomainControllerAddress : %s </span><span class="se">\n</span><span class="s"> "</span><span class="p">,</span> <span class="n">dcInfo</span><span class="o">-&gt;</span><span class="n">DomainControllerAddress</span><span class="p">);</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"DomainGuid : %x-%x-%x-%x </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data1</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data2</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data3</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data4</span><span class="p">);</span>
+		<span class="n">NetApiBufferFree</span><span class="p">(</span><span class="n">dcInfo</span><span class="p">);</span>
+	<span class="p">}</span>
+	<span class="k">else</span> <span class="p">{</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"Error : %d </span><span class="se">\n</span><span class="s"> "</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+	<span class="p">}</span>
+	
+	<span class="n">system</span><span class="p">(</span><span class="s">"pause"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/84414b6da3036249ed9c62cbc206e120.png" alt="2019-04-12-23-59-57" /></p>
+
+<p><code class="language-plaintext highlighter-rouge">PDOMAIN_CONTROLLER_INFO</code>的信息都在这里：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/63f25b9226237c40d65babd95b9034c4.png" alt="2019-04-13-00-00-52" /></p>
+
+<p>其中要注意的是，DC的这些API都需要调用<code class="language-plaintext highlighter-rouge">NetApi32.lib</code>，并且包含<code class="language-plaintext highlighter-rouge">dsgetdc.h</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ed7cf636866d998261df774629853bac.png" alt="2019-04-13-00-02-54" /></p>
+
+-->
+          学习Active Directory Domain Services的MSDN文档
+          <p>
+            <a class="post-link" href="/archivers/2019-04-12/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+  </ul>
+  
+  <!-- Pagination links -->
+<div class="pagination">
+  
+    <a href="/page8" class="previous">PREV</a>
+  
+  <span class="page_number ">9 of 34</span>
+  
+    <a href="/page10" class="next">NEXT</a>
+  
+</div>
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

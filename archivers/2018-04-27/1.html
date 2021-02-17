@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>服务器端目录遍历 « 倾旋的博客</title>
+  <meta name="description" content="《Web安全测试学习手册》- 服务器端目录遍历">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-04-27/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">服务器端目录遍历</h1>
+    <p class="post-meta">Apr 27, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>《Web安全测试学习手册》- 服务器端目录遍历
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li>
+<a href="#0x00-%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86" id="markdown-toc-0x00-服务器端目录遍历">0x00 服务器端目录遍历</a>    <ul>
+      <li><a href="#1%E4%BB%80%E4%B9%88%E6%98%AF%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86" id="markdown-toc-1什么是服务器端目录遍历">1）什么是服务器端目录遍历</a></li>
+      <li><a href="#2%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86%E7%9A%84%E7%89%B9%E7%82%B9" id="markdown-toc-2服务器端目录遍历的特点">2）服务器端目录遍历的特点</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x01-%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86---%E9%A3%8E%E9%99%A9%E7%AD%89%E7%BA%A7" id="markdown-toc-0x01-服务器端目录遍历---风险等级">0x01 服务器端目录遍历 - 风险等级</a></li>
+  <li><a href="#0x02-%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86---%E5%8E%9F%E7%90%86" id="markdown-toc-0x02-服务器端目录遍历---原理">0x02 服务器端目录遍历 - 原理</a></li>
+  <li><a href="#0x03-%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E7%9B%AE%E5%BD%95%E9%81%8D%E5%8E%86---%E5%B8%B8%E8%A7%81%E5%9C%BA%E6%99%AF" id="markdown-toc-0x03-服务器端目录遍历---常见场景">0x03 服务器端目录遍历 - 常见场景</a></li>
+  <li><a href="#0x04-%E6%B5%8B%E8%AF%95%E6%96%B9%E6%A1%88" id="markdown-toc-0x04-测试方案">0x04 测试方案</a></li>
+  <li>
+<a href="#0x05-%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88" id="markdown-toc-0x05-修复方案">0x05 修复方案</a>    <ul>
+      <li>
+<a href="#apache" id="markdown-toc-apache">Apache</a>        <ul>
+          <li><a href="#%E4%BF%AE%E6%94%B9%E7%AB%99%E7%82%B9%E7%9B%AE%E5%BD%95%E5%AF%B9%E5%BA%94%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-修改站点目录对应的配置文件">修改站点目录对应的配置文件</a></li>
+          <li><a href="#%E5%88%9B%E5%BB%BAdirectoryindex%E9%BB%98%E8%AE%A4%E6%96%87%E4%BB%B6" id="markdown-toc-创建directoryindex默认文件">创建DirectoryIndex默认文件</a></li>
+        </ul>
+      </li>
+      <li>
+<a href="#tomcat" id="markdown-toc-tomcat">Tomcat</a>        <ul>
+          <li><a href="#%E4%BF%AE%E6%94%B9confwebxml%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-修改confwebxml配置文件">修改conf/web.xml配置文件</a></li>
+        </ul>
+      </li>
+      <li>
+<a href="#nginx" id="markdown-toc-nginx">Nginx</a>        <ul>
+          <li><a href="#%E4%BF%AE%E6%94%B9confnginxconf%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-修改confnginxconf配置文件">修改conf/nginx.conf配置文件</a></li>
+        </ul>
+      </li>
+      <li><a href="#iis" id="markdown-toc-iis">IIS</a></li>
+      <li><a href="#%E8%AE%BE%E7%BD%AE%E7%9B%AE%E5%BD%95%E6%B5%8F%E8%A7%88%E6%9D%83%E9%99%90" id="markdown-toc-设置目录浏览权限">设置”目录浏览”权限</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="0x00-服务器端目录遍历">0x00 服务器端目录遍历</h2>
+
+<h3 id="1什么是服务器端目录遍历">1）什么是服务器端目录遍历</h3>
+
+<p>当客户端访问到一个目录时，Web服务中间件将会默认寻找一个<code class="language-plaintext highlighter-rouge">index list</code>中的文件，若文件不存在，则会列出当前目录下所有文件或返回403状态码，而列出目录下所有文件的行为称为目录遍历。</p>
+
+<h3 id="2服务器端目录遍历的特点">2）服务器端目录遍历的特点</h3>
+
+<p>中间件配置不得当</p>
+
+<h2 id="0x01-服务器端目录遍历---风险等级">0x01 服务器端目录遍历 - 风险等级</h2>
+
+<p><strong>高</strong></p>
+
+<h2 id="0x02-服务器端目录遍历---原理">0x02 服务器端目录遍历 - 原理</h2>
+
+<p>当客户端访问到一个目录时，Web服务中间件将会默认寻找一个<code class="language-plaintext highlighter-rouge">index list</code>中的文件，若文件不存在，则会列出当前目录下所有文件或返回403状态码。</p>
+
+<h2 id="0x03-服务器端目录遍历---常见场景">0x03 服务器端目录遍历 - 常见场景</h2>
+
+<ul>
+  <li>Tomcat</li>
+  <li>Nginx</li>
+  <li>Apache</li>
+  <li>IIS</li>
+  <li>… 均有此类现象</li>
+</ul>
+
+<h2 id="0x04-测试方案">0x04 测试方案</h2>
+
+<p>先使用dirb扫描一些存在的目录，再使用浏览器访问已存在的目录，查看是否能够列出目录下的文件</p>
+
+<p>命令：<code class="language-plaintext highlighter-rouge">dirb http://target</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-04-27/0x02.gif" alt="0x02"></p>
+
+<h2 id="0x05-修复方案">0x05 修复方案</h2>
+
+<h4 id="apache">Apache</h4>
+
+<h5 id="修改站点目录对应的配置文件">修改站点目录对应的配置文件</h5>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x00.png" alt="列出目录索引"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Directory /&gt;
+    Options +Indexes +FollowSymLinks # 将 "+" 与 Indexes 去掉即可限制列出目录索引
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+    Require all granted
+&lt;/Directory&gt;
+</code></pre></div></div>
+
+<p>修改后：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Directory /&gt;
+    Options FollowSymLinks
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+    Require all granted
+&lt;/Directory&gt;
+</code></pre></div></div>
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x01.png" alt="不列出目录索引"></p>
+
+<h5 id="创建directoryindex默认文件">创建DirectoryIndex默认文件</h5>
+
+<p>大家都见过很多框架的每个目录都有一个<code class="language-plaintext highlighter-rouge">index.html</code>文件，这个文件的存在是非常有意义的，很多线上的Web服务器都没有合格配置<code class="language-plaintext highlighter-rouge">列出目录索引</code>。导致网站内部许多文件都被攻击者查看到，泄漏大量信息。</p>
+
+<p>为了防止列出目录索引，我们可以在站点的每个文件夹中创建一个<code class="language-plaintext highlighter-rouge">index.html</code>，这个文件内容是什么都无所谓了。当攻击者想通过列目录的手法访问你站点文件夹的时候，Web服务器将会判断当前目录下有没有<code class="language-plaintext highlighter-rouge">DirectoryIndex</code>默认首页，如果存在就显示<code class="language-plaintext highlighter-rouge">DirectoryIndex</code>对应的文件名的内容，这样攻击者就无法查看该目录下有什么文件了。</p>
+
+<h4 id="tomcat">Tomcat</h4>
+
+<h5 id="修改confwebxml配置文件">修改conf/web.xml配置文件</h5>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x02.png" alt="列出目录索引"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;init-param&gt;
+            &lt;param-name&gt;listings&lt;/param-name&gt; 
+            &lt;param-value&gt;true&lt;/param-value&gt; &lt;!-- 将true改为false --&gt;
+&lt;/init-param&gt;
+</code></pre></div></div>
+
+<p>修改后：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;init-param&gt;
+            &lt;param-name&gt;listings&lt;/param-name&gt; 
+            &lt;param-value&gt;false&lt;/param-value&gt;
+&lt;/init-param&gt;
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x03.png" alt="不列出目录索引"></p>
+
+<h4 id="nginx">Nginx</h4>
+
+<h5 id="修改confnginxconf配置文件">修改conf/nginx.conf配置文件</h5>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x05.png" alt="列出目录索引"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location / {
+            index  index.html index.htm index.php l.php;
+           autoindex on;  
+}
+</code></pre></div></div>
+
+<p>修改后：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location / {
+            index  index.html index.htm index.php l.php;
+           autoindex off;  
+}
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x04.png" alt="不列出目录索引"></p>
+
+<h4 id="iis">IIS</h4>
+
+<h4 id="设置目录浏览权限">设置”目录浏览”权限</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x06.png" alt="列出目录索引"></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x08.png" alt="设置目录索引"></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x07.png" alt="不列出目录索引"></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>点击劫持：X-Frame-Options头丢失 « 倾旋的博客</title>
+  <meta name="description" content="《Web安全测试学习手册》- 点击劫持：X-Frame-Options头丢失">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-04-16/3">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">点击劫持：X-Frame-Options头丢失</h1>
+    <p class="post-meta">Apr 16, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>《Web安全测试学习手册》- 点击劫持：X-Frame-Options头丢失
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li>
+<a href="#0x00-%E7%82%B9%E5%87%BB%E5%8A%AB%E6%8C%81x-frame-options%E5%A4%B4%E4%B8%A2%E5%A4%B1---%E4%BB%8B%E7%BB%8D" id="markdown-toc-0x00-点击劫持x-frame-options头丢失---介绍">0x00 点击劫持：X-Frame-Options头丢失 - 介绍</a>    <ul>
+      <li><a href="#1%E4%BB%80%E4%B9%88%E6%98%AF%E7%82%B9%E5%87%BB%E5%8A%AB%E6%8C%81x-frame-options%E5%A4%B4%E4%B8%A2%E5%A4%B1" id="markdown-toc-1什么是点击劫持x-frame-options头丢失">1）什么是点击劫持：X-Frame-Options头丢失</a></li>
+      <li><a href="#2%E7%82%B9%E5%87%BB%E5%8A%AB%E6%8C%81x-frame-options%E5%A4%B4%E4%B8%A2%E5%A4%B1%E7%9A%84%E7%89%B9%E7%82%B9" id="markdown-toc-2点击劫持x-frame-options头丢失的特点">2）点击劫持：X-Frame-Options头丢失的特点</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x01-%E7%82%B9%E5%87%BB%E5%8A%AB%E6%8C%81x-frame-options%E5%A4%B4%E4%B8%A2%E5%A4%B1---%E9%A3%8E%E9%99%A9%E7%AD%89%E7%BA%A7" id="markdown-toc-0x01-点击劫持x-frame-options头丢失---风险等级">0x01 点击劫持：X-Frame-Options头丢失 - 风险等级</a></li>
+  <li><a href="#0x02-%E7%82%B9%E5%87%BB%E5%8A%AB%E6%8C%81x-frame-options%E5%A4%B4%E4%B8%A2%E5%A4%B1---%E5%8E%9F%E7%90%86" id="markdown-toc-0x02-点击劫持x-frame-options头丢失---原理">0x02 点击劫持：X-Frame-Options头丢失 - 原理</a></li>
+  <li><a href="#0x03-%E7%82%B9%E5%87%BB%E5%8A%AB%E6%8C%81x-frame-options%E5%A4%B4%E4%B8%A2%E5%A4%B1---%E5%B8%B8%E8%A7%81%E5%9C%BA%E6%99%AF" id="markdown-toc-0x03-点击劫持x-frame-options头丢失---常见场景">0x03 点击劫持：X-Frame-Options头丢失 - 常见场景</a></li>
+  <li>
+<a href="#0x04-%E6%B5%8B%E8%AF%95%E6%96%B9%E6%A1%88" id="markdown-toc-0x04-测试方案">0x04 测试方案</a>    <ul>
+      <li><a href="#%E6%9C%AA%E4%BF%AE%E5%A4%8D" id="markdown-toc-未修复">未修复</a></li>
+      <li><a href="#%E4%BF%AE%E5%A4%8D%E5%90%8E" id="markdown-toc-修复后">修复后</a></li>
+    </ul>
+  </li>
+  <li>
+<a href="#0x05-%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88" id="markdown-toc-0x05-修复方案">0x05 修复方案</a>    <ul>
+      <li><a href="#apache" id="markdown-toc-apache">Apache</a></li>
+      <li><a href="#nginx" id="markdown-toc-nginx">Nginx</a></li>
+      <li><a href="#iis" id="markdown-toc-iis">IIS</a></li>
+      <li><a href="#tomcat" id="markdown-toc-tomcat">Tomcat</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="0x00-点击劫持x-frame-options头丢失---介绍">0x00 点击劫持：X-Frame-Options头丢失 - 介绍</h2>
+
+<h3 id="1什么是点击劫持x-frame-options头丢失">1）什么是点击劫持：X-Frame-Options头丢失</h3>
+
+<p>X-Frame-Options HTTP 响应头， 可以指示浏览器是否应该加载一个 iframe 中的页面。 网站可以通过设置 X-Frame-Options 阻止站点内的页面被其他页面嵌入从而防止点击劫持。</p>
+
+<h3 id="2点击劫持x-frame-options头丢失的特点">2）点击劫持：X-Frame-Options头丢失的特点</h3>
+
+<p>属于一种具有迷惑性高、利用难度中等、攻击方式单一的攻击手法。</p>
+
+<h2 id="0x01-点击劫持x-frame-options头丢失---风险等级">0x01 点击劫持：X-Frame-Options头丢失 - 风险等级</h2>
+
+<p><strong>中</strong></p>
+
+<h2 id="0x02-点击劫持x-frame-options头丢失---原理">0x02 点击劫持：X-Frame-Options头丢失 - 原理</h2>
+
+<p>当X-Frame-Options HTTP 响应头丢失的时候，攻击者可以伪造一个页面，该页面使用前端技术精心构造一些诱惑用户点击的按钮、图片，该元素下方就是一个iframe标签，当用户点击后上层的元素后，就相当于点击了iframe标签引入的网页页面。</p>
+
+<h2 id="0x03-点击劫持x-frame-options头丢失---常见场景">0x03 点击劫持：X-Frame-Options头丢失 - 常见场景</h2>
+
+<ul>
+  <li>默认配置的WebServer</li>
+  <li>单一交互的网站（按钮）</li>
+</ul>
+
+<h2 id="0x04-测试方案">0x04 测试方案</h2>
+
+<p>使用CURL请求网站，查看响应头是否包含<code class="language-plaintext highlighter-rouge">X-Frame-Options</code></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -I http://target
+</code></pre></div></div>
+
+<h3 id="未修复">未修复</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>payloads@Online$ curl -I http://localhost
+HTTP/1.1 200 OK
+Server: nginx/1.12.1 (Ubuntu)
+Date: Mon, 16 Apr 2018 07\:48\:51 GMT
+Content-Type: text/html
+Content-Length: 612
+Last-Modified: Sun, 08 Apr 2018 02\:41\:44 GMT
+Connection: keep-alive
+ETag: "5ac98168-264"
+Accept-Ranges: bytes
+</code></pre></div></div>
+
+<p>不存在<code class="language-plaintext highlighter-rouge">X-Frame-Options</code>响应头。</p>
+
+<h3 id="修复后">修复后</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>payloads@Online$ curl -I http://localhost
+HTTP/1.1 200 OK
+Server: nginx/1.12.1 (Ubuntu)
+Date: Mon, 16 Apr 2018 07\:52\:08 GMT
+Content-Type: text/html
+Content-Length: 612
+Last-Modified: Sun, 08 Apr 2018 02\:41\:44 GMT
+Connection: keep-alive
+ETag: "5ac98168-264"
+X-Frame-Options: SAMEORIGIN
+Accept-Ranges: bytes
+</code></pre></div></div>
+
+<h2 id="0x05-修复方案">0x05 修复方案</h2>
+
+<p>配置WebServer，更改配置文件，添加自定义响应头</p>
+
+<p>使用 X-Frame-Options 有三个可选的值：</p>
+
+<ul>
+  <li>DENY：浏览器拒绝当前页面加载任何Frame页面</li>
+  <li>SAMEORIGIN：frame页面的地址只能为同源域名下的页面</li>
+  <li>ALLOW-FROM：origin为允许frame加载的页面地址</li>
+</ul>
+
+<p>若网站内有使用iframe标签链接同源资源的，需要设置为<code class="language-plaintext highlighter-rouge">SAMEORIGIN</code>。</p>
+
+<h3 id="apache">Apache</h3>
+
+<p>配置 <code class="language-plaintext highlighter-rouge">Apache</code> 在所有页面上发送 <code class="language-plaintext highlighter-rouge">X-Frame-Options</code> 响应头，需要把下面这行添加到 <code class="language-plaintext highlighter-rouge">site</code> 的配置中:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Header always append X-Frame-Options SAMEORIGIN
+</code></pre></div></div>
+
+<h3 id="nginx">Nginx</h3>
+
+<p>配置 <code class="language-plaintext highlighter-rouge">nginx</code> 发送 <code class="language-plaintext highlighter-rouge">X-Frame-Options</code> 响应头，把下面这行添加到 <code class="language-plaintext highlighter-rouge">http</code>, <code class="language-plaintext highlighter-rouge">server</code> 或者 <code class="language-plaintext highlighter-rouge">location</code> 的配置中:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>add_header X-Frame-Options SAMEORIGIN;
+</code></pre></div></div>
+
+<h3 id="iis">IIS</h3>
+
+<p>配置 <code class="language-plaintext highlighter-rouge">IIS</code> 发送 <code class="language-plaintext highlighter-rouge">X-Frame-Options</code> 响应头，添加下面的配置到 <code class="language-plaintext highlighter-rouge">Web.config</code> 文件中:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;system.webServer&gt;
+  ...
+ 
+  &lt;httpProtocol&gt;
+    &lt;customHeaders&gt;
+      &lt;add name="X-Frame-Options" value="SAMEORIGIN" /&gt;
+    &lt;/customHeaders&gt;
+  &lt;/httpProtocol&gt;
+ 
+  ...
+&lt;/system.webServer&gt;
+</code></pre></div></div>
+
+<h3 id="tomcat">Tomcat</h3>
+
+<p>在<code class="language-plaintext highlighter-rouge">conf/web.xml</code>中添加如下配置：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;filter&gt;
+        &lt;filter-name&gt;httpHeaderSecurity&lt;/filter-name&gt;
+        &lt;filter-class&gt;org.apache.catalina.filters.HttpHeaderSecurityFilter&lt;/filter-class&gt;
+        &lt;init-param&gt;
+            &lt;param-name&gt;antiClickJackingOption&lt;/param-name&gt;
+            &lt;param-value&gt;SAMEORIGIN&lt;/param-value&gt;
+        &lt;/init-param&gt;
+        &lt;async-supported&gt;true&lt;/async-supported&gt;
+    &lt;/filter&gt;
+&lt;filter-mapping&gt;
+        &lt;filter-name&gt;httpHeaderSecurity&lt;/filter-name&gt;
+        &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+    &lt;dispatcher&gt;REQUEST&lt;/dispatcher&gt;
+    &lt;dispatcher&gt;FORWARD&lt;/dispatcher&gt;
+&lt;/filter-mapping&gt;
+</code></pre></div></div>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

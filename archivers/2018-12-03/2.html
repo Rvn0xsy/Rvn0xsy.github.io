@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>cURL工具的使用技巧 « 倾旋的博客</title>
+  <meta name="description" content="  cURL是一个利用URL语法在命令行下工作的文件传输工具，1997年首次发行。它支持文件上传和下载，所以是综合传输工具，但按传统，习惯称cURL为下载工具。cURL还包含了用于程序开发的libcurl。 – Baidu  0x01 cURL支持的协议  0x02 常用选项  0x03 认证  0x04 任意H...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-12-03/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">cURL工具的使用技巧</h1>
+    <p class="post-meta">Dec 3, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <blockquote>
+  <p>cURL是一个利用URL语法在命令行下工作的文件传输工具，1997年首次发行。它支持文件上传和下载，所以是综合传输工具，但按传统，习惯称cURL为下载工具。cURL还包含了用于程序开发的libcurl。 
+– Baidu</p>
+</blockquote>
+
+<ul id="markdown-toc">
+  <li><a href="#0x01-curl%E6%94%AF%E6%8C%81%E7%9A%84%E5%8D%8F%E8%AE%AE" id="markdown-toc-0x01-curl支持的协议">0x01 cURL支持的协议</a></li>
+  <li><a href="#0x02-%E5%B8%B8%E7%94%A8%E9%80%89%E9%A1%B9" id="markdown-toc-0x02-常用选项">0x02 常用选项</a></li>
+  <li><a href="#0x03-%E8%AE%A4%E8%AF%81" id="markdown-toc-0x03-认证">0x03 认证</a></li>
+  <li><a href="#0x04-%E4%BB%BB%E6%84%8Fhttp%E6%96%B9%E6%B3%95" id="markdown-toc-0x04-任意http方法">0x04 任意HTTP方法</a></li>
+  <li><a href="#0x04-%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6" id="markdown-toc-0x04-上传文件">0x04 上传文件</a></li>
+  <li><a href="#0x05-%E7%BD%91%E5%8D%A1" id="markdown-toc-0x05-网卡">0x05 网卡</a></li>
+  <li><a href="#0x06-%E6%8C%87%E5%AE%9A%E6%BA%90%E7%AB%AF%E5%8F%A3" id="markdown-toc-0x06-指定源端口">0x06 指定源端口</a></li>
+  <li>
+<a href="#0x07-%E4%BB%A3%E7%90%86" id="markdown-toc-0x07-代理">0x07 代理</a>    <ul>
+      <li><a href="#%E4%BB%A3%E7%90%86%E8%AE%A4%E8%AF%81" id="markdown-toc-代理认证">代理认证</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x08-html%E8%A1%A8%E5%8D%95%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6" id="markdown-toc-0x08-html表单上传文件">0x08 HTML表单上传文件</a></li>
+  <li>
+<a href="#0x09-cookie" id="markdown-toc-0x09-cookie">0x09 COOKIE</a>    <ul>
+      <li><a href="#%E8%AF%BB%E5%8F%96cookie" id="markdown-toc-读取cookie">读取cookie</a></li>
+      <li><a href="#%E5%B0%86cookie%E5%86%99%E5%85%A5%E6%96%87%E4%BB%B6" id="markdown-toc-将cookie写入文件">将cookie写入文件</a></li>
+    </ul>
+  </li>
+  <li><a href="#ref" id="markdown-toc-ref">REF</a></li>
+</ul>
+
+<h2 id="0x01-curl支持的协议">0x01 cURL支持的协议</h2>
+
+<p>DICT, FILE, FTP, FTPS, GOPHER, HTTP, HTTPS, IMAP, IMAPS, LDAP, LDAPS, POP3, POP3S, RTMP, RTSP, SCP, SFTP, SMB, SMBS, SMTP, SMTPS, TELNET, TFTP</p>
+
+<p>Ref:https://ec.haxx.se/protocols-curl.html</p>
+
+<h2 id="0x02-常用选项">0x02 常用选项</h2>
+
+<ul>
+  <li>查看详细信息：<code class="language-plaintext highlighter-rouge">curl -v http://example.com</code>
+</li>
+  <li>跟随重定向： <code class="language-plaintext highlighter-rouge">curl -L http://example.com</code>
+</li>
+  <li>发送POST数据：<code class="language-plaintext highlighter-rouge">curl -d "username=Rvn0xsy" http://example.com</code>
+</li>
+  <li>下载文件：<code class="language-plaintext highlighter-rouge">curl -o ~/Download/down.zip http://example.com/download.zip</code>
+</li>
+  <li>查看进度表： <code class="language-plaintext highlighter-rouge">curl -s -o ~/Download/down.zip http://example.com/download.zip</code>
+</li>
+  <li>下载并覆盖本地副本：<code class="language-plaintext highlighter-rouge">curl -O ~/Download/down.zip http://example.com/download.zip</code>
+</li>
+  <li>限速：<code class="language-plaintext highlighter-rouge">curl http://example.com/ --limit-rate 200K</code>
+</li>
+  <li>最大文件大小：<code class="language-plaintext highlighter-rouge">curl --max-filesize 100000 http://example.com/</code>
+</li>
+  <li>偏移读取：<code class="language-plaintext highlighter-rouge">curl --range 100-1099 http://example.com/download.zip</code>
+</li>
+  <li>URL编码：<code class="language-plaintext highlighter-rouge">curl --data-urlencode "name=John Doe (Junior)" http://example.com</code>
+</li>
+  <li>URL编码-从文件读取：<code class="language-plaintext highlighter-rouge">curl --data-urlencode user@contents.txt http://example.com #user的内容再contents.txt中</code>
+</li>
+  <li>GET请求：<code class="language-plaintext highlighter-rouge">curl -G http://example.com</code>
+</li>
+  <li>添加请求头：<code class="language-plaintext highlighter-rouge">curl -H "Transfer-Encoding: chunked" http://example.com</code>
+</li>
+  <li>自定义user-agent：<code class="language-plaintext highlighter-rouge">curl --user-agent/-A/-H 'User-Agent: http://example.com'</code>
+</li>
+</ul>
+
+<h2 id="0x03-认证">0x03 认证</h2>
+
+<p>cURL支持四种认证：</p>
+
+<ul>
+  <li>–digest</li>
+  <li>–negotiate</li>
+  <li>–ntlm</li>
+  <li><code class="language-plaintext highlighter-rouge">-u &lt;username:password&gt;</code></li>
+</ul>
+
+<h2 id="0x04-任意http方法">0x04 任意HTTP方法</h2>
+
+<p><code class="language-plaintext highlighter-rouge">cURL -X &lt;POST/GET/OPTIONS/PUT&gt; http://example.com</code></p>
+
+<h2 id="0x04-上传文件">0x04 上传文件</h2>
+
+<p>支持：FILE, FTP, FTPS, HTTP, HTTPS, IMAP, IMAPS, SCP, SFTP, SMB, SMBS, SMTP, SMTPS and TFTP.</p>
+
+<p>HTTP：<code class="language-plaintext highlighter-rouge">curl -T upload.zip http://example.com/ # PUT</code></p>
+
+<p>FTP：<code class="language-plaintext highlighter-rouge">curl -T upload.zip ftp://example.com/</code></p>
+
+<p>SMTP：<code class="language-plaintext highlighter-rouge">curl -T mail smtp://mail.example.com/ --mail-from user@example.com</code></p>
+
+<h2 id="0x05-网卡">0x05 网卡</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl --interface eth1 https://www.example.com/
+
+curl --interface 192.168.0.2 https://www.example.com/
+
+curl --interface machine2 https://www.example.com/
+</code></pre></div></div>
+
+<h2 id="0x06-指定源端口">0x06 指定源端口</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl --local-port 4000-4200 https://example.com/
+</code></pre></div></div>
+
+<h2 id="0x07-代理">0x07 代理</h2>
+
+<p>支持代理：</p>
+
+<ul>
+  <li>http</li>
+  <li>socks</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -x 192.168.0.1:8080 http:/example.com/
+curl -x socks4://proxy.example.com http://www.example.com/
+curl --socks4 proxy.example.com http://www.example.com/
+curl --socks4a proxy.example.com http://www.example.com/
+curl -x socks4a://proxy.example.com http://www.example.com/
+curl -x socks5://proxy.example.com http://www.example.com/
+curl --socks5 proxy.example.com http://www.example.com/
+curl -x socks5h://proxy.example.com http://www.example.com/
+curl --socks5-hostname proxy.example.com http://www.example.com/
+</code></pre></div></div>
+
+<h3 id="代理认证">代理认证</h3>
+
+<p><code class="language-plaintext highlighter-rouge">curl -U daniel:secr3t -x myproxy:80 http://example.com</code></p>
+
+<h2 id="0x08-html表单上传文件">0x08 HTML表单上传文件</h2>
+
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;form</span> <span class="na">action=</span><span class="s">"submit.cgi"</span> <span class="na">method=</span><span class="s">"post"</span> <span class="na">enctype=</span><span class="s">"multipart/form-data"</span><span class="nt">&gt;</span>
+   Name: <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"text"</span> <span class="na">name=</span><span class="s">"person"</span><span class="nt">&gt;&lt;br&gt;</span>
+   File: <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"file"</span> <span class="na">name=</span><span class="s">"secret"</span><span class="nt">&gt;&lt;br&gt;</span>
+   <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"submit"</span> <span class="na">value=</span><span class="s">"Submit"</span><span class="nt">&gt;</span>
+<span class="nt">&lt;/form&gt;</span> 
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">curl -F person=anonymous -F secret=@file.txt http://example.com/submit.cgi</code></p>
+
+<h2 id="0x09-cookie">0x09 COOKIE</h2>
+
+<h3 id="读取cookie">读取cookie</h3>
+
+<p><code class="language-plaintext highlighter-rouge">curl -L -b cookies.txt http://example.com</code></p>
+
+<h3 id="将cookie写入文件">将cookie写入文件</h3>
+
+<p><code class="language-plaintext highlighter-rouge">curl -c cookie-jar.txt http://example.com</code></p>
+
+<h2 id="ref">REF</h2>
+
+<ul>
+  <li>https://legacy.gitbook.com/book/bagder/everything-curl</li>
+</ul>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

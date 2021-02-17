@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>高效-搭建一个Github静态博客 « 倾旋的博客</title>
+  <meta name="description" content="本文介绍一下如何在Github搭建一个静态博客">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-11-13/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">高效-搭建一个Github静态博客</h1>
+    <p class="post-meta">Nov 13, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文介绍一下如何在Github搭建一个静态博客
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87" id="markdown-toc-0x00-环境准备">0x00 环境准备</a></li>
+  <li><a href="#0x01-%E9%80%89%E6%8B%A9%E4%B8%80%E4%B8%AA%E9%80%82%E5%90%88%E4%BD%A0%E7%9A%84%E4%B8%BB%E9%A2%98" id="markdown-toc-0x01-选择一个适合你的主题">0x01 选择一个适合你的主题</a></li>
+  <li><a href="#0x02-%E6%9B%B4%E6%94%B9%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-0x02-更改配置文件">0x02 更改配置文件</a></li>
+  <li><a href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E4%BB%93%E5%BA%93" id="markdown-toc-创建一个仓库">创建一个仓库</a></li>
+  <li><a href="#push%E4%BD%A0%E7%9A%84%E5%8D%9A%E5%AE%A2---%E6%89%AC%E5%B8%86%E8%B5%B7%E8%88%AA" id="markdown-toc-push你的博客---扬帆起航">push你的博客 - 扬帆起航</a></li>
+  <li><a href="#%E6%80%BB%E7%BB%93" id="markdown-toc-总结">总结</a></li>
+</ul>
+
+<h2 id="0x00-环境准备">0x00 环境准备</h2>
+
+<ul>
+  <li>系统环境  Windows/Linux</li>
+  <li>版本控制软件 Git</li>
+  <li>一个Github账号</li>
+  <li>支持markdown语法的编辑器 - Sublime</li>
+</ul>
+
+<p>关于版本控制软件的安装：</p>
+
+<p><code class="language-plaintext highlighter-rouge">https://git-scm.com/downloads</code> 可以在这里看到对应的系统版本去下载安装包</p>
+
+<p>注册一个github账号：<code class="language-plaintext highlighter-rouge">https://github.com/</code>  右侧就有注册表单，按规则填写注册即可</p>
+
+<p>Sublime下载地址：<code class="language-plaintext highlighter-rouge">http://www.sublimetext.com/3</code></p>
+
+<h2 id="0x01-选择一个适合你的主题">0x01 选择一个适合你的主题</h2>
+
+<p>访问Jeklly主题官网：http://jekyllthemes.org/</p>
+
+<p>这里我选择了一个<code class="language-plaintext highlighter-rouge">http://jekyllthemes.org/themes/fresh/</code></p>
+
+<p>页面中有<code class="language-plaintext highlighter-rouge">Download</code>按钮，可以直接下载主题，但是这样不利于我们后续的<code class="language-plaintext highlighter-rouge">push</code></p>
+
+<p>点击<code class="language-plaintext highlighter-rouge">HomePage</code> 进入作者的github仓库，我们在自己的电脑中选择一个适合写作的目录，执行<code class="language-plaintext highlighter-rouge">git clone https://github.com/artemsheludko/fresh</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-13/1.png" alt="clone"></p>
+
+<h2 id="0x02-更改配置文件">0x02 更改配置文件</h2>
+
+<p>我们找到目录中的<code class="language-plaintext highlighter-rouge">_config.yml</code></p>
+
+<p>我根据自己的需求，稍微改改，另外如果不知道如何修改，可以参考jekyll手册：</p>
+
+<p>目录结构介绍：http://jekyll.com.cn/docs/structure/</p>
+
+<p>配置参数介绍：http://jekyll.com.cn/docs/configuration/</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code># Profile information
+name: godkiller
+title: godkiller
+description: &gt; # this means to ignore newlines until "baseurl:"
+  记录生活、总结学习经验
+permalink: ':title/'
+baseurl: "/" # the subpath of your site, e.g. /blog
+url: "" # the base hostname &amp; protocol for your site, e.g. http://example.com
+
+# Social
+facebook: #Add your Facebook
+twitter: #Add your Twitter
+google-plus: #Add your Google+
+github: #Add your Github
+
+# Contact form
+email: godkiller@aliyun.com
+
+# Comments
+discus-identifier: # Add your Disqus identifier
+
+# Paginate
+paginate: 5
+paginate_path: /page:num/
+
+# Build settings
+markdown: kramdown
+gems:
+  - jekyll-feed
+  - jekyll-paginate
+exclude:
+  - Gemfile
+  - Gemfile.lock
+include: [_pages]
+</code></pre></div></div>
+
+<h2 id="创建一个仓库">创建一个仓库</h2>
+
+<p>登录github后，可以访问<code class="language-plaintext highlighter-rouge">https://github.com/new</code>来创建一个仓库，用来存放博客内容。</p>
+
+<p>注意：<code class="language-plaintext highlighter-rouge">Repository name</code>必须是以 <code class="language-plaintext highlighter-rouge">[github用户名].github.io</code> 来命名</p>
+
+<p>我的是<code class="language-plaintext highlighter-rouge">GuestKiller</code>，但是必须小写</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-13/2.png" alt="Resp"></p>
+
+<p>创建成功后，就可以存入博客内容了</p>
+
+<h2 id="push你的博客---扬帆起航">push你的博客 - 扬帆起航</h2>
+
+<p>在开始push之前，我们需要添加一个ssh公钥，以便于以后长期写作使用</p>
+
+<p>访问：https://github.com/settings/keys</p>
+
+<p>我们点击<code class="language-plaintext highlighter-rouge">NEW SSH Key</code>，进入添加页面后，在本地生成一个公钥。</p>
+
+<p>打开(Linux)终端或者(Windows)Git执行<code class="language-plaintext highlighter-rouge">ssh-keygen -t rsa</code>，有可能会询问你是否覆盖，输入<code class="language-plaintext highlighter-rouge">y</code>即可</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:zZK0SQEXA6lX8aCQpp1rRrpDwcNwZV0qQaFeQojIqYY root@Kali
+The key's randomart image is:
++---[RSA 2048]----+
+|+.ooB+o=Oo       |
+|=+.oooo+.=       |
+|o=o+ooo.o .      |
+|Eo*o=..o *       |
+|. .= o  S o      |
+|  o +    .       |
+| . +             |
+|  o              |
+|   .             |
++----[SHA256]-----+
+</code></pre></div></div>
+
+<p>出现上面的情况就代表生成成功了。</p>
+
+<p>Linux下直接按照下面的命令去查看：</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@Kali:~# cat ~/.ssh/id_rsa.pub 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDhwvIIs9Nr9XDkX26C2XnU+8S7mE9clp9YkPMhAHvx5h0UHwMyW8elzqky7qnRvvS2TjUWX0Zmfk4Ezqni33x82WUoshs9a+yqhSByiVR1zQGMb3VO89hWcZrt8vwznDEBufpEB51o1EWGiSIwNa6BlNN3j++1bpYgoGsLG9UGRh5ymvHpmP0/rTlss5Xjc0E4UB3ZS2Oyv**********pVbnvTgJP6IRklcknZcJLXgK5UqTDrQBf7ctd9IVgvqQ0N43WINoWA10/62uxp6mgqxwOHveG70gOBIPTT8CHPYxiGjt4rm7/rtWzWWezt root@Kali
+</code></pre></div></div>
+
+<p>Windows则打开当前用户的目录，然后找到<code class="language-plaintext highlighter-rouge">.ssh</code>目录中的<code class="language-plaintext highlighter-rouge">id_rsa.pub</code>，将文件内容复制出来即可。</p>
+
+<p>将这些字符串复制到key输入框内，Title自己定义</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-13/3.png" alt="ssh_key"></p>
+
+<p>添加好后就要学习Git的基本操作了</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>删除当前旧的远程仓库
+rm -rf .git
+
+clone新的仓库
+git clone git@github.com:GuestKiller/guestkiller.github.io.git
+
+将当前目录所有的博客文件放入guestkiller.github.io目录中
+
+
+root@Kali:~/guestkiller.github.io# ls
+assets       Gemfile       _includes   _layouts  _pages  README.md
+_config.yml  Gemfile.lock  index.html  LICENSE   _posts
+root@Kali:~/guestkiller.github.io# git status
+位于分支 master
+初始提交
+未跟踪的文件:
+  （使用 "git add &lt;文件&gt;..." 以包含要提交的内容）
+	Gemfile
+	Gemfile.lock
+	LICENSE
+	README.md
+	_config.yml
+	_includes/
+	_layouts/
+	_pages/
+	_posts/
+	assets/
+	index.html
+提交为空，但是存在尚未跟踪的文件（使用 "git add" 建立跟踪）
+root@Kali:~/guestkiller.github.io# git add .
+root@Kali:~/guestkiller.github.io# git commit -m '1'
+[master（根提交） f66f896] 1
+ Committer: root &lt;root@localhost.localdomain&gt;
+您的姓名和邮件地址基于登录名和主机名进行了自动设置。请检查它们正确
+与否。您可以对其进行设置以免再出现本提示信息。运行如下命令在编辑器
+中编辑您的配置文件：
+    git config --global --edit
+设置完毕后，您可以用下面的命令来修正本次提交所使用的用户身份：
+    git commit --amend --reset-author
+ 43 files changed, 5658 insertions(+)
+ create mode 100644 Gemfile
+ create mode 100644 Gemfile.lock
+ create mode 100644 LICENSE
+ create mode 100644 README.md
+ create mode 100644 _config.yml
+ create mode 100644 _includes/analytics.html
+ create mode 100644 _includes/disqus.html
+ create mode 100644 _includes/head.html
+ **********
+ create mode 100644 assets/img/zagreb_city.jpg
+ create mode 100644 index.html
+root@Kali:~/guestkiller.github.io# git push
+Warning: Permanently added the RSA host key for IP address '192.30.255.112' to the list of known hosts.
+对象计数中: 58, 完成.
+Delta compression using up to 2 threads.
+压缩对象中: 100% (56/56), 完成.
+写入对象中: 100% (58/58), 20.30 MiB | 1.32 MiB/s, 完成.
+Total 58 (delta 2), reused 0 (delta 0)
+remote: Resolving deltas: 100% (2/2), done.
+To github.com:GuestKiller/guestkiller.github.io.git
+ * [new branch]      master -&gt; master
+
+</code></pre></div></div>
+
+<p>然后访问guestkiller.github.io即可~</p>
+
+<h2 id="总结">总结</h2>
+
+<p>文章写的粗糙，有问题可以联系我的微信：Guest_Killer_0nlis</p>
+
+<p>详情：<a href="/about/">关于我</a></p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

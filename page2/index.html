@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>倾旋的博客</title>
+  <meta name="description" content="这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
+">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/page2/">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="home">
+  <a class="rss-link" href="/feed.xml">RSS Feed</a>
+  <h1 class="page-heading">Articles</h1>
+
+  <ul class="post-list">
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a>
+        </h2>
+        
+        <div class="post-meta">Jan 31, 2021</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>近年来终端安全检测与响应的产品发展迅速，我们不得不意识到，安全是在一个循环中发展的，从人们意识到安全开始，大部分了解到层面都是病毒、木马，然后接着是浏览器相关的Web安全领域，最后又开始回到终端。这个议题我们通过了解Windows操作系统下的访问控制技术，站在攻防的不同角度去进行对抗，提升自身的知识储备，个人觉得这些知识适用于许多使用Windows操作系统的用户。</p>
+
+<h2 id="0x01-安全描述符security-descriptorssd">0X01 安全描述符(Security Descriptors，SD)</h2>
+
+<p>在Windows中，每一个安全对象实体都拥有一个安全描述符，安全描述符包含了被保护对象相关联的安全信息的数据结构，它的作用主要是为了给操作系统提供判断来访对象的权限。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">0</span><span class="o">:</span><span class="mo">000</span><span class="o">&gt;</span> <span class="n">dt</span> <span class="n">nt</span><span class="o">!</span><span class="n">_security_descriptor</span>
+<span class="n">ntdll</span><span class="o">!</span><span class="n">_SECURITY_DESCRIPTOR</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="n">Revision</span>         <span class="o">:</span> <span class="n">UChar</span>  <span class="err">#</span> <span class="err">版本</span>
+   <span class="o">+</span><span class="mh">0x001</span> <span class="n">Sbz1</span>             <span class="o">:</span> <span class="n">UChar</span>  <span class="err">#</span> <span class="err">大小</span>
+   <span class="o">+</span><span class="mh">0x002</span> <span class="n">Control</span>          <span class="o">:</span> <span class="n">Uint2B</span> <span class="err">#</span> <span class="err">一组标志，用于限定安全描述符或安全描述符的各个字段的含义</span>
+   <span class="o">+</span><span class="mh">0x008</span> <span class="n">Owner</span>            <span class="o">:</span> <span class="n">Ptr64</span> <span class="n">Void</span> <span class="err">#</span> <span class="err">指定对象的所有者（</span><span class="n">SID</span><span class="err">）</span>
+   <span class="o">+</span><span class="mh">0x010</span> <span class="n">Group</span>            <span class="o">:</span> <span class="n">Ptr64</span> <span class="n">Void</span> <span class="err">#</span> <span class="err">指定对象的主组（</span><span class="n">SID</span><span class="err">）</span>
+   <span class="o">+</span><span class="mh">0x018</span> <span class="n">Sacl</span>             <span class="o">:</span> <span class="n">Ptr64</span> <span class="n">_ACL</span> <span class="err">#</span> <span class="err">系统访问控制列表</span>
+   <span class="o">+</span><span class="mh">0x020</span> <span class="n">Dacl</span>             <span class="o">:</span> <span class="n">Ptr64</span> <span class="n">_ACL</span> <span class="err">#</span> <span class="err">自主访问控制列表</span>
+</code></pre></div></div>
+
+<h3 id="windows具体有哪些安全对象">Windows具体有哪些安全对象？</h3>
+
+<ul>
+  <li>进程</li>
+  <li>线程</li>
+  <li>文件</li>
+  <li>服务</li>
+  <li>计划任务</li>
+  <li>互斥体</li>
+  <li>管道</li>
+  <li>油槽</li>
+  <li>文件共享</li>
+  <li>访问令牌</li>
+  <li>注册表</li>
+  <li>打印机</li>
+  <li>作业</li>
+  <li>…</li>
+</ul>
+
+<p>一般情况下，大部分用户接触更多的可能就是文件了，我们就以文件开始，文件对于我们去学习访问控制是最直观的。</p>
+
+<p>一个文件的权限描述符主要表现为：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3323c6ebb98e236818e517c6f12cc6ad.png" alt="2021-01-31-21-43-05" /></p>
+
+<p>上图中的安全选项卡主要是表述了sethc.exe这个文件能够被哪些用户访问，并且这些用户拥有sethc.exe的哪些权限，如：读取、读取和执行、写入、完全控制等。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/745e9f6efd7a9f9598d3f8648355b846.png" alt="2021-01-31-21-44-40" /></p>
+
+<h2 id="0x02-安全描述符的组成">0x02 安全描述符的组成</h2>
+
+<p>DACL通过一系列ACE定义了所有被允许或者禁止的安全对象的访问者，SACL描述了系统应该审核的内容，系统会根据审核项产生对应的系统日志。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/17139925a0e99f7f36e652bb5edb680d.png" alt="2021-01-31-21-45-22" /></p>
+
+<blockquote>
+  <p>权限选项卡代表了 DACL，审核选项卡代表了 SACL。</p>
+</blockquote>
+
+<h3 id="什么是sidsecurity-identifiersid">什么是SID（Security Identifier，SID）</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3689a630b8ae676d5f75b65e4bd985f1.png" alt="2021-01-31-21-49-18" /></p>
+
+<p>每个参与权限决策的角色都拥有一个SID，这个SID为了保证角色的唯一性。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">S</span><span class="o">-</span><span class="p">[</span><span class="err">修订级别</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="err">权值</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="err">标识符</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>SID分为两种：</p>
+
+<ul>
+  <li>内置SID</li>
+  <li>自动分配SID</li>
+</ul>
+
+<p>内置SID有：</p>
+
+<ul>
+  <li>S-1-5-18 (LocalSystem)</li>
+  <li>S-1-5-19 (LocalService)</li>
+  <li>S-1-5-20 (NetworkService)</li>
+  <li>S-1-5-32-544 (Administrators)</li>
+  <li>S-1-5-32-545 (Users)</li>
+  <li>S-1-5-32-550 (PrintOperators)</li>
+  <li>…</li>
+</ul>
+
+<h3 id="相对标识符relative-identifer-rid">相对标识符(Relative Identifer, RID)</h3>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">S</span><span class="o">-</span><span class="p">[</span><span class="err">修订级别</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="err">权值</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="err">标识符</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="err">相对标识符</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>例如：</p>
+
+<ul>
+  <li>S-1-5-21-xxxx-xxx-500 (Administrator) 本地管理员</li>
+  <li>S-1-5-21-xxxx-xxx-501 (Guest) 本地来宾用户</li>
+  <li>S-1-5-21-xxxx-xxx-1004 (Workstaion) 本地工作站</li>
+</ul>
+
+<p>其中RID为<code class="language-plaintext highlighter-rouge">500</code>的用户代表管理员用户，账户个RID值是固定的，通常渗透中常说的RID劫持、克隆用户就是修改其他用户的RID值来实现让系统认为当前用户是管理员。</p>
+
+<h2 id="0x03-自主访问控制列表discretionary-access-control-listdacl">0x03 自主访问控制列表（Discretionary access control list，DACL）</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8db54a1d87fe185b5d14e0146c79f426.png" alt="2021-01-31-21-51-33" /></p>
+
+<p>解读：每一个Windows进程都拥有一个线程，当程序想要访问某个安全对象时，系统会提取当前线程的访问令牌，然后将访问令牌的权限和被访问的安全对象DACL进行比较。</p>
+
+<ul>
+  <li>
+    <p>Thread A拥有Adrew的访问令牌，当它访问对象Object的时候，系统会从DACL第一个条目开始向下比对，由于第一个ACE是Access denied，并且用户名恰巧是Adrew，因此系统会拒绝访问，返回错误代码5。</p>
+  </li>
+  <li>
+    <p>Thread B拥有Jane的访问令牌，当它访问对象Object的时候，系统会从DACL第一个条目开始向下比对，由于第一个ACE不是针对Jane设置的，因此会继续向下比对，当到达第二个ACE时，Jane属于Group A，满足比对条件，因此拥有Write的权限。到达第三个时，如果Jane想要的是读取，那么也会在到达第三个ACE后，获得读取的权限。</p>
+  </li>
+</ul>
+
+<p>这张图很清晰的描述了一个线程访问系统安全对象的过程，也能够帮我们更清楚的理解令牌窃取、假冒的原理。</p>
+
+<blockquote>
+  <p><a href="https://docs.microsoft.com/en-us/windows/win32/secauthz/how-dacls-control-access-to-an-object">https://docs.microsoft.com/en-us/windows/win32/secauthz/how-dacls-control-access-to-an-object</a></p>
+</blockquote>
+
+<p>当一个线程访问安全对象时，操作系统会将访问令牌的属性与被访问对象安全描述符中的DACL进行检查，检查的条目就是访问控制条目（Access control entries，ACE），最先检查的ACE优先级越高。</p>
+
+<h2 id="0x04-系统访问控制列表system-access-control-listsacl">0x04 系统访问控制列表（System access control list，SACL）</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c4e7d07554bcd96d6aef3489929148f0.png" alt="2021-01-31-22-00-15" /></p>
+
+<p>系统访问控制列表主要是配置审核对象的ACE，当这些ACE被允许或拒绝的时候，系统将自动产生“安全”日志。</p>
+
+<p>图中设置了Service.log的SACL，当它的DACL被改变成功后，操作系统会自动帮助我们产生一条安全日志，我们可以提取其中的关键信息，如：</p>
+
+<ul>
+  <li>时间</li>
+  <li>访问的进程</li>
+  <li>访问的线程ID</li>
+  <li>访问的计算机</li>
+  <li>访问的用户名等</li>
+  <li>…</li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e41d8ccd2e17b4e593b8c2afadd55b59.png" alt="2021-01-31-22-03-10" /></p>
+
+<h2 id="0x05-修改访问控制列表access-control-listacl">0x05 修改访问控制列表（Access control list，ACL）</h2>
+
+<p>在Windows中，修改内核对象的方法只有调用API，因此，可以将安全描述符也理解为一个内核对象的属性。</p>
+
+<p>以下是修改ACL的简要过程：</p>
+
+<ol>
+  <li>使用 <strong><a href="https://docs.microsoft.com/en-us/windows/desktop/api/Aclapi/nf-aclapi-getsecurityinfo">GetSecurityInfo</a></strong> 或者 <strong><a href="https://docs.microsoft.com/en-us/windows/desktop/api/Aclapi/nf-aclapi-getnamedsecurityinfoa">GetNamedSecurityInfo</a></strong> 函数从对象的<a href="https://docs.microsoft.com/en-us/windows/desktop/SecGloss/s-gly">安全描述符</a>中获取DACL。</li>
+  <li>对于每个新的ACE，请调用<a href="https://docs.microsoft.com/en-us/windows/desktop/api/Aclapi/nf-aclapi-buildexplicitaccesswithnamea">BuildExplicitAccessWithName</a>函数以使用描述ACE的信息填充<a href="https://docs.microsoft.com/en-us/windows/desktop/api/AccCtrl/ns-accctrl-explicit_access_a">EXPLICIT_ACCESS</a>结构。</li>
+  <li>调用<a href="https://docs.microsoft.com/en-us/windows/desktop/api/Aclapi/nf-aclapi-setentriesinacla">SetEntriesInAcl</a>，为新ACE指定现有的ACL和<a href="https://docs.microsoft.com/en-us/windows/desktop/api/AccCtrl/ns-accctrl-explicit_access_a">EXPLICIT_ACCESS</a>结构的数组。SetEntriesInAcl函数分配和初始化的ACL和的ACE。</li>
+  <li>调用<a href="https://docs.microsoft.com/en-us/windows/desktop/api/Aclapi/nf-aclapi-setsecurityinfo">SetSecurityInfo</a>或<a href="https://docs.microsoft.com/en-us/windows/desktop/api/Aclapi/nf-aclapi-setnamedsecurityinfoa">SetNamedSecurityInfo</a>函数，将新的ACL附加到对象的安全描述符。</li>
+</ol>
+
+<p>下方的链接提供了一个简单的例子：</p>
+
+<blockquote>
+  <p><a href="https://docs.microsoft.com/en-us/windows/win32/secauthz/creating-or-modifying-an-acl">https://docs.microsoft.com/en-us/windows/win32/secauthz/creating-or-modifying-an-acl</a></p>
+</blockquote>
+
+<h3 id="null-dacl和空dacl">NULL DACL和空DACL</h3>
+
+<p>如果属于对象的安全描述符的自由访问控制列表（Discretionary access control list，DACL）设置为NULL，则会创建一个NULL DACL。NULL DACL授予对请求它的任何用户的完全访问权限，不对该对象执行正常的安全检查。</p>
+
+<p>NULL的DACL与空的DACL是有区别的，空DACL是正确分配和初始化的DACL，其中不包含访问控制项（Access control entries，ACE），任何对象都不允许访问。</p>
+
+<p>我发现两个有趣的事情：</p>
+
+<ol>
+  <li>如果我将lsass.exe进程的DACL设置为NULL，我发现在系统重启后，再也启动不起来了，一直循环蓝屏。</li>
+  <li>如果我将lsass.exe进程的DACL设置为空，我发现即便是以Guest用户登录，也不能轻易的转储lsass.exe的内存。应该是有某些保护机制。</li>
+</ol>
+
+<h2 id="0x06-土豆potato提权的本质与进程访问控制">0x06 土豆（Potato）提权的本质与进程访问控制</h2>
+
+<p>土豆系列的提权原理主要是诱导高权限访问低权限的系统对象，导致低权限的对象可以模拟高权限对象的访问令牌（Access Token），进而可以用访问令牌创建进程，达到代码执行。</p>
+
+<p><a href="https://payloads.online/archivers/2020-03-21/1">《Windows特权提升漏洞-符号》</a> 提到过：访问控制模型有两个主要的组成部分，访问令牌（Access Token）和安全描述符（Security Descriptor），它们分别是访问者和被访问者拥有的东西。通过访问令牌和安全描述符的内容，Windows可以确定持有令牌的访问者能否访问持有安全描述符的对象。</p>
+
+<ul>
+  <li>烂土豆(Rotten Potato)提权MS16-075</li>
+</ul>
+
+<p><a href="https://docs.microsoft.com/zh-cn/security-updates/securitybulletins/2016/ms16-075">https://docs.microsoft.com/zh-cn/security-updates/securitybulletins/2016/ms16-075</a></p>
+
+<ul>
+  <li><a href="https://itm4n.github.io/cve-2020-0668-windows-service-tracing-eop/">CVE-2020-0668</a></li>
+  <li><a href="https://www.youtube.com/watch?v=1axTbxPz2_8">CVE-2020-0683 MSI Packages Symbolic Links Processing - Windows 10 Privilege Escalation</a></li>
+  <li><a href="https://github.com/nomi-sec/PoC-in-GitHub#cve-2020-8950">CVE-2020-8950</a></li>
+  <li><a href="https://github.com/nomi-sec/PoC-in-GitHub#cve-2020-0686">CVE-2020-0683</a></li>
+  <li><a href="https://github.com/nomi-sec/PoC-in-GitHub#cve-2019-1002101">CVE-2019-1002101</a></li>
+  <li><a href="https://github.com/nomi-sec/PoC-in-GitHub#cve-2019-0986">CVE-2019-0986</a></li>
+  <li><a href="https://github.com/nomi-sec/PoC-in-GitHub#cve-2018-1088">CVE-2018-1088</a></li>
+  <li>….</li>
+</ul>
+
+<p>这些漏洞要么是利用巧妙的手法获取令牌、要么是用高权限移动文件，因此用户层的提权漏洞大多都需要系统“主动”起来。</p>
+
+<h2 id="0x07-访问令牌模拟access-token-impersonation">0x07 访问令牌模拟（Access Token Impersonation）</h2>
+
+<p>Windows 的令牌类型：</p>
+
+<ol>
+  <li>主令牌（Primary Token）</li>
+  <li>模拟令牌（Impersonation Token）</li>
+</ol>
+
+<p>渗透中常说的令牌假冒、令牌窃取都是利用Windows的令牌模拟功能获取其他用户的令牌来创建进程。</p>
+
+<p>这两类访问令牌只有在系统重启后才会清除，而授权令牌在用户注销后该令牌会变为模拟令牌，依旧有效。</p>
+
+<p>因此在域渗透的过程中，我们常常发现域管理员登录了某些不安全的机器，会针对这些机器进行定向的攻击，获取机器权限后，寻找域管理员创建的进程，窃取访问令牌进而获取整个域的权限。</p>
+
+<h3 id="正常情况下什么时候需要用到令牌模拟">正常情况下什么时候需要用到令牌模拟？</h3>
+
+<p>例如，服务器应用程序为客户端提供某些服务，服务器需要以客户端的权限访问其他资源，这个时候就需要利用令牌模拟的功能。</p>
+
+<p>进程令牌模拟的流程：</p>
+
+<ol>
+  <li>调用OpenProcess获取进程句柄</li>
+  <li>调用OpenProcessToken，传入进程句柄获取访问令牌句柄</li>
+  <li>调用DuplicateTokenEx，设置访问令牌模拟级别并复制一个令牌句柄</li>
+  <li>调用CreateProcessWithToken，传入模拟令牌，创建一个新的进程达到代码执行的目的</li>
+</ol>
+
+<p>注意，要达到令牌窃取创建进程的效果需要有一些前提：</p>
+
+<ul>
+  <li>当前用户必须拥有SeImpersonatePrivilege或SeAssignPrimaryTokenPrivilege特权</li>
+  <li>拥有目标进程的PROCESS_QUERY_INFORMATION权限</li>
+  <li>拥有目标进程访问令牌的<code class="language-plaintext highlighter-rouge">TOKEN_DUPLICATE | TOKEN_IMPERSONATE</code>权限</li>
+</ul>
+
+<p>Windows将每一个权限都以二进制位标示，但在C语言头文件中是以16禁止标示的。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/53e19171b35c621ca5d52a338cd04f2a.png" alt="2021-01-31-22-10-47" /></p>
+
+<p>两个权限的组合就是两个二进制数的与运算结果，由此可以看出Windows进程权限最大可以表示0xFFFF个，也就是2个字节，当然一般情况下用不到那么多。同时，我们也可以推断，任何可以设置权限的安全对象，想要设置全部权限<code class="language-plaintext highlighter-rouge">ALL_ACCESS</code>，可以全部用0xFFFFFFFF填充。</p>
+
+<h2 id="0x08-进程注入process-inject">0x08 进程注入（Process Inject）</h2>
+
+<p>进程注入是为了解决A进程想要在B进程的安全上下文中执行代码的技术手段。要完成一个进程注入需要A进程的访问令牌拥有B进程的权限。</p>
+
+<p>进程注入的流程：</p>
+
+<ol>
+  <li>调用OpenProcess获取进程句柄</li>
+  <li>调用WriteProcessMemory，传入进程句柄，向进程的虚拟内存空间写入Shellcode</li>
+  <li>调用CreateRemoteThread，传入进程句柄，创建远程线程</li>
+</ol>
+
+<p>场景：某些终端安全软件禁止用户转储lsass.exe进程内存，但我们可以先进程注入到lsass.exe，然后再转储内存。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1295bf932f2f68f39bc801ab2685f4e2.png" alt="2021-01-31-22-16-26" /></p>
+
+<p>小技巧：有些软件在失败后返回一些数字，其实是Windows错误代码，我们可以通过<code class="language-plaintext highlighter-rouge">net helpmsg</code>命令来查看详情。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>net helpmsg &lt;错误代码&gt;
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/d0a32acc8540964e278cadc2b4ebc1ef.png" alt="2021-01-31-22-17-03" /></p>
+
+<h2 id="0x09-文件的权限修改">0x09 文件的权限修改</h2>
+
+<p>在Windows系统中，除了用户交互的窗口以外，还可以通过icacls命令修改文件的权限。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">icacls</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">windows</span><span class="err">\</span><span class="o">*</span> <span class="o">/</span><span class="n">save</span> <span class="n">AclFile</span> <span class="o">/</span><span class="n">T</span>
+  <span class="o">-</span> <span class="err">将</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">windows</span> <span class="err">及其子目录下所有文件的</span>
+     <span class="n">ACL</span> <span class="err">保存到</span> <span class="n">AclFile</span><span class="err">。</span>
+
+  <span class="n">icacls</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">windows</span><span class="err">\</span> <span class="o">/</span><span class="n">restore</span> <span class="n">AclFile</span>
+  <span class="o">-</span> <span class="err">将还原</span> <span class="n">c</span><span class="o">:</span><span class="err">\</span><span class="n">windows</span> <span class="err">及其子目录下存在的</span> <span class="n">AclFile</span> <span class="err">内</span>
+    <span class="err">所有文件的</span> <span class="n">ACL</span><span class="err">。</span>
+
+  <span class="n">icacls</span> <span class="n">file</span> <span class="o">/</span><span class="n">grant</span> <span class="n">Administrator</span><span class="o">:</span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="n">WDAC</span><span class="p">)</span>
+  <span class="o">-</span> <span class="err">将授予用户对文件删除和写入</span> <span class="n">DAC</span> <span class="err">的管理员权限。</span>
+
+  <span class="n">icacls</span> <span class="n">file</span> <span class="o">/</span><span class="n">grant</span> <span class="o">*</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">0</span><span class="o">:</span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="n">WDAC</span><span class="p">)</span>
+  <span class="o">-</span> <span class="err">将授予由</span> <span class="n">sid</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">0</span> <span class="err">定义的用户对文件删除和写入</span> <span class="n">DAC</span> <span class="err">的权限。</span>
+</code></pre></div></div>
+
+<p>还可以查看文件的权限，例如常见的Shift后门：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a51beeb1dc8a459081c277b5d73055dd.png" alt="2021-01-31-22-17-42" /></p>
+
+<p>现如今普通用户，包括管理员、系统账户都不能随意更改这个文件了，能够看出Windows对这块有做加强。</p>
+
+<h3 id="创建匿名共享">创建匿名共享</h3>
+
+<p>在内网渗透中，经常会需要一个机器的共享作为中转，因此可以使用net share命令快速开启一个任意用户可读可写的共享。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">net</span> <span class="n">share</span> <span class="n">everyone</span><span class="o">=</span><span class="n">C</span><span class="o">:</span><span class="err">\</span><span class="n">Windows</span> <span class="o">/</span><span class="n">grant</span><span class="o">:</span><span class="n">everyone</span><span class="p">,</span><span class="n">full</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/36fa07c6a69d5488ae07ff181e1e9a1d.png" alt="2021-01-31-22-18-14" /></p>
+
+<h2 id="0x10-创造提权漏洞服务后门">0x10 创造提权漏洞——服务后门</h2>
+
+<p>前面提到可以通过API修改内核对象的ACL，那么是否可以通过代码帮助我们完成一些窗口无法做到的操作，例如：任意用户可以读写的内核对象。</p>
+
+<p>我尝试过以下几种方案用作后门：</p>
+
+<ol>
+  <li>注册表 成功</li>
+  <li>任务计划 失败</li>
+  <li>服务 成功</li>
+  <li>进程 失败</li>
+</ol>
+
+<p>服务是最容易被利用的，通常情况下，Guest用户是无法启动、创建服务的，通过修改某个服务的ACL，让Guest轻松创建以SYSTEM权限运行的进程。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a133d4e2a6c445e6d8c6d0958e0896aa.png" alt="2021-01-31-22-19-00" /></p>
+
+<p>由于Windows没有提供修改服务的窗口操作接口，所以按常规情况来看，上机查看的管理员不容易发现这类后门。</p>
+
+<blockquote>
+  <p><a href="https://docs.microsoft.com/en-us/windows/win32/services/modifying-the-dacl-for-a-service">https://docs.microsoft.com/en-us/windows/win32/services/modifying-the-dacl-for-a-service</a></p>
+</blockquote>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/9c9018725dd03ebfa7c65a35af351b2b.png" alt="2021-01-31-22-19-23" /></p>
+
+<h3 id="powershell更改服务权限">Powershell更改服务权限</h3>
+
+<p><a href="https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-service?view=powershell-7.1">https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-service?view=powershell-7.1</a></p>
+
+<p>使用Powershell修改服务的权限可以使用Set-Service：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span><span class="n">SDDL</span> <span class="o">=</span> <span class="s">"D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;SU)"</span>
+<span class="n">Set</span><span class="o">-</span><span class="n">Service</span> <span class="o">-</span><span class="n">Name</span> <span class="s">"BITS"</span> <span class="o">-</span><span class="n">SecurityDescriptorSddl</span> <span class="err">$</span><span class="n">SDDL</span>
+</code></pre></div></div>
+
+<h3 id="cmd修改服务权限">CMD修改服务权限</h3>
+
+<p>想象一个场景，如果随时都拥有一个服务器的权限，但是不能长时间登录某个特权账户，那么可以留置一个任意用户可以修改的系统服务，方便随时提权。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/15e51162189ade667eab88c3dee28e33.png" alt="2021-01-31-22-27-28" /></p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">sc</span> <span class="n">setsd</span> <span class="o">&lt;</span><span class="n">Service</span> <span class="n">Name</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">SDDL</span> <span class="n">String</span><span class="o">&gt;</span>
+<span class="n">sc</span> <span class="n">sdset</span> <span class="n">defragsvc</span> <span class="s">"D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)"</span>
+</code></pre></div></div>
+
+<h2 id="0x11-windows域下的dcsync攻击及后门实现">0x11 Windows域下的DCSync攻击及后门实现</h2>
+
+<p>DCSync是域控之间同步域数据的一个传递方式，一旦攻击者获取了具有域复制权限的特权帐户，攻击者就可以利用复制协议来模仿域控制器，诱使域控制器将域用户相关的数据发送出来。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/096326c7f2f688515dfa17874be3f91c.png" alt="2021-01-31-22-28-23" /></p>
+
+<p>其中最核心的一步就是调用 <a href="https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-drsr/b63730ac-614c-431c-9501-28d6aca91894?redirectedfrom=MSDN">GetNCChanges</a> 复制用户凭据。</p>
+
+<p>这篇文章中展示了更加详细的原理：<a href="https://adsecurity.org/?p=1729">《Mimikatz DCSync Usage, Exploitation, and Detection》</a></p>
+
+<h3 id="哪些用户拥有域复制权限">哪些用户拥有域复制权限？</h3>
+
+<ul>
+  <li>Administrators</li>
+  <li>Domain Admins</li>
+  <li>Enterprise Admins</li>
+  <li>…</li>
+</ul>
+
+<p>使用DcSync技术攻击的前提是获取域管理员权限。</p>
+
+<h3 id="什么是域复制权限--域扩展权限">什么是域复制权限 — 域扩展权限</h3>
+
+<p>Windows活动目录除了支持常规权限以外，还拥有自身对扩展权限，这些扩展权限与常规权限等效，主要是为了限定某些特殊的行为而制定的。</p>
+
+<p>常规权限：</p>
+
+<ul>
+  <li>读取</li>
+  <li>写入</li>
+  <li>执行</li>
+</ul>
+
+<p><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/extended-rights">扩展权限（Extended Rights）</a>：</p>
+
+<ol>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-allowed-to-authenticate">Allowed-To-Authenticate</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-apply-group-policy">Apply-Group-Policy</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-certificate-enrollment">Certificate-Enrollment</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-change-domain-master">Change-Domain-Master</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-change-infrastructure-master">Change-Infrastructure-Master</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes">DS-Replication-Get-Changes</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes-all">DS-Replication-Get-Changes-All</a></strong></li>
+  <li><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/extended-rights">…</a></li>
+</ol>
+
+<h3 id="ds-replication-get-changes">DS-Replication-Get-Changes</h3>
+
+<p>从指定NC复制更改所需的扩展权限。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1100dbde69da8ab05abda6112f315ec4.png" alt="2021-01-31-22-29-40" /></p>
+
+<p>为了方便未来扩展新的特性，每一个扩展权限都具有一个GUID值，如果要对域对象赋予这个权限，可以传入这个GUID值。GUID等效于权限常量。</p>
+
+<p>DS-Replication-Get-Changes扩展权限支持的系统版本：</p>
+
+<ul>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#windows-2000-server">Windows 2000 Server</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#windows-server-2003">Windows Server 2003</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#adam">ADAM</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#windows-server-2003-r2">Windows Server 2003 R2</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#windows-server-2008">Windows Server 2008</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#windows-server-2008-r2">Windows Server 2008 R2</a></strong></li>
+  <li><strong><a href="https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes#windows-server-2012">Windows Server 2012</a></strong></li>
+</ul>
+
+<h3 id="dcsync后门实现">DcSync后门实现</h3>
+
+<p>通过调用活动目录自身独有的COM组件接口，可以获取域对象的安全描述符，修改方式与本地修改ACL没有太多差别。</p>
+
+<p><a href="https://github.com/PowerShellMafia/PowerSploit/blob/dev/Recon/PowerView.ps1#L8270">Powerview</a>实现了Powershell版本的DCSync后门植入：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/80466ac445595447e9b11290cd4147d7.png" alt="2021-01-31-22-30-43" /></p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Add</span><span class="o">-</span><span class="n">DomainObjectAcl</span> <span class="o">-</span><span class="n">TargetIdentity</span> <span class="s">"DC=Domain,DC=com"</span> <span class="o">-</span><span class="n">PrincipalIdentity</span> <span class="o">&lt;</span><span class="n">UserName</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">Rights</span> <span class="n">DCSync</span> <span class="o">-</span><span class="n">Verbose</span>
+</code></pre></div></div>
+
+<p>我这里实现了一个C++版本的：<a href="https://github.com/Rvn0xsy/PDacl">https://github.com/Rvn0xsy/PDacl</a></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f6516259d175c841e63575cacd95a7aa.png" alt="2021-01-31-22-33-32" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7ac3672261363352f05cff161840dab6.png" alt="2021-01-31-22-33-58" /></p>
+
+<p>在Cobalt Strike中以普通用户权限转储NTLM验证成功：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f7079ec60a5abbd69c8177725823f466.png" alt="2021-01-31-22-34-59" /></p>
+
+<p>C++实现过程：</p>
+
+<ul>
+  <li>获取IADsSecurityDescriptor接口指针</li>
+  <li>获取IADsAccessControlList接口指针</li>
+  <li>获取IADsAccessControlEntry接口指针</li>
+  <li>调用IADsAccessControlList::AddAce添加ACE</li>
+  <li>调用IADs::put更新</li>
+</ul>
+
+<p>由于涉及到COM组件对象，所以过程比较繁琐。</p>
+
+<h3 id="dcsync权限检测">DCSync权限检测</h3>
+
+<p>https://github.com/cyberark/ACLight 能够列出所有用户的ACL，可以根据结果进行匹配DS-Replication-Get-Changes权限。</p>
+
+<h2 id="参考">参考</h2>
+
+<ul>
+  <li>https://docs.microsoft.com/en-us/windows/win32/api/iads/ne-iads-ads_rights_enum</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/ad/example-code-for-setting-a-control-access-right-ace</li>
+  <li>https://stealthbits.com/blog/what-is-dcsync-an-introduction/</li>
+  <li>https://github.com/PowerShellMafia/PowerSploit/blob/dev/Recon/PowerView.ps1#L8270</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/adschema/r-ds-replication-get-changes</li>
+  <li>https://3gstudent.github.io/3gstudent.github.io/域渗透-DCSync/</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/ad/how-security-descriptors-are-set-on-new-directory-objects</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/api/iads/nf-iads-iadssecuritydescriptor-copysecuritydescriptor</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/api/_adsi/</li>
+  <li>http://systemmanager.ru/adam-sdk.en/ad/setting_access_rights_on_an_object.htm</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/secauthz/order-of-aces-in-a-dacl</li>
+  <li>https://www.installsetupconfig.com/win32programming/accesscontrollistacl1_1.html</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/secbp/creating-a-dacl</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/secauthz/security-descriptor-string-format</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/api/iads/nf-iads-iadsaccesscontrollist-addace</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/secauthz/modifying-the-acls-of-an-object-in-c–</li>
+</ul>
+-->
+          近年来终端安全检测与响应的产品发展迅速，我们不得不意识到，安全是在一个循环中发展的，从人们意识到安全开始，大部分了解到层面都是病毒、木马，然后接着是浏览器相关的Web安全领域，最后又开始回到终端。这个议题我们通过了解Windows操作系统下的访问控制技术，站在攻防的不同角度去进行对抗，提升自身的知识储备，个人觉得这些知识适用于许多使用Windows操作系统的用户。
+          <p>
+            <a class="post-link" href="/archivers/2021-01-31/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 29, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<p>代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<h2 id="0x01-数据执行保护dep">0x01 数据执行保护（DEP）</h2>
+
+<p>DEP(Data Execution Prevention)即“ 数据执行保护”，这是Windows的一项安全机制，主要用来防止病毒和其他安全威胁对系统造成破坏。 微软从Windows XP SP2引入了该技术，并一直延续到今天。</p>
+
+<h3 id="为什么要有dep">为什么要有DEP</h3>
+
+<p>在Windows Xp SP2 之前的时代，缓冲区溢出漏洞利用门槛太低了，只要发现有缓冲区溢出漏洞，就可以直接稳定利用，攻击者只需要将Shellcode不断写入堆栈，然后覆盖函数返回地址，代码就可以在堆栈中执行。但堆栈的用途主要是保存寄存器现场，提供一个函数运行时的存储空间，极少数需要代码在堆栈中执行，于是微软为了缓解类似的情况，发明了DEP保护机制，用于限制某些内存页不具有可执行权限。</p>
+
+<h2 id="0x02-如何绕过dep">0x02 如何绕过DEP</h2>
+
+<p><code class="language-plaintext highlighter-rouge">VirtualProtect</code>这个API能够更改内存页的属性为可执行或不可执行，对于二进制漏洞利用来说，溢出的时候，把返回地址设计为<code class="language-plaintext highlighter-rouge">VirtualProtect</code>的地址，再精心构造一个栈为调用这个API的栈，就可以改变当前栈的内存页的属性，使其从”不可执行”变成”可执行”。</p>
+
+<h2 id="0x03-举一反三">0x03 举一反三</h2>
+
+<p>由此说来，Shellcode执行其实也需要一个可执行的内存页，那么还有哪些API能够构造一个可执行的内存页呢？</p>
+
+<p><code class="language-plaintext highlighter-rouge">HeapCreate</code>可以在进程中创建辅助堆栈，并且能够设置堆栈的属性：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">HANDLE</span> <span class="n">WINAPI</span> <span class="nf">HeapCreate</span><span class="p">(</span>
+<span class="n">__in</span> <span class="n">DWORD</span> <span class="n">flOptions</span><span class="p">,</span>
+<span class="n">__in</span> <span class="n">SIZE_T</span> <span class="n">dwInitialSize</span><span class="p">,</span>
+<span class="n">__in</span> <span class="n">SIZE_T</span> <span class="n">dwMaximumSize</span> <span class="p">);</span>
+</code></pre></div></div>
+
+<p>第一个参数<code class="language-plaintext highlighter-rouge">flOptions</code>用于修改如何在堆栈上执行各种操作。
+你可以设定<code class="language-plaintext highlighter-rouge">0</code>、<code class="language-plaintext highlighter-rouge">HEAP_NO_SERIALIZE</code>、<code class="language-plaintext highlighter-rouge">HEAP_GENERATE_EXCEPTIONS</code>、<code class="language-plaintext highlighter-rouge">HEAP_CREATE_ENABLE_EXECUTE</code>或者是这些标志的组合。</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">HEAP_NO_SERIALIZE</code>：对堆的访问是非独占的，如果一个线程没有完成对堆的操作，其它线程也可以进程堆操作，这个开关是非常危险的，应尽量避免使用。</li>
+  <li><code class="language-plaintext highlighter-rouge">HEAP_GENERATE_EXCEPTIONS</code>：当堆分配内存失败时，会抛出异常。如果不设置，则返回NULL。</li>
+  <li><code class="language-plaintext highlighter-rouge">HEAP_CREATE_ENALBE_EXECUTE</code>：堆中存放的内容是可以执行的代码。如果不设置，意味着堆中存放的是不可执行的数据。</li>
+</ul>
+
+<p>看到<code class="language-plaintext highlighter-rouge">HEAP_CREATE_ENALBE_EXECUTE</code>相信很多人能够恍然大悟，我们的Shellcode可以存入这个辅助堆栈中，然后创建一个线程运行它即可。</p>
+
+<h2 id="0x04-shellcode执行">0x04 Shellcode执行</h2>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;iostream&gt;
+#include &lt;Windows.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="kt">char</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"123"</span><span class="p">;</span>
+
+	<span class="n">HANDLE</span> <span class="n">hHep</span> <span class="o">=</span> <span class="n">HeapCreate</span><span class="p">(</span><span class="n">HEAP_CREATE_ENABLE_EXECUTE</span> <span class="o">|</span> <span class="n">HEAP_ZERO_MEMORY</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+	<span class="n">PVOID</span> <span class="n">Mptr</span> <span class="o">=</span> <span class="n">HeapAlloc</span><span class="p">(</span><span class="n">hHep</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+
+	<span class="n">RtlCopyMemory</span><span class="p">(</span><span class="n">Mptr</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+	<span class="n">DWORD</span> <span class="n">dwThreadId</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">HANDLE</span> <span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">Mptr</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwThreadId</span><span class="p">);</span>
+	<span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span> <span class="n">INFINITE</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello World!</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>上方的例子中，我将shellcode替换为了其他字符串，因为我觉得shellcode混淆是另外一回事。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0e3f2579a680f84059c5c53f9d472895.png" alt="2020-11-29-17-41-52" /></p>
+
+<blockquote>
+  <p>样本链接：https://www.virustotal.com/gui/file/1db88905be721e2b279f8f9a6dad1fbf945311b50cc79378d9f69cec5bbe2f6a/detection</p>
+</blockquote>
+-->
+          本节课，使用HeapCreate API来关闭DEP保护，获取在堆上的代码执行权限，从而绕过对VirtualAlloc的检测。
+          <p>
+            <a class="post-link" href="/archivers/2020-11-29/2">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 29, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<p>代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<h2 id="0x01-字符串">0x01 字符串</h2>
+
+<p>一般情况下，C/C++程序中的字符串常量会被硬编码到程序中（.data段，也就是数据段），尤其是全局变量最容易被定位到。</p>
+
+<p>例如：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="kt">char</span> <span class="n">global_string</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"123456"</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(){</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">global_string</span><span class="p">);</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e8f9688d886d12351287f275655bba92.png" alt="2020-11-29-15-31-54" /></p>
+
+<p>如果编写的是一些敏感参数的工具，很容易会被提取出特征，例如lcx这款工具，它的参数如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Usage of Packet Transmit:]
+
+lcx -&lt;listen|tran|slave&gt; &lt;option&gt; [-log logfile]
+
+[option:]
+
+ -listen &lt;ConnectPort&gt; &lt;TransmitPort&gt;
+ -tran&lt;ConnectPort&gt; &lt;TransmitHost&gt; &lt;TransmitPort&gt;
+ -slave &lt;ConnectHost&gt; &lt;ConnectPort&gt; &lt;TransmitHost&gt;&lt;TransmitPort&gt;
+</code></pre></div></div>
+
+<p>其中，<code class="language-plaintext highlighter-rouge">-listen</code>、<code class="language-plaintext highlighter-rouge">-tran</code>、<code class="language-plaintext highlighter-rouge">-slave</code>非常敏感，一般常见程序不会高频使用这些参数名，因此落地被杀也是意料之中。</p>
+
+<h2 id="0x02-c-重载运算符">0x02 C++ 重载运算符</h2>
+
+<p>C++ 允许在同一作用域中的某个函数和运算符指定多个定义，分别称为函数重载和运算符重载。</p>
+
+<p>这里需要使用重载运算符来方便我们编程：
+重载的运算符是带有特殊名称的函数，函数名是由关键字 operator 和其后要重载的运算符符号构成的。与其他函数一样，重载运算符有一个返回类型和一个参数列表。</p>
+
+<p>简单的例子如下：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#pragma once
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;Windows.h&gt;
+</span>
+<span class="k">class</span> <span class="nc">BadString</span> <span class="p">{</span>
+
+<span class="nl">protected:</span>
+	<span class="n">DWORD</span> <span class="n">dwStrLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szOutStr</span><span class="p">;</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">Base64decode</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szBase64String</span><span class="p">,</span> <span class="n">LPDWORD</span> <span class="n">lpdwLen</span><span class="p">);</span>
+<span class="nl">public:</span>
+	<span class="n">BadString</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szInStr</span><span class="p">);</span>
+	<span class="k">operator</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">();</span>
+	<span class="o">~</span><span class="n">BadString</span><span class="p">();</span>
+
+<span class="p">};</span>
+</code></pre></div></div>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include "BadString.h"
+</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">BadString</span><span class="o">::</span><span class="n">Base64decode</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szBase64String</span><span class="p">,</span> <span class="n">LPDWORD</span> <span class="n">lpdwLen</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="n">DWORD</span> <span class="n">dwLen</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">dwNeed</span><span class="p">;</span>
+	<span class="n">PBYTE</span> <span class="n">lpBuffer</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">dwLen</span> <span class="o">=</span> <span class="n">szBase64String</span><span class="p">.</span><span class="n">length</span><span class="p">();</span>
+	<span class="n">dwNeed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">CryptStringToBinaryA</span><span class="p">(</span><span class="n">szBase64String</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">CRYPT_STRING_BASE64</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwNeed</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">dwNeed</span><span class="p">)</span>
+	<span class="p">{</span>
+		<span class="n">lpBuffer</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BYTE</span><span class="p">[</span><span class="n">dwNeed</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+		<span class="n">ZeroMemory</span><span class="p">(</span><span class="n">lpBuffer</span><span class="p">,</span> <span class="n">dwNeed</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+		<span class="n">CryptStringToBinaryA</span><span class="p">(</span><span class="n">szBase64String</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">CRYPT_STRING_BASE64</span><span class="p">,</span> <span class="n">lpBuffer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwNeed</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+		<span class="o">*</span><span class="n">lpdwLen</span> <span class="o">=</span> <span class="n">dwNeed</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">((</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">lpBuffer</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">BadString</span><span class="o">::</span><span class="n">BadString</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szInStr</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">this</span><span class="o">-&gt;</span><span class="n">dwStrLength</span> <span class="o">=</span> <span class="n">szInStr</span><span class="p">.</span><span class="n">length</span><span class="p">();</span>
+	<span class="k">this</span><span class="o">-&gt;</span><span class="n">szOutStr</span> <span class="o">=</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">Base64decode</span><span class="p">(</span><span class="n">szInStr</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">dwStrLength</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">BadString</span><span class="o">::</span><span class="k">operator</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">szOutStr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">BadString</span><span class="o">::~</span><span class="n">BadString</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>调用方式：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include "BadString.h"
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">BadString</span><span class="p">(</span><span class="s">"SGVsbG8gV29ybGQK"</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/14d7eeaa7b2a04fe7b831f342426a917.png" alt="2020-11-29-16-52-49" /></p>
+
+<p>假设一个功能函数的定义如下：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">CCooolisMetasploit</span><span class="o">::</span><span class="n">SendPayload</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">options</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">payload</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+  <p>https://github.com/Rvn0xsy/Cooolis-ms/blob/5699a1be7fe3b9f0c626622da6e039e898788155/Cooolis-ms-Loader/Cooolis-ms/Cooolis-msf.cpp#L22</p>
+</blockquote>
+
+<p>那么，调用这个函数时，传递的<code class="language-plaintext highlighter-rouge">std::string options</code>这个字符串可能会被定位，这个时候需要在传入之前调用一个函数，进行一次解密，把解密后的字符串传入。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	<span class="n">metasploit</span><span class="o">-&gt;</span><span class="n">add_option</span><span class="p">(</span><span class="n">CooolisString</span><span class="p">(</span><span class="s">"LXAsLS1wYXlsb2Fk"</span><span class="p">),</span> <span class="n">msf_payload</span><span class="p">,</span> <span class="n">CooolisString</span><span class="p">(</span><span class="s">"UGF5bG9hZCBOYW1lLCBlLmcuIHdpbmRvd3MvbWV0ZXJwcmV0ZXIvcmV2ZXJzZV90Y3A="</span><span class="p">))</span><span class="o">-&gt;</span><span class="n">default_str</span><span class="p">(</span><span class="n">CooolisString</span><span class="p">(</span><span class="s">"d2luZG93cy9tZXRlcnByZXRlci9yZXZlcnNlX3RjcA=="</span><span class="p">));</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>https://github.com/Rvn0xsy/Cooolis-ms/blob/5699a1be7fe3b9f0c626622da6e039e898788155/Cooolis-ms-Loader/Cooolis-ms/source.cpp#L54</p>
+</blockquote>
+
+<p>由此，只需要去增加CooolisString的解码函数即可，然后在构造函数中去调用解码函数就能让程序在静态扫描过程中无法捕捉特征字符串。</p>
+
+<blockquote>
+  <p><a href="https://github.com/Rvn0xsy/Cooolis-ms">Cooolis-ms</a>已经实现了本篇文章技术的应用。</p>
+</blockquote>
+-->
+          本节课，需要使用C++的特性来解决特殊字符串被标记的情况
+          <p>
+            <a class="post-link" href="/archivers/2020-11-29/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a>
+        </h2>
+        
+        <div class="post-meta">Nov 13, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>决定写这篇文章是我解决了所有问题以后决定记录一下这个过程所写的，因此可能会忽略很多细节上的东西。</p>
+
+<ul>
+  <li>问题一：打点的时候经常会被WAF封禁IP怎么办？</li>
+  <li>问题二：内网的时候只想代理部分目的地址怎么办？</li>
+</ul>
+
+<p>我想大部分人解决问题一的方案就是不断切换出口IP，使得出口地址一直改变，避免被封，而解决问题二的方案可能就是<a href="https://www.proxifier.com/download/">Proxifier</a>或者<a href="https://www.proxycap.com/">Proxycap</a>。</p>
+
+<blockquote>
+  <p>Proxifier是一款能够实现系统全局代理的软件，它支持的代理类型有：Http、Https、Socks4a、Socks5.</p>
+</blockquote>
+
+<p>在使用Windows渗透的过程中，我经常使用Proxifier来实现进程单位的代理进行内网渗透，利用好rules就能避免系统全局流量被导入代理，流量流入内网从而暴露自己的一些信息。</p>
+
+<p>以上两个问题在Windows下不是问题，我之前经常使用<a href="https://www.kali.org/">Kali Linux</a>来进行渗透，自从更新版本以后，它设置系统代理需要自己写PAC文件，这一点增加了一点点学习门槛，并且好像不是那么好用。最近我使用<a href="https://www.archlinux.org/">Arch Linux</a>已经有段时间了，并且把它安装在了我的工作机、家庭电脑上，我非常喜欢这个操作系统和这个操作系统的生态。</p>
+
+<p>因此我不得不开始完全适应更多在Linux上渗透的场景，这也让我收获颇多，这篇文章就记录一下我如何学习自己搭建透明代理实现愉快的工作环境。</p>
+
+<h2 id="0x01-透明代理">0x01 透明代理</h2>
+
+<h3 id="什么是透明代理">什么是透明代理？</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b47f98ee37958f15c0c025ae09ec14b7.png" alt="2020-11-13-20-03-20" /></p>
+
+<p>透明代理的意思是客户端根本不需要知道有代理服务器的存在，它改变你的request fields（报文），并会传送真实IP，多用于路由器的NAT转发中。</p>
+
+<h3 id="为什么要用到透明代理">为什么要用到透明代理？</h3>
+
+<p>因为这样能够让我的机器“身处”在内网中，也能让我的机器在“世界上的任何角落里”。</p>
+
+<p>大家都知道，在Linux下常规的内网渗透需要使用一些如：<a href="https://github.com/haad/proxychains">proxychains</a>的工具实现指定的进程访问内网的资源，相当于给程序套了一层代理。</p>
+
+<p>它的实现原理如下：</p>
+
+<blockquote>
+  <p>ProxyChains is a UNIX program, that hooks network-related libc functions in dynamically linked programs via a preloaded DLL and redirects the connections through SOCKS4a/5 or HTTP proxies.</p>
+</blockquote>
+
+<p>关于<code class="language-plaintext highlighter-rouge">LD_PRELOAD</code>之前有写过相关文章：<a href="https://payloads.online/archivers/2020-01-01/1">Linux权限维持之LD_PRELOAD</a></p>
+
+<p>它的缺点却是每个命令必须要在前面加上<code class="language-plaintext highlighter-rouge">proxychains</code>，这样<code class="language-plaintext highlighter-rouge">Bash shell</code>有时候可能不会正常工作给我们进行参数提示。</p>
+
+<p>我要做的就是使用<code class="language-plaintext highlighter-rouge">iptables</code>实现透明代理，让我的机器所有与目标地址相关的流量都导入<code class="language-plaintext highlighter-rouge">socks5</code>代理端口。</p>
+
+<p>题外话一，关闭<code class="language-plaintext highlighter-rouge">proxychains</code>的输出信息可以将<code class="language-plaintext highlighter-rouge">/etc/proxychains.conf</code>文件中的<code class="language-plaintext highlighter-rouge">quiet_mode</code>前面的<code class="language-plaintext highlighter-rouge">#</code>去除。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/14871af8d889d4dd6172761753afcec0.png" alt="2020-11-13-20-18-48" /></p>
+
+<p>题外话二，设置metasploit全局代理的方法：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b2f402411be57170fde276b589266991.png" alt="2020-11-13-22-15-29" /></p>
+
+<p>可以将metasploit全局变量<code class="language-plaintext highlighter-rouge">proxies</code>的值进行设置来使得后续所有的流量都经过代理发出，这样能够达到内网穿透的效果。</p>
+
+<blockquote>
+  <p>图中演示了2层代理的设置</p>
+</blockquote>
+
+<h2 id="0x02-linux下的iptables防火墙">0x02 Linux下的iptables防火墙</h2>
+
+<p><code class="language-plaintext highlighter-rouge">iptables</code>是一个用户空间实用程序，它允许系统管理员配置Linux内核防火墙的IP数据包过滤器规则，这些规则实现为不同的<code class="language-plaintext highlighter-rouge">Netfilter</code>模块。筛选器组织在不同的表中，这些表包含有关如何处理网络流量数据包的规则链。当前，不同的内核模块和程序用于不同的协议。<code class="language-plaintext highlighter-rouge">iptables</code>适用于IPv4，<code class="language-plaintext highlighter-rouge">ip6tables</code>适用于IPv6，<code class="language-plaintext highlighter-rouge">arptables</code>适用于ARP，而<code class="language-plaintext highlighter-rouge">ebtables</code>适用于以太网帧。</p>
+
+<p>学习<code class="language-plaintext highlighter-rouge">iptables</code>有一点门槛，需要对表、规则链、动作等关系有一定的了解，这里不继续铺垫，可以自行搜索关于<code class="language-plaintext highlighter-rouge">iptables</code>的文章。</p>
+
+<h3 id="流量导入socks代理">流量导入Socks代理</h3>
+
+<p>通过将规则插入到<code class="language-plaintext highlighter-rouge">NAT</code>表的<code class="language-plaintext highlighter-rouge">PREROUTING</code>链中，可以轻松地重定向传入流量。</p>
+
+<p>例如：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+</code></pre></div></div>
+
+<blockquote>
+  <p>所有访问eth0网卡80端口的流量，都会被重定向到8080端口。</p>
+</blockquote>
+
+<p>它不同于端口转发，<code class="language-plaintext highlighter-rouge">REDIRECT</code>的<code class="language-plaintext highlighter-rouge">--dport</code>端口并不会被<code class="language-plaintext highlighter-rouge">iptables</code>进行监听。</p>
+
+<pre><code class="language-plantuml">title iptables的流量在规则链中的走向图
+
+PREROUTING -&gt; INPUT
+INPUT -&gt; POSTROUTING
+POSTROUTING -&gt; OUTPUT
+</code></pre>
+
+<h2 id="0x03-实现简单的透明代理">0x03 实现简单的透明代理</h2>
+
+<p><a href="https://github.com/darkk/redsocks">redsocks</a>是一个能够重定向socks代理的一款开源软件，它允许我们在系统上监听一个端口，与远程socks端口进行转换，并且支持socks5认证，这一点非常赞。后来发现还有新的redsocks一些还在维护，但旧版已经足够满足我的需要了，就没有下载。</p>
+
+<h3 id="redsocks安装">redsocks安装</h3>
+
+<p>安装必备库：</p>
+
+<ul>
+  <li>ArchLinux ： <code class="language-plaintext highlighter-rouge">yaourt -S --noconfirm redsocks-git</code></li>
+  <li>Debian : <code class="language-plaintext highlighter-rouge">apt install gcc libevent-dev</code></li>
+  <li>CentOS : <code class="language-plaintext highlighter-rouge">yum install libevent-devel git gcc</code></li>
+</ul>
+
+<p>编译代码：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/darkk/redsocks
+cd redsocks
+make
+</code></pre></div></div>
+
+<ol>
+  <li>
+    <p>安装完毕后，当前目录会生成<code class="language-plaintext highlighter-rouge">redsocks</code>二进制可执行文件，把它拷贝到环境变量目录下即可，例如：<code class="language-plaintext highlighter-rouge">/usr/bin/redsocks</code></p>
+  </li>
+  <li>
+    <p>将配置文件<code class="language-plaintext highlighter-rouge">redsocks.conf</code>拷贝至<code class="language-plaintext highlighter-rouge">/etc/redsocks.conf</code></p>
+  </li>
+</ol>
+
+<h3 id="配置redsocks代理服务器">配置redsocks代理服务器</h3>
+
+<p>在<code class="language-plaintext highlighter-rouge">/etc/redsocks.conf</code>第61行-62行是设置Socks5服务器IP和端口的：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// `ip' and `port' are IP and tcp-port of proxy-server
+// You can also use hostname instead of IP, only one (random)
+// address of multihomed host will be used.
+ip=***;
+port=***;
+</code></pre></div></div>
+
+<h3 id="配置redsocks启动身份">配置redsocks启动身份</h3>
+
+<pre><code class="language-plantuml">title 数据回环
+
+浏览器 -&gt; PREROUTING
+PREROUTING -&gt; Redsocks
+Redsocks -&gt; PREROUTING
+PREROUTING -&gt; Redsocks
+...
+...
+</code></pre>
+
+<p>为了避免启用端口流量重定向后数据发生回环问题，需要用iptables根据UID进行过滤<code class="language-plaintext highlighter-rouge">redsocks</code>的出口流量。</p>
+
+<p>添加<code class="language-plaintext highlighter-rouge">redsocks</code>组与<code class="language-plaintext highlighter-rouge">redsocks</code>用户：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>groupadd redsocks
+useradd <span class="nt">-g</span> redsocks redsocks
+</code></pre></div></div>
+<p>将<code class="language-plaintext highlighter-rouge">/etc/redsocks.conf</code>的启动用户名和用户组进行更改：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>user = redsocks;
+group = redsocks;
+</code></pre></div></div>
+
+<p>对应的防火墙规则：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables <span class="nt">-t</span> nat <span class="nt">-A</span> OUTPUT <span class="nt">-p</span> tcp <span class="nt">-m</span> owner <span class="o">!</span> <span class="nt">--uid-owner</span> redsocks  <span class="nt">-j</span> REDSOCKS
+</code></pre></div></div>
+
+<blockquote>
+  <p>这么做是为了把除了redsocks用户产生的流量全部经过REDSOCKS链。</p>
+</blockquote>
+
+<h2 id="0x04-打点模式-配置代理链">0x04 打点模式-配置代理链</h2>
+
+<h3 id="创建自定义规则链">创建自定义规则链</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t nat -N REDSOCKS 
+# 建立REDSOCKS链
+iptables -t nat -A PREROUTING -p tcp -j REDSOCKS 
+# 将所有的TCP流量经过REDSOCKS链
+iptables -t nat -A REDSOCKS -d &lt;SOCKS_API_SERVER&gt; -j RETURN 
+# 放行获取Socks代理的API服务器
+iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN 
+# 放行内网地址
+iptables -t nat -A REDSOCKS -d 127.0.0.0/8 -j RETURN 
+# 放行内网地址
+iptables -t nat -A REDSOCKS -d 169.254.0.0/16 -j RETURN 
+# 放行内网地址
+iptables -t nat -A REDSOCKS -d 172.16.0.0/12 -j RETURN 
+# 放行内网地址
+iptables -t nat -A REDSOCKS -d 192.168.0.0/16 -j RETURN 
+# 放行内网地址
+iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-port 31338 
+# 将所有的TCP流量在经过REDSOCKS链后，全部重定向到31338端口。
+iptables -t nat -A OUTPUT -p tcp -m owner ! --uid-owner redsocks  -j REDSOCKS
+# 将准备流出的流量除了redsocks产生的以外，全部经过REDSOCKS链
+</code></pre></div></div>
+
+<p>建立一个独立的链是为了方便的清空和新建，并且还不会污染内置链的规则。</p>
+
+<blockquote>
+  <p>31338是redsocks的默认端口。</p>
+</blockquote>
+
+<h3 id="启动redsocks">启动redsocks</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo /usr/bin/redsocks -c /etc/redsocks.conf
+</code></pre></div></div>
+
+<blockquote>
+  <p>启动redsocks后，进程的所属者会被自动更改为redsocks。</p>
+</blockquote>
+
+<p>这时访问公网查看出口IP，会变成Socks5代理服务器的出口IP，实现打点模式的透明代理。</p>
+
+<h2 id="0x05-内网模式-配置代理链">0x05 内网模式-配置代理链</h2>
+
+<p>内网与打点模式不同，主要是实现指定IP地址范围的代理，打点是“放哪些”，内网是“要哪些”。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t nat -N REDSOCKS
+iptables -t nat -F REDSOCKS # 清空
+
+iptables -t nat -A PREROUTING -p tcp -j REDSOCKS
+iptables -t nat -A REDSOCKS -p tcp -d 10.0.0.0/8 -j REDIRECT --to-port 31338
+iptables -t nat -A REDSOCKS -p tcp -d 172.0.0.0/8 -j REDIRECT --to-port 31338
+iptables -t nat -A REDSOCKS -p tcp -d 192.168.0.0/16 -j REDIRECT --to-port 31338
+iptables -t nat -A OUTPUT -p tcp -m owner ! --uid-owner $redsocks_user  -j REDSOCKS
+</code></pre></div></div>
+
+<p>以上防火墙规则是将以下目的地址的流量全部导入redsoks：</p>
+
+<ul>
+  <li>10.0.0.0/8</li>
+  <li>172.0.0.0/8</li>
+  <li>192.168.0.0/16</li>
+</ul>
+
+<p>如果要添加专网的地址，可以手动添加：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables -t nat -A REDSOCKS -p tcp -d XXX.XXX.XX.XX/XX -j REDIRECT --to-port 31338
+</code></pre></div></div>
+
+<p>启用以上防火墙规则后，我可以不需要使用proxychains，直接可以用nmap探测端口，自定义的工具也能够像在内网一样工作，本机开的虚拟机切换到NAT模式也能够“身处”内网。</p>
+
+<h2 id="0x06-自动化实现">0x06 自动化实现</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+<span class="nv">redsocks_bin_path</span><span class="o">=</span><span class="s2">"/usr/bin/redsocks"</span>
+<span class="nv">redsocks_config_file_path</span><span class="o">=</span><span class="s2">"/etc/redsocks.conf"</span>
+<span class="nv">socks_api_url</span><span class="o">=</span><span class="s1">'*****'</span>
+<span class="nv">shell_log_path</span><span class="o">=</span><span class="s2">"/tmp/socks-switch.log"</span>
+<span class="c"># ssh port</span>
+<span class="nv">ssh_port</span><span class="o">=</span><span class="s2">"22"</span>
+<span class="nv">redsocks_user</span><span class="o">=</span><span class="s2">"redsocks"</span>
+
+socks_loging<span class="o">(){</span>
+    <span class="nv">current_time</span><span class="o">=</span><span class="si">$(</span><span class="nb">date</span> +<span class="s2">"%Y-%m-%d %H:%M:%S"</span><span class="si">)</span><span class="p">;</span>
+    <span class="nb">echo</span> <span class="s2">"[*] "</span><span class="nv">$current_time</span> <span class="s2">": "</span> <span class="nv">$1</span> <span class="o">&gt;&gt;</span> <span class="nv">$shell_log_path</span>
+    <span class="nb">echo</span> <span class="s2">"[*] "</span><span class="nv">$current_time</span> <span class="s2">": "</span> <span class="nv">$1</span>
+<span class="o">}</span>
+
+
+change_socks<span class="o">(){</span>
+    <span class="nb">local </span><span class="nv">socks_ip</span><span class="o">=</span><span class="nv">$1</span><span class="p">;</span>
+    <span class="nb">local </span><span class="nv">socks_port</span><span class="o">=</span><span class="nv">$2</span><span class="p">;</span>
+    socks_loging <span class="s2">"Change Socks: </span><span class="nv">$1</span><span class="s2">, Port: </span><span class="nv">$2</span><span class="s2">"</span><span class="p">;</span>
+    <span class="c"># 61行是Socks IP</span>
+    <span class="nb">sed</span> <span class="nt">-i</span> <span class="s1">'61d'</span> <span class="nv">$redsocks_config_file_path</span>
+    <span class="nb">sed</span> <span class="nt">-i</span> <span class="s2">"61i</span><span class="se">\ </span><span class="s2">       ip=</span><span class="nv">$socks_ip</span><span class="s2">;"</span>  <span class="nv">$redsocks_config_file_path</span>
+
+    <span class="c"># 62行是Socks Port</span>
+    <span class="nb">sed</span> <span class="nt">-i</span> <span class="s1">'62d'</span> <span class="nv">$redsocks_config_file_path</span>
+    <span class="nb">sed</span> <span class="nt">-i</span> <span class="s2">"62i</span><span class="se">\ </span><span class="s2">       port=</span><span class="nv">$socks_port</span><span class="s2">;"</span>  <span class="nv">$redsocks_config_file_path</span>
+    pkill redsocks
+    socks_loging <span class="s2">"Run redsocks...."</span>
+    <span class="nv">$redsocks_bin_path</span> <span class="nt">-c</span> <span class="nv">$redsocks_config_file_path</span>
+<span class="o">}</span>
+
+start_pentest<span class="o">(){</span>
+    uninstall_iptables
+    iptables <span class="nt">-t</span> nat <span class="nt">-N</span> REDSOCKS
+    iptables <span class="nt">-t</span> nat <span class="nt">-F</span> REDSOCKS <span class="c"># 清空</span>
+    
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-j</span> REDSOCKS
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-p</span> tcp <span class="nt">-d</span> 10.0.0.0/8 <span class="nt">-j</span> REDIRECT <span class="nt">--to-port</span> 31338
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.0.0.0/8 <span class="nt">-j</span> REDIRECT <span class="nt">--to-port</span> 31338
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.0.0/16 <span class="nt">-j</span> REDIRECT <span class="nt">--to-port</span> 31338
+    
+    unset_iptables
+    set_iptables
+    <span class="nb">local </span><span class="nv">socks_ip</span><span class="o">=</span><span class="nv">$1</span><span class="p">;</span>
+    <span class="nb">local </span><span class="nv">socks_port</span><span class="o">=</span><span class="nv">$2</span><span class="p">;</span>
+    change_socks <span class="nv">$socks_ip</span> <span class="nv">$socks_port</span>
+    socks_loging <span class="s2">"Change Socks: </span><span class="nv">$1</span><span class="s2">, Port: </span><span class="nv">$2</span><span class="s2">"</span><span class="p">;</span>
+
+<span class="o">}</span>
+
+install_iptables<span class="o">(){</span>
+    iptables <span class="nt">-t</span> nat <span class="nt">-F</span> OUTPUT
+    iptables <span class="nt">-t</span> nat <span class="nt">-F</span> PREROUTING
+    <span class="c"># 如果没有就新建一个</span>
+    <span class="nb">local </span><span class="nv">is_redsocks</span><span class="o">=</span><span class="sb">`</span>iptables <span class="nt">-t</span> nat <span class="nt">-nL</span> <span class="nt">--line-number</span> |grep REDSOCKS<span class="sb">`</span>
+    <span class="k">if</span> <span class="o">[</span> <span class="nt">-z</span> <span class="s2">"</span><span class="nv">$is_redsocks</span><span class="s2">"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+            </span>iptables <span class="nt">-t</span> nat <span class="nt">-N</span> REDSOCKS
+    <span class="k">fi
+    </span>iptables <span class="nt">-t</span> nat <span class="nt">-F</span> REDSOCKS <span class="c"># 清空</span>
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-j</span> REDSOCKS
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-p</span> tcp <span class="nt">--dport</span> <span class="nv">$ssh_port</span> <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-d</span> &lt;SOCKS API Server&gt; <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-d</span> 10.0.0.0/8 <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-d</span> 127.0.0.0/8 <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-d</span> 169.254.0.0/16 <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-d</span> 172.16.0.0/12 <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-d</span> 192.168.0.0/16 <span class="nt">-j</span> RETURN
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> REDSOCKS <span class="nt">-p</span> tcp <span class="nt">-j</span> REDIRECT <span class="nt">--to-port</span> 31338
+    socks_loging <span class="s2">"Install Success!"</span>
+<span class="o">}</span>
+
+
+uninstall_iptables<span class="o">(){</span>
+    iptables <span class="nt">-t</span> nat <span class="nt">-F</span> OUTPUT
+    iptables <span class="nt">-t</span> nat <span class="nt">-F</span> PREROUTING
+    socks_loging <span class="s2">"Uninstall iptables  ..."</span>
+    <span class="nv">is_redsocks</span><span class="o">=</span><span class="sb">`</span>iptables <span class="nt">-t</span> nat <span class="nt">-nvL</span> REDSOCKS |wc <span class="nt">-l</span><span class="sb">`</span>
+    <span class="k">if</span> <span class="o">[</span> <span class="s2">"</span><span class="nv">$is_redsocks</span><span class="s2">"</span><span class="o">!=</span><span class="s2">"0"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+            </span>iptables <span class="nt">-t</span> nat <span class="nt">-F</span> REDSOCKS
+            iptables <span class="nt">-t</span> nat <span class="nt">-X</span> REDSOCKS
+    <span class="k">fi</span>
+<span class="o">}</span>
+
+
+set_iptables<span class="o">(){</span>
+    iptables <span class="nt">-t</span> nat <span class="nt">-A</span> OUTPUT <span class="nt">-p</span> tcp <span class="nt">-m</span> owner <span class="o">!</span> <span class="nt">--uid-owner</span> <span class="nv">$redsocks_user</span>  <span class="nt">-j</span> REDSOCKS
+<span class="o">}</span>
+
+unset_iptables<span class="o">(){</span>
+    <span class="nv">ids</span><span class="o">=</span><span class="sb">`</span>iptables <span class="nt">-t</span> nat <span class="nt">-nL</span> OUTPUT <span class="nt">--line-number</span> | <span class="nb">grep </span>REDSOCKS | <span class="nb">awk</span> <span class="s1">'{print $1}'</span><span class="sb">`</span>
+    <span class="k">if</span> <span class="o">[</span> <span class="nt">-z</span> <span class="s2">"</span><span class="nv">$ids</span><span class="s2">"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+        </span>socks_loging <span class="s2">"No Set Iptables ..."</span>
+        <span class="k">return
+    fi
+    </span><span class="nv">id_array</span><span class="o">=(</span><span class="k">${</span><span class="nv">ids</span><span class="p">//\\n/ </span><span class="k">}</span><span class="o">)</span>
+    socks_loging <span class="s2">"REDSOCKS OUTPUT Chian ID : </span><span class="nv">$id_array</span><span class="s2">"</span>
+    <span class="k">for </span><span class="nb">id </span><span class="k">in</span> <span class="k">${</span><span class="nv">id_array</span><span class="p">[@]</span><span class="k">}</span>
+    <span class="k">do
+        </span><span class="nb">id</span><span class="o">=</span><span class="sb">`</span><span class="nb">echo</span> <span class="nv">$id</span>|egrep <span class="nt">-o</span> <span class="s2">"[0-9]{1,4}"</span><span class="sb">`</span>
+        <span class="k">if</span> <span class="o">[</span> <span class="nv">$id</span><span class="o">!=</span><span class="s2">""</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+            </span>iptables <span class="nt">-t</span> nat <span class="nt">-D</span> OUTPUT <span class="nv">$id</span>
+        <span class="k">fi
+    done</span>
+<span class="o">}</span>
+
+
+
+
+<span class="k">if</span> <span class="o">[</span> <span class="nt">-z</span> <span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+    </span><span class="nb">echo</span> <span class="s2">"[*] Usage : </span><span class="nv">$0</span><span class="s2"> &lt;start | stop | clean | install | uninstall | change IP PORT | pentest IP PORT&gt;
+        </span><span class="nv">$0</span><span class="s2"> start : 启动redsocks，自动设置iptables
+        </span><span class="nv">$0</span><span class="s2"> stop : 停止redsocks，自动清空iptables
+        </span><span class="nv">$0</span><span class="s2"> clean : 清空iptables所有规则
+        </span><span class="nv">$0</span><span class="s2"> install : 安装iptables规则
+        </span><span class="nv">$0</span><span class="s2"> uninstall : 卸载iptables规则
+        </span><span class="nv">$0</span><span class="s2"> change : 改变Socks的IP和端口
+        </span><span class="nv">$0</span><span class="s2"> pentest : 开始内网渗透，传入Socks的IP和端口
+    "</span>
+    <span class="nb">exit </span>0
+<span class="k">fi
+
+
+
+if</span> <span class="o">[</span> <span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span> <span class="o">=</span> <span class="s2">"install"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+    </span>install_iptables
+    <span class="nb">exit </span>0
+<span class="k">fi
+
+if</span> <span class="o">[</span> <span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span> <span class="o">=</span> <span class="s2">"pentest"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then
+    </span>start_pentest <span class="nv">$2</span> <span class="nv">$3</span>
+    <span class="nb">exit </span>0
+</code></pre></div></div>
+
+<p>使用方式：</p>
+
+<ul>
+  <li>打点模式简单使用（每执行一次，向API拉取新的代理）：</li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3f7fbf0e76f8be710f42eae1d7208f03.png" alt="2020-11-13-22-04-21" /></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo</span> ./socks-switch.sh <span class="nb">install
+sudo</span> ./socks-switch.sh start
+</code></pre></div></div>
+
+<ul>
+  <li>切换至内网模式使用：</li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/43e402f8721263614c54e93ae936caca.png" alt="2020-11-13-22-00-56" /></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo</span> ./socks-switch.sh uninstall
+<span class="nb">sudo</span> ./socks-switch.sh pentest &lt;Socks IP&gt; &lt;Socks Port&gt;
+</code></pre></div></div>
+
+<ul>
+  <li>手动指定Socks的IP和端口（打点模式与内网模式兼容）：</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo</span> ./socks-switch.sh change &lt;Socks IP&gt; &lt;Socks Port&gt;
+</code></pre></div></div>
+
+<h2 id="0x06-树莓派实现6小时切换一次出口的wifi">0x06 树莓派实现6小时切换一次出口的WiFi</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/178bdc368b3cdd9cbe492cb9e033d19c.png" alt="2020-11-13-21-36-29" /></p>
+
+<p>这个是我在熟悉透明代理后产生的想法，适合“团队作战”，尤其是Web渗透这块最消耗IP了，实验室的小伙伴大多也都是笔记本，因此想出了用树莓派实现6小时切换一次出口的WiFi，当然了，也能把穿透内网的Socks变成一个WiFi :)</p>
+
+<h3 id="更改redsocks监听地址">更改redsocks监听地址</h3>
+
+<p>如果是多网卡需要把redsocks配置文件<code class="language-plaintext highlighter-rouge">/etc/redsocks.conf</code>的监听IP地址改为：0.0.0.0，不然在<code class="language-plaintext highlighter-rouge">wlan0</code>的流量转向<code class="language-plaintext highlighter-rouge">eth0</code>的时候，会找不到31338端口。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>local_ip = 0.0.0.0;
+local_port = 31338;
+</code></pre></div></div>
+
+<h3 id="安装创建ap的工具">安装创建AP的工具</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt-get install util-linux procps hostapd iproute2 iw haveged dnsmasq
+sudo git clone https://github.com/oblique/create_ap
+cd create_ap
+sudo make install
+</code></pre></div></div>
+
+<p>创建WiFi：<code class="language-plaintext highlighter-rouge">/usr/bin/create_ap -w 2 wlan0 eth0 &lt;WiFi Name&gt; &lt;WiFi Pass&gt;</code></p>
+
+<blockquote>
+  <p>-w 为启用WPA2</p>
+</blockquote>
+
+<h3 id="编写ap服务脚本">编写AP服务脚本</h3>
+
+<p>在 <code class="language-plaintext highlighter-rouge">/usr/lib/systemd/system/</code>创建<code class="language-plaintext highlighter-rouge">wifi.service</code></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Unit]
+Description=Create AP Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/create_ap -w 2 wlan0 eth0 &lt;WiFi Name&gt; &lt;WiFi Pass&gt; 
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+</code></pre></div></div>
+
+<h3 id="编写计划任务脚本">编写计划任务脚本</h3>
+
+<p>random-wifi.sh:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+<span class="nb">cd</span> /home/pi/socks-switch
+systemctl stop wifi <span class="c"># 先停止WiFi</span>
+./socks-switch.sh clean <span class="c"># 清空规则</span>
+./socks-switch.sh <span class="nb">install</span> <span class="c"># 安装规则</span>
+./socks-switch.sh start <span class="c"># 启用规则</span>
+systemctl start wifi <span class="c"># 创建WiFi</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">sudo crontab -e</code>进入root用户的计划任务编写：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>* */6 * * * /home/pi/socks-switch/random-wifi.sh # 每隔六小时重置一次，并获取新的出口代理
+</code></pre></div></div>
+
+<h3 id="待完善的缺点">待完善的缺点</h3>
+
+<p>比如在切换新的出口时，WiFi是关闭的，现在的客户端一般都是会自动寻找下一个WiFi自动连接的，如果工具正在扫描会导致真实出口IP被发现。</p>
+
+<p>思路：在切换WiFi前，将<code class="language-plaintext highlighter-rouge">wlan0</code>网卡的流量全部<code class="language-plaintext highlighter-rouge">DROP</code>，这样WiFi也不需要重启。</p>
+
+<p>放两张喜爱的桌面：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1cc07d325b3c9001629ed2d81c8492f0.png" alt="2020-11-13-21-55-15" /></p>
+
+<h2 id="0x07-总结">0x07 总结</h2>
+
+<p>通过动手实践，解决了工作痛点，让技术的价值发挥出来更能收获成就感。</p>
+
+<p>期间还实现了科学上网的透明代理，但是与工作无关，网络上已经大把帖子了，收获颇多，关于渗透还需要研究更多，看问题的角度也要多变，就如上一篇<a href="https://payloads.online/archivers/2020-11-01/1">Web正向代理的思考</a>
+，虽说不是一个通用技术，但是能够解决一些场景的问题，提升效率。</p>
+-->
+          <!---->
+          本篇文章，主要是记录工作中想让外网打点和内网渗透的场景进行透明代理的体验。
+          <p>
+            <a class="post-link" href="/archivers/2020-11-13/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a>
+        </h2>
+        
+        <div class="post-meta">Nov 1, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-背景假设">0x01 背景假设</h2>
+
+<p>获取Webshell后，但是机器不出网（DNS、TCP、UDP）等常规端口都进行了尝试。</p>
+
+<p>不出网的解释：内部的Webshell服务器无法连接互联网。</p>
+
+<p>尝试过的方案有：</p>
+
+<pre><code class="language-plantuml">title 出网探测方式
+state TCP {
+WindowsHttp : certutil -f -split -urlcache http://domain/com
+LinuxHttp: wget &lt;URL&gt;
+}
+state UDP{
+DNS : nslookup domain.com
+}
+state ICMP{
+    ICMP: ping domain.com
+}
+</code></pre>
+
+<p>那么，一般我们会尝试：</p>
+
+<ul>
+  <li><a href="https://github.com/sensepost/reGeorg">reGeorg</a></li>
+  <li><a href="https://github.com/L-codes/Neo-reGeorg">Neo-reGeorg</a></li>
+  <li><a href="https://github.com/sensepost/reDuh">reDuh</a></li>
+  <li><a href="https://github.com/blackarrowsec/pivotnacci">pivotnacci</a></li>
+  <li>…</li>
+</ul>
+
+<p>这种类型的工具往往都有一个特性：通过脚本帮助我们把HTTP协议转换成Socks，由于HTTP协议无状态，因此需要发送大量数据包。</p>
+
+<pre><code class="language-plantuml">title 脚本代理
+浏览器  -&gt; 本地Socks代理服务 : （1）连接
+本地Socks代理服务 &lt;--&gt; 本地HTTP客户端: （2）转换协议
+本地HTTP客户端 -&gt; Web服务器脚本: （3）不断请求
+本地HTTP客户端 &lt;-- Web服务器脚本: （4）发送响应
+本地Socks代理服务&lt;--&gt; 本地HTTP客户端: （5）协议转换
+本地Socks代理服务 --&gt; 浏览器: （6）发送数据
+note right: 倾旋的博客:https://payloads.online
+</code></pre>
+
+<p>但是这个场景以上方案都使用起来都不能给出一个很好的效果，因为网络延迟、系统卡顿等等问题，想要传递工具到服务器上变得困难。</p>
+
+<h2 id="0x02-尝试理解目标网络架构">0x02 尝试理解目标网络架构</h2>
+
+<p>这里我画了一个简单的架构图：</p>
+
+<pre><code class="language-plantuml">title 目标网络架构
+浏览器  -&gt; 防火墙 : （1）连接 8080 端口
+防火墙 &lt;-&gt; 内网Web服务器: （2）NAT转发8080端口
+防火墙 -&gt; 浏览器: （3）将结果数据转发
+note right: 倾旋的博客:https://payloads.online
+</code></pre>
+
+<p>类似这种场景在企业种非常的常见，网络管理员应业务部门的要求，利用NAT端口映射的技术可以直接将DMZ区域的某台机器上的某个端口对外网开放。</p>
+
+<p>这里我使用Docker搭建了一个简单的靶场：</p>
+
+<pre><code class="language-plantuml">title 靶场结构
+
+
+state 互联网防火墙172.17.0.2{
+    [*] --&gt; 防火墙规则1
+    [*] --&gt; 防火墙规则2
+防火墙规则1 : 172.17.0.2:8080
+防火墙规则2: 172.17.0.2:8081
+note left: 假设172.17.0.2是公网服务器
+}
+
+state DMZ区域{
+    DMZ网站业务1: 192.168.1.128:8080
+    note left: 内网
+    DMZ网站业务2: 192.168.1.125:8080
+}
+state 外网攻击者 {
+攻击者IP:172.17.0.1
+note left: 假设172.17.0.1是攻击者出口
+}
+
+
+攻击者IP --&gt; 防火墙规则1 : 访问第一个业务
+防火墙规则1 -&gt; DMZ网站业务1: NAT
+攻击者IP -&gt; 防火墙规则2
+防火墙规则2 -&gt; DMZ网站业务2: NAT
+</code></pre>
+
+<p>对应的NAT 端口转发情况：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.125:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.125 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8081
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables-save
+</code></pre></div></div>
+
+<p>如果攻击者访问172.17.0.2的8080端口，流量将会被转发到192.168.1.128上，那么设想一下，NAT规则在生产的场景中会不会产生规则滥用的情况？</p>
+
+<p>我猜想有以下几种情况：</p>
+
+<ol>
+  <li>业务下线了，NAT规则没有来得及删除</li>
+  <li>某个规则指向的端口服务暂时停止了</li>
+  <li>网络管理员觉得流程麻烦，遂开放了一段端口，如：8080-8090</li>
+</ol>
+
+<h2 id="0x03-利用nat规则实现内网漫游">0x03 利用NAT规则实现内网漫游</h2>
+
+<p>理清楚网络结构后，可以开始寻找有用的NAT规则了，我总结了两个办法：</p>
+
+<ol>
+  <li>结束正在占用NAT端口的程序</li>
+  <li>寻找未被使用的NAT端口</li>
+</ol>
+
+<p>如何判断目标正在使用这个NAT端口，我的办法是使用Nmap进行扫描。一些NAT规则大多数会采用相同端口映射的关系，比如：8080:8080。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/4177c26e5b36be59f6fb04e9a065ef89.png" alt="2020-11-01-22-31-26" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/51330e9e0c0d862859468f98cba68cab.png" alt="2020-11-01-22-32-56" /></p>
+
+<p>通过信息收集，了解到内网IP端口是192.168.1.128。</p>
+
+<p>映射关系：</p>
+
+<pre><code class="language-plantuml">title 靶场结构
+
+state 互联网防火墙172.17.0.2{
+    [*] --&gt; 防火墙规则1
+防火墙规则1 : 172.17.0.2:8080
+note left: 假设172.17.0.2是公网服务器
+}
+
+state DMZ区域{
+    DMZ网站业务1: 192.168.1.128:8080
+    note left: 内网
+}
+state 外网攻击者 {
+攻击者IP:172.17.0.1
+note left: 假设172.17.0.1是攻击者出口
+}
+
+攻击者IP --&gt; 防火墙规则1 : 访问第一个业务
+防火墙规则1 -&gt; DMZ网站业务1: NAT
+</code></pre>
+
+<p>这个时候扫描172.17.0.2查看开放状态：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e371feffc3460b67740da6806cb0519f.png" alt="2020-11-01-22-36-44" /></p>
+
+<p>我为了模拟真实环境，还映射了其他端口：8081。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/bce334e86115fadb4963a8cdaa409128.png" alt="2020-11-01-22-38-21" /></p>
+
+<p>真实场景下，如果是非映射端口，将会是filtered，这种的情况是数据包到达防火墙后就被DROP掉了。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/48d002a99bbf98eb2ea4d93d1d85af4a.png" alt="2020-11-01-22-42-16" /></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.125:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.125 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8081
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables <span class="nt">-P</span> INPUT DROP
+iptables-save
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a74ede94f9c8c01b663e60550499847d.png" alt="2020-11-01-23-10-02" /></p>
+
+<p>倘若在8081 closed情况下，我们可以直接nc监听起来进行测试：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/190df37938b39aea055cc83808cb351c.png" alt="2020-11-01-23-12-54" /></p>
+
+<p>这个时候，内网的服务器监听了8081端口，成功的利用NAT规则使得我们可以直接正向连接到NC。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7091e7b3063f741e7c602605482c2bee.png" alt="2020-11-01-23-14-06" /></p>
+
+<h3 id="如何利用">如何利用？</h3>
+
+<p>我们可以将nc这个程序换成别的，比如：socks5的服务端程序，监听8081端口，如此一来就能够直接连接 <code class="language-plaintext highlighter-rouge">socks5:172.17.0.2:8081</code>作为内网的入口。</p>
+
+<pre><code class="language-plantuml">title 利用图
+
+state 互联网防火墙172.17.0.2{
+    [*] --&gt; 防火墙规则1
+    [*] --&gt; SOCKS5服务NAT
+防火墙规则1 : 172.17.0.2:8080
+SOCKS5服务NAT : 172.17.0.2:8081
+note left: 假设172.17.0.2是公网服务器
+}
+
+state DMZ区域{
+    DMZ网站业务1: 192.168.1.128:8080
+    SOCKS5服务端口: 192.168.1.128:8081
+    note left: 内网
+}
+state 外网攻击者 {
+攻击者IP:172.17.0.1
+note left: 假设172.17.0.1是攻击者出口
+}
+
+攻击者IP --&gt; SOCKS5服务NAT : 访问第一个业务
+SOCKS5服务NAT -&gt; DMZ网站业务1: 通过Socks5可以直达内网
+</code></pre>
+
+<h2 id="0x04-总结">0x04 总结</h2>
+
+<p>本文主要在防火墙规则上做了一些思考，并且进行了环境的模拟搭建，与实战环境相同，因此得出以下结论：</p>
+
+<ol>
+  <li>通过分析NAT规则，能够构建一个稳定代理。</li>
+  <li>测试NAT只能使用端口监听工具，然后在外网进行连接测试。</li>
+  <li>Filtered是DROP，ACCEPT是Open，未被使用Closed也是能够ACCEPT。</li>
+  <li>通过这种方案可以提升效率。</li>
+  <li>在非不得已的情况下，最好不要结束占用了NAT端口的进程。</li>
+</ol>
+
+-->
+          <!---->
+          本篇文章，主要是记录工作中遇到一个在不出网的机器上，构建正向代理尝试出的一个其他办法。
+          <p>
+            <a class="post-link" href="/archivers/2020-11-01/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+  </ul>
+  
+  <!-- Pagination links -->
+<div class="pagination">
+  
+    <a href="/" class="previous">PREV</a>
+  
+  <span class="page_number ">2 of 34</span>
+  
+    <a href="/page3" class="next">NEXT</a>
+  
+</div>
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>静态恶意代码逃逸（第八课） « 倾旋的博客</title>
+  <meta name="description" content="代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode0x01 字符串一般情况下，C/C++程序中的字符串常量会被硬编码到程序中（.data段，也就是数据段），尤其是全局变量最容易被定位到。例如：#include &lt;stdio.h&gt;cha...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-11-29/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">静态恶意代码逃逸（第八课）</h1>
+    <p class="post-meta">Nov 29, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <p>代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<h2 id="0x01-字符串">0x01 字符串</h2>
+
+<p>一般情况下，C/C++程序中的字符串常量会被硬编码到程序中（.data段，也就是数据段），尤其是全局变量最容易被定位到。</p>
+
+<p>例如：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="kt">char</span> <span class="n">global_string</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"123456"</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(){</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">"%s </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">global_string</span><span class="p">);</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e8f9688d886d12351287f275655bba92.png" alt="2020-11-29-15-31-54"></p>
+
+<p>如果编写的是一些敏感参数的工具，很容易会被提取出特征，例如lcx这款工具，它的参数如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Usage of Packet Transmit:]
+
+lcx -&lt;listen|tran|slave&gt; &lt;option&gt; [-log logfile]
+
+[option:]
+
+ -listen &lt;ConnectPort&gt; &lt;TransmitPort&gt;
+ -tran&lt;ConnectPort&gt; &lt;TransmitHost&gt; &lt;TransmitPort&gt;
+ -slave &lt;ConnectHost&gt; &lt;ConnectPort&gt; &lt;TransmitHost&gt;&lt;TransmitPort&gt;
+</code></pre></div></div>
+
+<p>其中，<code class="language-plaintext highlighter-rouge">-listen</code>、<code class="language-plaintext highlighter-rouge">-tran</code>、<code class="language-plaintext highlighter-rouge">-slave</code>非常敏感，一般常见程序不会高频使用这些参数名，因此落地被杀也是意料之中。</p>
+
+<h2 id="0x02-c-重载运算符">0x02 C++ 重载运算符</h2>
+
+<p>C++ 允许在同一作用域中的某个函数和运算符指定多个定义，分别称为函数重载和运算符重载。</p>
+
+<p>这里需要使用重载运算符来方便我们编程：
+重载的运算符是带有特殊名称的函数，函数名是由关键字 operator 和其后要重载的运算符符号构成的。与其他函数一样，重载运算符有一个返回类型和一个参数列表。</p>
+
+<p>简单的例子如下：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#pragma once
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;Windows.h&gt;
+</span>
+<span class="k">class</span> <span class="nc">BadString</span> <span class="p">{</span>
+
+<span class="nl">protected:</span>
+	<span class="n">DWORD</span> <span class="n">dwStrLength</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szOutStr</span><span class="p">;</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">Base64decode</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szBase64String</span><span class="p">,</span> <span class="n">LPDWORD</span> <span class="n">lpdwLen</span><span class="p">);</span>
+<span class="nl">public:</span>
+	<span class="n">BadString</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szInStr</span><span class="p">);</span>
+	<span class="k">operator</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">();</span>
+	<span class="o">~</span><span class="n">BadString</span><span class="p">();</span>
+
+<span class="p">};</span>
+</code></pre></div></div>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include "BadString.h"
+</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">BadString</span><span class="o">::</span><span class="n">Base64decode</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szBase64String</span><span class="p">,</span> <span class="n">LPDWORD</span> <span class="n">lpdwLen</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="n">DWORD</span> <span class="n">dwLen</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">dwNeed</span><span class="p">;</span>
+	<span class="n">PBYTE</span> <span class="n">lpBuffer</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">dwLen</span> <span class="o">=</span> <span class="n">szBase64String</span><span class="p">.</span><span class="n">length</span><span class="p">();</span>
+	<span class="n">dwNeed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">CryptStringToBinaryA</span><span class="p">(</span><span class="n">szBase64String</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">CRYPT_STRING_BASE64</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwNeed</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">dwNeed</span><span class="p">)</span>
+	<span class="p">{</span>
+		<span class="n">lpBuffer</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BYTE</span><span class="p">[</span><span class="n">dwNeed</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+		<span class="n">ZeroMemory</span><span class="p">(</span><span class="n">lpBuffer</span><span class="p">,</span> <span class="n">dwNeed</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+		<span class="n">CryptStringToBinaryA</span><span class="p">(</span><span class="n">szBase64String</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">CRYPT_STRING_BASE64</span><span class="p">,</span> <span class="n">lpBuffer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwNeed</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+		<span class="o">*</span><span class="n">lpdwLen</span> <span class="o">=</span> <span class="n">dwNeed</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">((</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">lpBuffer</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">BadString</span><span class="o">::</span><span class="n">BadString</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">szInStr</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">this</span><span class="o">-&gt;</span><span class="n">dwStrLength</span> <span class="o">=</span> <span class="n">szInStr</span><span class="p">.</span><span class="n">length</span><span class="p">();</span>
+	<span class="k">this</span><span class="o">-&gt;</span><span class="n">szOutStr</span> <span class="o">=</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">Base64decode</span><span class="p">(</span><span class="n">szInStr</span><span class="p">,</span> <span class="o">&amp;</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">dwStrLength</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">BadString</span><span class="o">::</span><span class="k">operator</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="k">return</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">szOutStr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">BadString</span><span class="o">::~</span><span class="n">BadString</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>调用方式：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include "BadString.h"
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">BadString</span><span class="p">(</span><span class="s">"SGVsbG8gV29ybGQK"</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/14d7eeaa7b2a04fe7b831f342426a917.png" alt="2020-11-29-16-52-49"></p>
+
+<p>假设一个功能函数的定义如下：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">CCooolisMetasploit</span><span class="o">::</span><span class="n">SendPayload</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">options</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">payload</span><span class="p">)</span>
+</code></pre></div></div>
+<blockquote>
+  <p>https://github.com/Rvn0xsy/Cooolis-ms/blob/5699a1be7fe3b9f0c626622da6e039e898788155/Cooolis-ms-Loader/Cooolis-ms/Cooolis-msf.cpp#L22</p>
+</blockquote>
+
+<p>那么，调用这个函数时，传递的<code class="language-plaintext highlighter-rouge">std::string options</code>这个字符串可能会被定位，这个时候需要在传入之前调用一个函数，进行一次解密，把解密后的字符串传入。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	<span class="n">metasploit</span><span class="o">-&gt;</span><span class="n">add_option</span><span class="p">(</span><span class="n">CooolisString</span><span class="p">(</span><span class="s">"LXAsLS1wYXlsb2Fk"</span><span class="p">),</span> <span class="n">msf_payload</span><span class="p">,</span> <span class="n">CooolisString</span><span class="p">(</span><span class="s">"UGF5bG9hZCBOYW1lLCBlLmcuIHdpbmRvd3MvbWV0ZXJwcmV0ZXIvcmV2ZXJzZV90Y3A="</span><span class="p">))</span><span class="o">-&gt;</span><span class="n">default_str</span><span class="p">(</span><span class="n">CooolisString</span><span class="p">(</span><span class="s">"d2luZG93cy9tZXRlcnByZXRlci9yZXZlcnNlX3RjcA=="</span><span class="p">));</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>https://github.com/Rvn0xsy/Cooolis-ms/blob/5699a1be7fe3b9f0c626622da6e039e898788155/Cooolis-ms-Loader/Cooolis-ms/source.cpp#L54</p>
+</blockquote>
+
+<p>由此，只需要去增加CooolisString的解码函数即可，然后在构造函数中去调用解码函数就能让程序在静态扫描过程中无法捕捉特征字符串。</p>
+
+<blockquote>
+  <p><a href="https://github.com/Rvn0xsy/Cooolis-ms">Cooolis-ms</a>已经实现了本篇文章技术的应用。</p>
+</blockquote>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

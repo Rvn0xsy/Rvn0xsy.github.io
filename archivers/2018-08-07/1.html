@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>C语言strcat函数实现 « 倾旋的博客</title>
+  <meta name="description" content="本文记录一下实现strcat函数的过程">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-08-07/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">C语言strcat函数实现</h1>
+    <p class="post-meta">Aug 7, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一下实现strcat函数的过程
+<!--more--></p>
+<ul id="markdown-toc">
+  <li>
+<a href="#0x01-strcat%E5%87%BD%E6%95%B0" id="markdown-toc-0x01-strcat函数">0x01 strcat函数</a>    <ul>
+      <li><a href="#%E5%8E%9F%E5%9E%8B" id="markdown-toc-原型">原型：</a></li>
+      <li><a href="#%E5%8F%82%E6%95%B0" id="markdown-toc-参数">参数</a></li>
+      <li><a href="#%E8%AF%B4%E6%98%8E" id="markdown-toc-说明">说明</a></li>
+      <li><a href="#%E8%BF%94%E5%9B%9E%E5%80%BC" id="markdown-toc-返回值">返回值</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x02-%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86" id="markdown-toc-0x02-实现原理">0x02 实现原理</a></li>
+</ul>
+
+<h2 id="0x01-strcat函数">0x01 strcat函数</h2>
+
+<h3 id="原型">原型：</h3>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">char</span> <span class="o">*</span><span class="nf">strcat</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">src</span><span class="p">);</span>
+</code></pre></div></div>
+<h3 id="参数">参数</h3>
+
+<p><code class="language-plaintext highlighter-rouge">dest</code> 为目标字符串指针，<code class="language-plaintext highlighter-rouge">src</code> 为源字符串指针。</p>
+
+<h3 id="说明">说明</h3>
+
+<p><code class="language-plaintext highlighter-rouge">strcat()</code> 会将参数 <code class="language-plaintext highlighter-rouge">src</code> 字符串复制到参数 <code class="language-plaintext highlighter-rouge">dest</code> 所指的字符串尾部；<code class="language-plaintext highlighter-rouge">dest</code> 最后的结束字符 <code class="language-plaintext highlighter-rouge">NULL</code> 会被覆盖掉，并在连接后的字符串的尾部再增加一个 <code class="language-plaintext highlighter-rouge">NULL</code>。</p>
+
+<p><strong>注意： dest 与 src 所指的内存空间不能重叠，且 dest 要有足够的空间来容纳要复制的字符串</strong></p>
+
+<h3 id="返回值">返回值</h3>
+
+<p>返回<code class="language-plaintext highlighter-rouge">dest</code> 字符串起始地址。</p>
+
+<h2 id="0x02-实现原理">0x02 实现原理</h2>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">char</span> <span class="n">dest</span><span class="p">[</span><span class="mi">20</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="sc">'a'</span><span class="p">,</span><span class="sc">'v'</span><span class="p">,</span><span class="sc">'8'</span><span class="p">,</span><span class="sc">'d'</span><span class="p">,</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">10</span><span class="o">&gt;</span><span class="sc">','</span><span class="mi">7</span><span class="sc">','</span><span class="n">w</span><span class="sc">','</span><span class="n">s</span><span class="err">'</span><span class="p">};</span>
+<span class="kt">char</span> <span class="n">src</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="sc">'a'</span><span class="p">,</span><span class="sc">'v'</span><span class="p">,</span><span class="sc">'8'</span><span class="p">,</span><span class="sc">'d'</span><span class="p">,</span><span class="err">'</span><span class="o">&lt;!</span><span class="n">JEKYLL</span><span class="err">@</span><span class="mi">5920</span><span class="err">@</span><span class="mi">10</span><span class="o">&gt;</span><span class="err">'</span><span class="p">};</span>
+</code></pre></div></div>
+
+<p>假设要将src拼接到dest后面，首先要找到第一个dest中的<code class="language-plaintext highlighter-rouge">&lt;!JEKYLL@5920@11&gt;</code>，然后在后面赋值。</p>
+
+<p>在网上找到了一个非常好的案例：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">char</span> <span class="o">*</span> <span class="nf">strconcat</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="kt">char</span> <span class="o">*</span><span class="n">b</span><span class="p">){</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">p</span><span class="o">=</span><span class="n">a</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">a</span><span class="o">==</span><span class="nb">NULL</span> <span class="o">||</span> <span class="n">b</span><span class="o">==</span><span class="nb">NULL</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="k">while</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">++</span><span class="p">;</span>
+    <span class="k">while</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++=*</span><span class="n">b</span><span class="o">++</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">a</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>首先创建一个指针变量，指向目标字符串的首地址，然后不断偏移……</p>
+
+<p><strong>while还真好用（真香）</strong></p>
+
+<p>等到<code class="language-plaintext highlighter-rouge">while</code>偏移到第一个<code class="language-plaintext highlighter-rouge">&lt;!JEKYLL@5920@14&gt;</code>的时候，将要拼接的字符串也逐个开始偏移、赋值。</p>
+
+<p>总之写的很精辟！</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

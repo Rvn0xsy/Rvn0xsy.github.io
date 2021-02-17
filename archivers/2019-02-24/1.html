@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Django celery « 倾旋的博客</title>
+  <meta name="description" content="0x01 环境python3.6+Repo:https://github.com/Cooolis/CooolisGather0x02 主要库安装pip install celery==3.1.26.post2pip install celery-with-redis==3.0pip install Djangop...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-02-24/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Django celery</h1>
+    <p class="post-meta">Feb 24, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x01-环境">0x01 环境</h2>
+
+<p>python3.6+</p>
+
+<p>Repo:https://github.com/Cooolis/CooolisGather</p>
+
+<h2 id="0x02-主要库安装">0x02 主要库安装</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip install celery==3.1.26.post2
+pip install celery-with-redis==3.0
+pip install Django
+pip install redis==2.10.6
+</code></pre></div></div>
+
+<p>首先创建一个Django项目，再创建一个app。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>django-admin startproject CooolisGather
+django-admin startapp gather
+</code></pre></div></div>
+
+<p>修改Settings添加BROKER：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>BROKER_URL = 'redis://127.0.0.1:6379/0'
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7a9e5dc28266e95df8ba0352ce1cf588.png" alt="2019-02-27-20-52-50"></p>
+
+<h2 id="0x03-配置celery">0x03 配置celery</h2>
+<p>在CooolisGather目录文件夹下新建一个<code class="language-plaintext highlighter-rouge">celery.py</code>文件：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">django</span>
+
+<span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+
+<span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">'DJANGO_SETTINGS_MODULE'</span><span class="p">,</span> <span class="s">'CooolisGather.settings'</span><span class="p">)</span>
+<span class="n">django</span><span class="p">.</span><span class="n">setup</span><span class="p">()</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Celery</span><span class="p">(</span><span class="s">'CooolisGather'</span><span class="p">)</span>
+
+<span class="n">app</span><span class="p">.</span><span class="n">config_from_object</span><span class="p">(</span><span class="s">'django.conf:settings'</span><span class="p">)</span>
+<span class="n">app</span><span class="p">.</span><span class="n">autodiscover_tasks</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">settings</span><span class="p">.</span><span class="n">INSTALLED_APPS</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="0x04-配置tasks">0x04 配置tasks</h2>
+
+<p>在<code class="language-plaintext highlighter-rouge">gather</code>目录下新建<code class="language-plaintext highlighter-rouge">tasks.py</code>：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">CooolisGather.celery</span> <span class="kn">import</span> <span class="n">app</span>
+<span class="kn">from</span> <span class="nn">.tasks_handle.port_scan_handle</span> <span class="kn">import</span> <span class="n">PortScanTask</span>
+
+
+<span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">task</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">PortScanTask</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello_world</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'Hello World'</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p>第一行主要是为了让<code class="language-plaintext highlighter-rouge">gather</code>找到<code class="language-plaintext highlighter-rouge">celery</code>的配置。</p>
+
+<p><code class="language-plaintext highlighter-rouge">tasks_handle</code>主要是为了在触发<code class="language-plaintext highlighter-rouge">tasks</code>时能有其他功能，例如下发了一个端口扫描任务，任务触发了<code class="language-plaintext highlighter-rouge">hello_world</code>，那么在执行完毕需要将扫描结果写入数据库等操作，这种需求下就可以让<code class="language-plaintext highlighter-rouge">@app.task</code>继承<code class="language-plaintext highlighter-rouge">base=PortScanTask</code>。</p>
+
+<h2 id="0x05-调用tasks">0x05 调用tasks</h2>
+
+<p>更改<code class="language-plaintext highlighter-rouge">gather/views.py</code>：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span> <span class="nn">.tasks</span> <span class="kn">import</span> <span class="n">hello_world</span>
+
+<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">hello_world</span><span class="p">.</span><span class="n">delay</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="s">'Hello'</span><span class="p">)</span>
+</code></pre></div></div>
+<p>其中<code class="language-plaintext highlighter-rouge">delay()</code>方法主要用于异步执行。</p>
+
+<h2 id="0x06-遇到的坑">0x06 遇到的坑</h2>
+
+<p>1.redis库版本不能太高
+2.使用pycharm进行调试celery时，启动celery它默认是调用的系统库，而不是env</p>
+
+<h2 id="0x07-启动项目">0x07 启动项目</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~# celery worker -A CooolisGather -l debug
+~# python manage.py runserver 8080
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0f75407053db1761c436b65bf7b434a3.png" alt="2019-02-27-21-04-22"></p>
+
+<p>访问主页将会调用<code class="language-plaintext highlighter-rouge">tasks.hello_word</code>，而<code class="language-plaintext highlighter-rouge">tasks.hello_word</code>有继承于<code class="language-plaintext highlighter-rouge">PortScanTask</code>:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Task</span>
+
+
+<span class="k">class</span> <span class="nc">PortScanTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">on_success</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retval</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"Done"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PortScanTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">).</span><span class="n">on_success</span><span class="p">(</span><span class="n">retval</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/629441718c24835d3be64b374224da95.png" alt="2019-02-27-21-05-18"></p>
+
+<p><code class="language-plaintext highlighter-rouge">tasks.hello_word</code>在执行完毕任务后，会自动调用<code class="language-plaintext highlighter-rouge">on_success</code>。</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

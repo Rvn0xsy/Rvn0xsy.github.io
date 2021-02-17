@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>华为交换机VLAN聚合实例 « 倾旋的博客</title>
+  <meta name="description" content="本文记录一下华为交换机VLAN聚合实例配置">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2015-11-20/4">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">华为交换机VLAN聚合实例</h1>
+    <p class="post-meta">Nov 20, 2015</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一下华为交换机VLAN聚合实例配置
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#0x01-%E5%88%9B%E5%BB%BAvlan%E8%81%9A%E5%90%88%E7%9A%84vlan" id="markdown-toc-0x01-创建vlan聚合的vlan">0x01 创建VLAN聚合的VLAN</a></li>
+  <li><a href="#0x02-%E8%AE%BE%E7%BD%AEvlan%E8%81%9A%E5%90%88%E6%89%80%E9%9C%80%E8%A6%81%E7%9A%84trunk%E9%93%BE%E8%B7%AF" id="markdown-toc-0x02-设置vlan聚合所需要的trunk链路">0x02 设置VLAN聚合所需要的trunk链路</a></li>
+  <li><a href="#0x03-%E5%88%92%E5%88%86vlan" id="markdown-toc-0x03-划分vlan">0x03 划分VLAN</a></li>
+  <li><a href="#0x04-%E9%85%8D%E7%BD%AE%E4%B8%89%E5%B1%82%E4%BA%A4%E6%8D%A2%E6%9C%BA%E7%9A%84vlan%E8%81%9A%E5%90%88" id="markdown-toc-0x04-配置三层交换机的vlan聚合">0x04 配置三层交换机的VLAN聚合</a></li>
+  <li><a href="#0x05-%E6%B5%8B%E8%AF%95" id="markdown-toc-0x05-测试">0x05 测试</a></li>
+</ul>
+
+<ul>
+  <li>创建VLAN聚合的VLAN</li>
+  <li>设置VLAN聚合所需要的trunk链路</li>
+  <li>划分VLAN</li>
+  <li>配置三层交换机的VLAN聚合</li>
+  <li>配置聚合VLAN的IP</li>
+  <li>开启ARP代理</li>
+  <li>配置客户机IP地址及网关</li>
+  <li>测试</li>
+</ul>
+
+<h2 id="0x01-创建vlan聚合的vlan">0x01 创建VLAN聚合的VLAN</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+&lt;Huawei&gt;sys
+
+[Huawei]vlan batch 10 20 30
+
+</code></pre></div></div>
+
+<p>注：vlan的个数必须相同</p>
+
+<h2 id="0x02-设置vlan聚合所需要的trunk链路">0x02 设置VLAN聚合所需要的trunk链路</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+[Huawei]int g0/0/1
+
+[Huawei-GigabitEthernet0/0/1]port link-type trunk
+
+[Huawei-GigabitEthernet0/0/1]port trunk allow-pass vlan 10 20
+
+[Huawei]port-group group-member e0/0/1 e0/0/2
+
+[Huawei-port-group]port link-type trunk
+
+[Huawei-port-group]port trunk allow-pass vlan 10 20
+</code></pre></div></div>
+
+<p>注：Trunk链路不需要allow Vlan聚合的vlan</p>
+
+<h2 id="0x03-划分vlan">0x03 划分VLAN</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+[Huawei-GigabitEthernet0/0/1]int g0/0/2
+
+[Huawei-GigabitEthernet0/0/2]port link-type access
+
+[Huawei-GigabitEthernet0/0/2]port default vlan 10
+
+[Huawei-GigabitEthernet0/0/2]int g0/0/3
+
+[Huawei-GigabitEthernet0/0/3]port link-type access
+
+[Huawei-GigabitEthernet0/0/3]port default vlan 20
+
+</code></pre></div></div>
+
+<h2 id="0x04-配置三层交换机的vlan聚合">0x04 配置三层交换机的VLAN聚合</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+
+[Huawei]vlan 30
+
+[Huawei-vlan30]aggregate-vlan
+
+[Huawei-vlan30]access-vlan 10 20
+
+[Huawei-Vlanif30]ip address 192.168.0.100 16
+
+[Huawei-Vlanif30]arp-proxy inner-sub-vlan-proxy enable
+</code></pre></div></div>
+
+<p>剩下的5~7步省略</p>
+
+<h2 id="0x05-测试">0x05 测试</h2>
+
+<ul>
+  <li>
+    <p>IP:192.168.0.1</p>
+  </li>
+  <li>
+    <p>getway:255.255.255.0</p>
+  </li>
+  <li>
+    <p>GW:192.168.0.100</p>
+  </li>
+  <li>
+    <p>PING 192.168.0.100</p>
+  </li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-3-16/0x09.png" alt="enter description here" title="0x09"></p>
+
+<p>Ping 192.168.2.1</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-3-16/0x10.png" alt="enter description here" title="0x10"></p>
+
+<p>实验链接：http://pan.baidu.com/s/1mgix2h6 密码：1gz2</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

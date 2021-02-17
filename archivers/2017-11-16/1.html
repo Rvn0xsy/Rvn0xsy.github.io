@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>搭建Mattermost并开启Https « 倾旋的博客</title>
+  <meta name="description" content="本文记录一下搭建Mattermost服务的过程">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-11-16/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">搭建Mattermost并开启Https</h1>
+    <p class="post-meta">Nov 16, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一下搭建Mattermost服务的过程
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E7%AE%80%E4%BB%8B" id="markdown-toc-0x00-简介">0x00 简介</a></li>
+  <li><a href="#0x01-%E4%B8%8B%E8%BD%BD%E5%AE%89%E8%A3%85" id="markdown-toc-0x01-下载安装">0x01 下载安装</a></li>
+  <li><a href="#0x02-%E6%95%B0%E6%8D%AE%E5%BA%93%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87---postgrsql" id="markdown-toc-0x02-数据库环境准备---postgrsql">0x02 数据库环境准备 - postgrsql</a></li>
+  <li><a href="#0x03-%E8%AE%BE%E7%BD%AE%E6%95%B0%E6%8D%AE%E5%BA%93" id="markdown-toc-0x03-设置数据库">0x03 设置数据库</a></li>
+  <li><a href="#0x04-%E6%94%AF%E6%8C%81%E4%B8%AD%E6%96%87" id="markdown-toc-0x04-支持中文">0x04 支持中文</a></li>
+  <li><a href="#0x05-%E5%85%81%E8%AE%B8%E4%BB%BB%E4%BD%95%E7%94%A8%E6%88%B7%E6%B3%A8%E5%86%8C" id="markdown-toc-0x05-允许任何用户注册">0x05 允许任何用户注册</a></li>
+  <li><a href="#0x06-%E5%88%9B%E5%BB%BA%E8%AF%81%E4%B9%A6" id="markdown-toc-0x06-创建证书">0x06 创建证书</a></li>
+  <li><a href="#0x07-%E9%85%8D%E7%BD%AEssl%E5%8F%82%E6%95%B0" id="markdown-toc-0x07-配置ssl参数">0x07 配置SSL参数</a></li>
+  <li><a href="#0x08-%E5%90%AF%E5%8A%A8" id="markdown-toc-0x08-启动">0x08 启动</a></li>
+  <li><a href="#0x09-%E6%88%91%E7%9A%84%E9%85%8D%E7%BD%AE---configjson%E4%BB%85%E4%BE%9B%E5%8F%82%E8%80%83" id="markdown-toc-0x09-我的配置---configjson仅供参考">0x09 我的配置 - (config.json)仅供参考</a></li>
+</ul>
+
+<h2 id="0x00-简介">0x00 简介</h2>
+<p>Mattermost 是一个 Slack 的开源替代品。</p>
+
+<p>Mattermost 采用 Go 语言开发，这是一个开源的团队通讯服务。为团队带来跨 PC 和移动设备的消息、文件分享，提供归档和搜索功能。</p>
+
+<h2 id="0x01-下载安装">0x01 下载安装</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://releases.mattermost.com/3.6.2/mattermost-3.6.2-linux-amd64.tar.gz
+<span class="nb">tar </span>zxvf mattermost-3.6.2-linux-amd64.tar.gz
+</code></pre></div></div>
+
+<h2 id="0x02-数据库环境准备---postgrsql">0x02 数据库环境准备 - postgrsql</h2>
+
+<p>它其实支持两种数据库 [Mysql &amp; Postgresql]</p>
+
+<p>但是我不推荐使用MySQL，它在启动的时候会创建数据库，这个过程容易出很多问题，根数据库存储引擎有关。</p>
+
+<p>在开始之前，你需要根据你的操作系统来安装Postgresql =&gt; <a href="https://docs.mattermost.com/install/install-rhel-66.html#installing-postgresql-database">看这里</a></p>
+
+<p>设置数据库过程：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@Kali:~# service postgresql start
+root@Kali:~# su postgres 
+postgres@Kali:/root<span class="nv">$ </span>psql
+psql <span class="o">(</span>9.6.2<span class="o">)</span>
+输入 <span class="s2">"help"</span> 来获取帮助信息.
+
+<span class="nv">postgres</span><span class="o">=</span><span class="c"># CREATE DATABASE mattermost; # 创建数据库</span>
+<span class="nv">postgres</span><span class="o">=</span><span class="c"># CREATE USER mmuser WITH PASSWORD '123456'; # 创建一个用户</span>
+<span class="nv">postgres</span><span class="o">=</span><span class="c"># GRANT ALL PRIVILEGES ON DATABASE mattermost to mmuser; # 将数据库的权限赋予用户</span>
+<span class="nv">postgre</span><span class="o">=</span><span class="c"># \q # 退出</span>
+</code></pre></div></div>
+
+<p>设置完毕后，我们需要更改一些配置。</p>
+
+<h2 id="0x03-设置数据库">0x03 设置数据库</h2>
+
+<p>打开<code class="language-plaintext highlighter-rouge">config/config.json</code></p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">"DriverName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"postgres"</span><span class="err">,</span><span class="w">
+        </span><span class="nl">"DataSource"</span><span class="p">:</span><span class="w"> </span><span class="s2">"postgres://mmuser:123456@127.0.0.1:5432/mmtest?sslmode=disable</span><span class="se">\u</span><span class="s2">0026connect_timeout=10"</span><span class="err">,</span><span class="w">
+</span></code></pre></div></div>
+
+<p>上面是我改好后的状态，可以参照我的。</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">"DataSource"</span><span class="p">:</span><span class="nl">"postgresql"</span><span class="p">:</span><span class="err">//用户名:密码@数据库地址:数据库端口/数据库名称?其他配置……</span><span class="w">
+</span></code></pre></div></div>
+
+<h2 id="0x04-支持中文">0x04 支持中文</h2>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">"LocalizationSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"DefaultServerLocale"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zh-CN"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"DefaultClientLocale"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zh-CN"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AvailableLocales"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zh-CN"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h2 id="0x05-允许任何用户注册">0x05 允许任何用户注册</h2>
+
+<p><code class="language-plaintext highlighter-rouge">"EnableOpenServer": true</code></p>
+
+<h2 id="0x06-创建证书">0x06 创建证书</h2>
+
+<pre><code class="language-basg">root@Kali:~/mattermost/ssl# openssl genrsa -des3 -out root.key 1024
+Generating RSA private key, 1024 bit long modulus
+........++++++
+............................++++++
+e is 65537 (0x010001)
+Enter pass phrase for root.key:
+Verifying - Enter pass phrase for root.key:
+
+root@Kali:~/mattermost/ssl# openssl req -new -x509 -key root.key -out root.crt -days 365
+Enter pass phrase for root.key:
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:cn
+State or Province Name (full name) [Some-State]:cn
+Locality Name (eg, city) []:cn
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:cn
+Organizational Unit Name (eg, section) []:cn
+Common Name (e.g. server FQDN or YOUR name) []:cn
+Email Address []:cn@test.com
+root@Kali:~/mattermost/ssl#  openssl genrsa -out server.key 1024
+Generating RSA private key, 1024 bit long modulus
+..............++++++
+................++++++
+e is 65537 (0x010001)
+
+root@Kali:~/mattermost/ssl#  openssl req -new -key server.key -out server.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:cn
+State or Province Name (full name) [Some-State]:cn
+Locality Name (eg, city) []:cn
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:cn
+Organizational Unit Name (eg, section) []:cn
+Common Name (e.g. server FQDN or YOUR name) []:cn
+Email Address []:cn@test.com
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:123456
+An optional company name []:cn
+
+root@Kali:~/mattermost/ssl# openssl ca -in server.csr -out server.crt -keyfile root.key -cert root.crt -days 365
+Using configuration from /usr/lib/ssl/openssl.cnf
+Enter pass phrase for root.key:
+Can't open ./demoCA/index.txt.attr for reading, No such file or directory
+139626525074624\:error\:02001002:system library\:fopen\:No such file or directory:../crypto/bio/bss_file.c\:74\:fopen('./demoCA/index.txt.attr','r')
+139626525074624\:error\:2006D080:BIO routines\:BIO_new_file\:no such file:../crypto/bio/bss_file.c\:81\:
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 1 (0x1)
+        Validity
+            Not Before: Nov 16 07\:00\:45 2017 GMT
+            Not After : Nov 16 07\:00\:45 2018 GMT
+        Subject:
+            countryName               = cn
+            stateOrProvinceName       = cn
+            organizationName          = cn
+            organizationalUnitName    = cn
+            commonName                = cn
+            emailAddress              = cn@test.com
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Comment: 
+                OpenSSL Generated Certificate
+            X509v3 Subject Key Identifier: 
+                FA\:BA\:4F\:7B\:7D\:13\:EE\:B9\:7C\:CF\:D2\:14\:C5\:19\:7F\:1D\:E7\:D1\:B8:FF
+            X509v3 Authority Key Identifier: 
+                keyid\:AB\:7F\:78\:D4\:7C\:D7\:F2\:5C\:E4\:6A\:0E\:15\:EF\:C5\:16\:C8\:66\:C5\:BB\:54
+
+Certificate is to be certified until Nov 16 07\:00\:45 2018 GMT (365 days)
+Sign the certificate? [y/n]:y
+1 out of 1 certificate requests certified, commit? [y/n]y
+Write out database with 1 new entries
+Data Base Updated
+root@Kali:~/mattermost/ssl# ls
+demoCA  root.crt  root.key  server.crt  server.csr  server.key
+</code></pre>
+
+<h2 id="0x07-配置ssl参数">0x07 配置SSL参数</h2>
+
+<p>将密钥的位置填入<code class="language-plaintext highlighter-rouge">config.json</code>：</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>"ConnectionSecurity": "TLS",
+        "TLSCertFile": "/root/mattermost/ssl/server.crt",
+        "TLSKeyFile": "/root/mattermost/ssl/server.key",
+        "Forward80To443": true
+</code></pre></div></div>
+
+<p>并且激活允许Mattermost绑定到低端口的功能：</p>
+
+<p><code class="language-plaintext highlighter-rouge">sudo setcap cap_net_bind_service=+ep ./platform</code></p>
+
+<h2 id="0x08-启动">0x08 启动</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@Kali:~/mattermost/ssl# ../bin/platform 
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>EROR] Failed to load system translations <span class="k">for</span> <span class="s1">'zh-CN'</span> attempting to fall back to <span class="s1">'en'</span>
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Loaded system translations <span class="k">for</span> <span class="s1">'en'</span> from <span class="s1">'/root/mattermost/i18n/en.json'</span>
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Current version is 3.6.0 <span class="o">(</span>3.6.2/Tue Jan 31 21\:02\:59 UTC 2017/1a9891f0f5671551d28be54a99155b907480cc5c/a704f18b1b14f56588a8a57042517fc51a826658<span class="o">)</span>
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Enterprise Enabled: <span class="nb">true</span>
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Current working directory is /root/mattermost/ssl
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Loaded config file from /root/mattermost/config/config.json
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Server is initializing...
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Pinging SQL master database
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Starting 4 websocket hubs
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] License key from https://mattermost.com required to unlock enterprise features.
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Starting Server...
+<span class="o">[</span>2017/11/16 15\:01\:03 CST] <span class="o">[</span>INFO] Server is listening on :8065
+2017/11/16 15\:01\:15 http: TLS handshake error from 192.168.3.101\:56725\: tls: first record does not look like a TLS handshake
+2017/11/16 15\:01\:20 http: TLS handshake error from 192.168.3.101\:56726\: tls: first record does not look like a TLS handshake
+2017/11/16 15\:01\:24 http: TLS handshake error from 192.168.3.106\:43963\: tls: oversized record received with length 21536
+2017/11/16 15\:01\:24 http: TLS handshake error from 192.168.3.106\:43965\: tls: oversized record received with length 21536
+2017/11/16 15\:02\:15 http: TLS handshake error from 192.168.3.106\:44003\: tls: first record does not look like a TLS handshake
+2017/11/16 15\:02\:23 http: TLS handshake error from 192.168.3.106\:44005\: tls: oversized record received with length 21536
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-16/0x00.png" alt="0x00"></p>
+
+<h2 id="0x09-我的配置---configjson仅供参考">0x09 我的配置 - (config.json)仅供参考</h2>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"ServiceSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"SiteURL"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ListenAddress"</span><span class="p">:</span><span class="w"> </span><span class="s2">":8065"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ConnectionSecurity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"TLS"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TLSCertFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/root/mattermost/ssl/server.crt"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TLSKeyFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/root/mattermost/ssl/server.key"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UseLetsEncrypt"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LetsEncryptCertificateCacheFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./config/letsencrypt.cache"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Forward80To443"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ReadTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"WriteTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaximumLoginAttempts"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SegmentDeveloperKey"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"GoogleDeveloperKey"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableOAuthServiceProvider"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableIncomingWebhooks"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableOutgoingWebhooks"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableCommands"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableOnlyAdminIntegrations"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnablePostUsernameOverride"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnablePostIconOverride"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableTesting"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableDeveloper"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableSecurityFixAlert"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableInsecureOutgoingConnections"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableMultifactorAuthentication"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnforceMultifactorAuthentication"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AllowCorsFrom"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SessionLengthWebInDays"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SessionLengthMobileInDays"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SessionLengthSSOInDays"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SessionCacheInMinutes"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"WebsocketSecurePort"</span><span class="p">:</span><span class="w"> </span><span class="mi">4458</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"WebsocketPort"</span><span class="p">:</span><span class="w"> </span><span class="mi">9999</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"WebserverMode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableCustomEmoji"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictCustomEmojiCreation"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TimeBetweenUserTypingUpdatesMilliseconds"</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableUserTypingMessages"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"TeamSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"SiteName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Mattermost"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaxUsersPerTeam"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableTeamCreation"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableUserCreation"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableOpenServer"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictCreationToDomains"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableCustomBrand"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"CustomBrandText"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"CustomDescriptionText"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictDirectMessage"</span><span class="p">:</span><span class="w"> </span><span class="s2">"any"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictTeamInvite"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictPublicChannelManagement"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictPrivateChannelManagement"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictPublicChannelCreation"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictPrivateChannelCreation"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictPublicChannelDeletion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RestrictPrivateChannelDeletion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"all"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UserStatusAwayTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaxChannelsPerTeam"</span><span class="p">:</span><span class="w"> </span><span class="mi">2000</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaxNotificationsPerChannel"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000000</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"SqlSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"DriverName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"postgres"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"DataSource"</span><span class="p">:</span><span class="w"> </span><span class="s2">"postgres://mmuser:123456@127.0.0.1:5432/mmtest?sslmode=disable</span><span class="se">\u</span><span class="s2">0026connect_timeout=10"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"DataSourceReplicas"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w">
+        </span><span class="nl">"MaxIdleConns"</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaxOpenConns"</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Trace"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AtRestEncryptKey"</span><span class="p">:</span><span class="w"> </span><span class="s2">"s39t38dnizfxgch3kufhoimk38nyomwj"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"LogSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"EnableConsole"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ConsoleLevel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"INFO"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableFile"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FileLevel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"INFO"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FileFormat"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FileLocation"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableWebhookDebugging"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableDiagnostics"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"PasswordSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"MinimumLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Lowercase"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Number"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Uppercase"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Symbol"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"FileSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"MaxFileSize"</span><span class="p">:</span><span class="w"> </span><span class="mi">52428800</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"DriverName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"local"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./data/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnablePublicLink"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PublicLinkSalt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5rrmcmfuja88qpn9heodi3edyaw5d6xf"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ThumbnailWidth"</span><span class="p">:</span><span class="w"> </span><span class="mi">120</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ThumbnailHeight"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PreviewWidth"</span><span class="p">:</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PreviewHeight"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ProfileWidth"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ProfileHeight"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"InitialFont"</span><span class="p">:</span><span class="w"> </span><span class="s2">"luximbi.ttf"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AmazonS3AccessKeyId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AmazonS3SecretAccessKey"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AmazonS3Bucket"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AmazonS3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AmazonS3Endpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"s3.amazonaws.com"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AmazonS3SSL"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"EmailSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"EnableSignUpWithEmail"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableSignInWithEmail"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableSignInWithUsername"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SendEmailNotifications"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"RequireEmailVerification"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FeedbackName"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FeedbackEmail"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FeedbackOrganization"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SMTPUsername"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SMTPPassword"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SMTPServer"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SMTPPort"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ConnectionSecurity"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"InviteSalt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"x13o9bb1xbnt8phgoekuy9oce67shuee"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PasswordResetSalt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"8xmxdbkfe9ya3couyy6h1oxu81bgsbbc"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SendPushNotifications"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PushNotificationServer"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PushNotificationContents"</span><span class="p">:</span><span class="w"> </span><span class="s2">"generic"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableEmailBatching"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EmailBatchingBufferSize"</span><span class="p">:</span><span class="w"> </span><span class="mi">256</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EmailBatchingInterval"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"RateLimitSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PerSec"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaxBurst"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MemoryStoreSize"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"VaryByRemoteAddr"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"VaryByHeader"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"PrivacySettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"ShowEmailAddress"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ShowFullName"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"SupportSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"TermsOfServiceLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/default-terms/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PrivacyPolicyLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/default-privacy-policy/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AboutLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/default-about/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"HelpLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/default-help/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ReportAProblemLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/default-report-a-problem/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SupportEmail"</span><span class="p">:</span><span class="w"> </span><span class="s2">"feedback@mattermost.com"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"GitLabSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Secret"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Id"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Scope"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AuthEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TokenEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UserApiEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"GoogleSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Secret"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Id"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Scope"</span><span class="p">:</span><span class="w"> </span><span class="s2">"profile email"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AuthEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://accounts.google.com/o/oauth2/v2/auth"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TokenEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://www.googleapis.com/oauth2/v4/token"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UserApiEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://www.googleapis.com/plus/v1/people/me"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"Office365Settings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Secret"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Id"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Scope"</span><span class="p">:</span><span class="w"> </span><span class="s2">"User.Read"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AuthEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://login.microsoftonline.com/common/oauth2/v2.0/authorize"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TokenEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://login.microsoftonline.com/common/oauth2/v2.0/token"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UserApiEndpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://graph.microsoft.com/v1.0/me"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"LdapSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LdapServer"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LdapPort"</span><span class="p">:</span><span class="w"> </span><span class="mi">389</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ConnectionSecurity"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"BaseDN"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"BindUsername"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"BindPassword"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UserFilter"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FirstNameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LastNameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EmailAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UsernameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"NicknameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"IdAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PositionAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SyncIntervalMinutes"</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"SkipCertificateVerification"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"QueryTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"MaxPageSize"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LoginFieldName"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"ComplianceSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./data/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EnableDaily"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"LocalizationSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"DefaultServerLocale"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zh-CN"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"DefaultClientLocale"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zh-CN"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AvailableLocales"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zh-CN"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"SamlSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Verify"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"Encrypt"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"IdpUrl"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"IdpDescriptorUrl"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AssertionConsumerServiceURL"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"IdpCertificateFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PublicCertificateFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PrivateKeyFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"FirstNameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LastNameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"EmailAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"UsernameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"NicknameAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LocaleAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"PositionAttribute"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"LoginButtonText"</span><span class="p">:</span><span class="w"> </span><span class="s2">"With SAML"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"NativeAppSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"AppDownloadLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/downloads/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"AndroidAppDownloadLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/mattermost-android-app/"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"IosAppDownloadLink"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://about.mattermost.com/mattermost-ios-app/"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"ClusterSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"InterNodeListenAddress"</span><span class="p">:</span><span class="w"> </span><span class="s2">":8075"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"InterNodeUrls"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"MetricsSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"BlockProfileRate"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"ListenAddress"</span><span class="p">:</span><span class="w"> </span><span class="s2">":8067"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"AnalyticsSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"MaxUsersForStatistics"</span><span class="p">:</span><span class="w"> </span><span class="mi">2500</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"WebrtcSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"GatewayWebsocketUrl"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"GatewayAdminUrl"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"GatewayAdminSecret"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"StunURI"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TurnURI"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TurnUsername"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"TurnSharedKey"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

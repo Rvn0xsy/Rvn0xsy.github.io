@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>MemoryModule-实现原理 « 倾旋的博客</title>
+  <meta name="description" content="URLhttps://github.com/fancycode/MemoryModule/blob/master/doc/readme.rstOverviewThe default windows API functions to load external libraries into a program(Lo...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-03-14/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">MemoryModule-实现原理</h1>
+    <p class="post-meta">Mar 14, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h1 id="url">URL</h1>
+<p>https://github.com/fancycode/MemoryModule/blob/master/doc/readme.rst</p>
+
+<h1 id="overview">Overview</h1>
+
+<p>The default windows API functions to load external libraries into a program
+(LoadLibrary, LoadLibraryEx) only work with files on the filesystem.  It’s
+therefore impossible to load a DLL from memory.
+But sometimes, you need exactly this functionality (e.g. you don’t want to
+distribute a lot of files or want to make disassembling harder).  Common
+workarounds for this problems are to write the DLL into a temporary file
+first and import it from there.  When the program terminates, the temporary
+file gets deleted.</p>
+
+<p>In this tutorial, I will describe first, how DLL files are structured and
+will present some code that can be used to load a DLL completely from memory -
+without storing on the disk first.</p>
+
+<h1 id="windows-executables---the-pe-format">Windows executables - the PE format</h1>
+
+<p>Most windows binaries that can contain executable code (.exe, .dll, .sys)
+share a common file format that consists of the following parts:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+----------------+
+| DOS header     |
+|                |
+| DOS stub       |
++----------------+
+| PE header      |
++----------------+
+| Section header |
++----------------+
+| Section 1      |
++----------------+
+| Section 2      |
++----------------+
+| . . .          |
++----------------+
+| Section n      |
++----------------+
+</code></pre></div></div>
+
+<p>All structures given below can be found in the header file <code class="language-plaintext highlighter-rouge">winnt.h</code>.</p>
+
+<h2 id="dos-header--stub">DOS header / stub</h2>
+
+<p>The DOS header is only used for backwards compatibility.  It precedes the DOS
+stub that normally just displays an error message about the program not being
+able to be run from DOS mode.</p>
+
+<p>Microsoft defines the DOS header as follows::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_DOS_HEADER</span> <span class="p">{</span>      <span class="c1">// DOS .EXE header</span>
+        <span class="n">WORD</span>   <span class="n">e_magic</span><span class="p">;</span>                     <span class="c1">// Magic number</span>
+        <span class="n">WORD</span>   <span class="n">e_cblp</span><span class="p">;</span>                      <span class="c1">// Bytes on last page of file</span>
+        <span class="n">WORD</span>   <span class="n">e_cp</span><span class="p">;</span>                        <span class="c1">// Pages in file</span>
+        <span class="n">WORD</span>   <span class="n">e_crlc</span><span class="p">;</span>                      <span class="c1">// Relocations</span>
+        <span class="n">WORD</span>   <span class="n">e_cparhdr</span><span class="p">;</span>                   <span class="c1">// Size of header in paragraphs</span>
+        <span class="n">WORD</span>   <span class="n">e_minalloc</span><span class="p">;</span>                  <span class="c1">// Minimum extra paragraphs needed</span>
+        <span class="n">WORD</span>   <span class="n">e_maxalloc</span><span class="p">;</span>                  <span class="c1">// Maximum extra paragraphs needed</span>
+        <span class="n">WORD</span>   <span class="n">e_ss</span><span class="p">;</span>                        <span class="c1">// Initial (relative) SS value</span>
+        <span class="n">WORD</span>   <span class="n">e_sp</span><span class="p">;</span>                        <span class="c1">// Initial SP value</span>
+        <span class="n">WORD</span>   <span class="n">e_csum</span><span class="p">;</span>                      <span class="c1">// Checksum</span>
+        <span class="n">WORD</span>   <span class="n">e_ip</span><span class="p">;</span>                        <span class="c1">// Initial IP value</span>
+        <span class="n">WORD</span>   <span class="n">e_cs</span><span class="p">;</span>                        <span class="c1">// Initial (relative) CS value</span>
+        <span class="n">WORD</span>   <span class="n">e_lfarlc</span><span class="p">;</span>                    <span class="c1">// File address of relocation table</span>
+        <span class="n">WORD</span>   <span class="n">e_ovno</span><span class="p">;</span>                      <span class="c1">// Overlay number</span>
+        <span class="n">WORD</span>   <span class="n">e_res</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>                    <span class="c1">// Reserved words</span>
+        <span class="n">WORD</span>   <span class="n">e_oemid</span><span class="p">;</span>                     <span class="c1">// OEM identifier (for e_oeminfo)</span>
+        <span class="n">WORD</span>   <span class="n">e_oeminfo</span><span class="p">;</span>                   <span class="c1">// OEM information; e_oemid specific</span>
+        <span class="n">WORD</span>   <span class="n">e_res2</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>                  <span class="c1">// Reserved words</span>
+        <span class="n">LONG</span>   <span class="n">e_lfanew</span><span class="p">;</span>                    <span class="c1">// File address of new exe header</span>
+      <span class="p">}</span> <span class="n">IMAGE_DOS_HEADER</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_DOS_HEADER</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h2 id="pe-header">PE header</h2>
+
+<p>The PE header contains informations about the different sections inside the
+executable that are used to store code and data or to define imports from other
+libraries or exports this libraries provides.</p>
+
+<p>It’s defined as follows::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_NT_HEADERS</span> <span class="p">{</span>
+        <span class="n">DWORD</span> <span class="n">Signature</span><span class="p">;</span>
+        <span class="n">IMAGE_FILE_HEADER</span> <span class="n">FileHeader</span><span class="p">;</span>
+        <span class="n">IMAGE_OPTIONAL_HEADER32</span> <span class="n">OptionalHeader</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">IMAGE_NT_HEADERS32</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_NT_HEADERS32</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>The <code class="language-plaintext highlighter-rouge">FileHeader</code> describes the <em>physical</em> format of the file, i.e. contents, informations
+about symbols, etc::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_FILE_HEADER</span> <span class="p">{</span>
+        <span class="n">WORD</span>    <span class="n">Machine</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">NumberOfSections</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">TimeDateStamp</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">PointerToSymbolTable</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">NumberOfSymbols</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">SizeOfOptionalHeader</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">Characteristics</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">IMAGE_FILE_HEADER</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_FILE_HEADER</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>.. _OptionalHeader:</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">OptionalHeader</code> contains informations about the <em>logical</em> format of the library,
+including required OS version, memory requirements and entry points::</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    typedef struct _IMAGE_OPTIONAL_HEADER {
+        //
+        // Standard fields.
+        //
+
+        WORD    Magic;
+        BYTE    MajorLinkerVersion;
+        BYTE    MinorLinkerVersion;
+        DWORD   SizeOfCode;
+        DWORD   SizeOfInitializedData;
+        DWORD   SizeOfUninitializedData;
+        DWORD   AddressOfEntryPoint;
+        DWORD   BaseOfCode;
+        DWORD   BaseOfData;
+
+        //
+        // NT additional fields.
+        //
+
+        DWORD   ImageBase;
+        DWORD   SectionAlignment;
+        DWORD   FileAlignment;
+        WORD    MajorOperatingSystemVersion;
+        WORD    MinorOperatingSystemVersion;
+        WORD    MajorImageVersion;
+        WORD    MinorImageVersion;
+        WORD    MajorSubsystemVersion;
+        WORD    MinorSubsystemVersion;
+        DWORD   Win32VersionValue;
+        DWORD   SizeOfImage;
+        DWORD   SizeOfHeaders;
+        DWORD   CheckSum;
+        WORD    Subsystem;
+        WORD    DllCharacteristics;
+        DWORD   SizeOfStackReserve;
+        DWORD   SizeOfStackCommit;
+        DWORD   SizeOfHeapReserve;
+        DWORD   SizeOfHeapCommit;
+        DWORD   LoaderFlags;
+        DWORD   NumberOfRvaAndSizes;
+        IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+    } IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;
+</code></pre></div></div>
+
+<p>.. _DataDirectory:</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">DataDirectory</code> contains 16 (<code class="language-plaintext highlighter-rouge">IMAGE_NUMBEROF_DIRECTORY_ENTRIES</code>) entries
+defining the logical components of the library:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>===== ==========================
+Index Description
+===== ==========================
+0     Exported functions
+----- --------------------------
+1     Imported functions
+----- --------------------------
+2     Resources
+----- --------------------------
+3     Exception informations
+----- --------------------------
+4     Security informations
+----- --------------------------
+5     Base relocation table
+----- --------------------------
+6     Debug informations
+----- --------------------------
+7     Architecture specific data
+----- --------------------------
+8     Global pointer
+----- --------------------------
+9     Thread local storage
+----- --------------------------
+10    Load configuration
+----- --------------------------
+11    Bound imports
+----- --------------------------
+12    Import address table
+----- --------------------------
+13    Delay load imports
+----- --------------------------
+14    COM runtime descriptor
+===== ==========================
+</code></pre></div></div>
+
+<p>For importing the DLL we only need the entries describing the imports and the
+base relocation table.  In order to provide access to the exported functions,
+the exports entry is required.</p>
+
+<h2 id="section-header">Section header</h2>
+
+<p>The section header is stored after the OptionalHeader_ structure in the PE
+header.  Microsoft provides the macro <code class="language-plaintext highlighter-rouge">IMAGE_FIRST_SECTION</code> to get the start
+address based on the PE header.</p>
+
+<p>Actually, the section header is a list of informations about each section in
+the file::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_SECTION_HEADER</span> <span class="p">{</span>
+        <span class="n">BYTE</span>    <span class="n">Name</span><span class="p">[</span><span class="n">IMAGE_SIZEOF_SHORT_NAME</span><span class="p">];</span>
+        <span class="k">union</span> <span class="p">{</span>
+                <span class="n">DWORD</span>   <span class="n">PhysicalAddress</span><span class="p">;</span>
+                <span class="n">DWORD</span>   <span class="n">VirtualSize</span><span class="p">;</span>
+        <span class="p">}</span> <span class="n">Misc</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">VirtualAddress</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">SizeOfRawData</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">PointerToRawData</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">PointerToRelocations</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">PointerToLinenumbers</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">NumberOfRelocations</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">NumberOfLinenumbers</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">Characteristics</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">IMAGE_SECTION_HEADER</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_SECTION_HEADER</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>A section can contain code, data, relocation informations, resources, export or
+import definitions, etc.</p>
+
+<h1 id="loading-the-library">Loading the library</h1>
+
+<p>To emulate the PE loader, we must first understand, which steps are neccessary
+to load the file to memory and prepare the structures so they can be called from
+other programs.</p>
+
+<p>When issuing the API call <code class="language-plaintext highlighter-rouge">LoadLibrary</code>, Windows basically performs these tasks:</p>
+
+<ol>
+  <li>
+    <p>Open the given file and check the DOS and PE headers.</p>
+  </li>
+  <li>
+    <p>Try to allocate a memory block of <code class="language-plaintext highlighter-rouge">PEHeader.OptionalHeader.SizeOfImage</code> bytes
+at position <code class="language-plaintext highlighter-rouge">PEHeader.OptionalHeader.ImageBase</code>.</p>
+  </li>
+  <li>
+    <p>Parse section headers and copy sections to their addresses.  The destination
+address for each section, relative to the base of the allocated memory block,
+is stored in the <code class="language-plaintext highlighter-rouge">VirtualAddress</code> attribute of the <code class="language-plaintext highlighter-rouge">IMAGE_SECTION_HEADER</code>
+structure.</p>
+  </li>
+  <li>
+    <p>If the allocated memory block differs from <code class="language-plaintext highlighter-rouge">ImageBase</code>, various references in
+the code and/or data sections must be adjusted.  This is called <em>Base
+relocation</em>.</p>
+  </li>
+  <li>
+    <p>The required imports for the library must be resolved by loading the
+corresponding libraries.</p>
+  </li>
+  <li>
+    <p>The memory regions of the different sections must be protected depending on
+the section’s characteristics.  Some sections are marked as <em>discardable</em>
+and therefore can be safely freed at this point.  These sections normally
+contain temporary data that is only needed during the import, like the
+informations for the base relocation.</p>
+  </li>
+  <li>
+    <p>Now the library is loaded completely.  It must be notified about this by
+calling the entry point using the flag <code class="language-plaintext highlighter-rouge">DLL_PROCESS_ATTACH</code>.</p>
+  </li>
+</ol>
+
+<p>In the following paragraphs, each step is described.</p>
+
+<h2 id="allocate-memory">Allocate memory</h2>
+
+<p>All memory required for the library must be reserved / allocated using
+<code class="language-plaintext highlighter-rouge">VirtualAlloc</code>, as Windows provides functions to protect these memory blocks.
+This is required to restrict access to the memory, like blocking write access
+to the code or constant data.</p>
+
+<p>The OptionalHeader_ structure defines the size of the required memory block
+for the library.  It must be reserved at the address specified by <code class="language-plaintext highlighter-rouge">ImageBase</code>
+if possible::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">memory</span> <span class="o">=</span> <span class="n">VirtualAlloc</span><span class="p">((</span><span class="n">LPVOID</span><span class="p">)(</span><span class="n">PEHeader</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">ImageBase</span><span class="p">),</span>
+        <span class="n">PEHeader</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">SizeOfImage</span><span class="p">,</span>
+        <span class="n">MEM_RESERVE</span><span class="p">,</span>
+        <span class="n">PAGE_READWRITE</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>If the reserved memory differs from the address given in <code class="language-plaintext highlighter-rouge">ImageBase</code>, base
+relocation as described below must be done.</p>
+
+<h2 id="copy-sections">Copy sections</h2>
+
+<p>Once the memory has been reserved, the file contents can be copied to the
+system.  The section header must get evaluated in order to determine the
+position in the file and the target area in memory.</p>
+
+<p>Before copying the data, the memory block must get committed::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">dest</span> <span class="o">=</span> <span class="n">VirtualAlloc</span><span class="p">(</span><span class="n">baseAddress</span> <span class="o">+</span> <span class="n">section</span><span class="o">-&gt;</span><span class="n">VirtualAddress</span><span class="p">,</span>
+        <span class="n">section</span><span class="o">-&gt;</span><span class="n">SizeOfRawData</span><span class="p">,</span>
+        <span class="n">MEM_COMMIT</span><span class="p">,</span>
+        <span class="n">PAGE_READWRITE</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Sections without data in the file (like data sections for the used variables)
+have a <code class="language-plaintext highlighter-rouge">SizeOfRawData</code> of <code class="language-plaintext highlighter-rouge">0</code>, so you can use the <code class="language-plaintext highlighter-rouge">SizeOfInitializedData</code>
+or <code class="language-plaintext highlighter-rouge">SizeOfUninitializedData</code> of the OptionalHeader_.  Which one must get
+choosen depending on the bit flags <code class="language-plaintext highlighter-rouge">IMAGE_SCN_CNT_INITIALIZED_DATA</code> and
+<code class="language-plaintext highlighter-rouge">IMAGE_SCN_CNT_UNINITIALIZED_DATA</code> that may be set in the section`s
+characteristics.</p>
+
+<h2 id="base-relocation">Base relocation</h2>
+
+<p>All memory addresses in the code / data sections of a library are stored relative
+to the address defined by <code class="language-plaintext highlighter-rouge">ImageBase</code> in the OptionalHeader_.  If the library
+can’t be imported to this memory address, the references must get adjusted
+=&gt; <em>relocated</em>.  The file format helps for this by storing informations about
+all these references in the base relocation table, which can be found in the
+directory entry 5 of the DataDirectory_ in the OptionalHeader_.</p>
+
+<p>This table consists of a series of this structure</p>
+
+<p>::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_BASE_RELOCATION</span> <span class="p">{</span>
+        <span class="n">DWORD</span>   <span class="n">VirtualAddress</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">SizeOfBlock</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">IMAGE_BASE_RELOCATION</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>It contains <code class="language-plaintext highlighter-rouge">(SizeOfBlock - IMAGE_SIZEOF_BASE_RELOCATION) / 2</code> entries of 16 bits
+each.  The upper 4 bits define the type of relocation, the lower 12 bits define
+the offset relative to the <code class="language-plaintext highlighter-rouge">VirtualAddress</code>.</p>
+
+<p>The only types that seem to be used in DLLs are</p>
+
+<p>IMAGE_REL_BASED_ABSOLUTE
+    No operation relocation.  Used for padding.
+IMAGE_REL_BASED_HIGHLOW
+    Add the delta between the <code class="language-plaintext highlighter-rouge">ImageBase</code> and the allocated memory block to the
+    32 bits found at the offset.</p>
+
+<h2 id="resolve-imports">Resolve imports</h2>
+
+<p>The directory entry 1 of the DataDirectory_ in the OptionalHeader_ specifies
+a list of libraries to import symbols from.  Each entry in this list is defined
+as follows::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_IMPORT_DESCRIPTOR</span> <span class="p">{</span>
+        <span class="k">union</span> <span class="p">{</span>
+            <span class="n">DWORD</span>   <span class="n">Characteristics</span><span class="p">;</span>            <span class="c1">// 0 for terminating null import descriptor</span>
+            <span class="n">DWORD</span>   <span class="n">OriginalFirstThunk</span><span class="p">;</span>         <span class="c1">// RVA to original unbound IAT (PIMAGE_THUNK_DATA)</span>
+        <span class="p">};</span>
+        <span class="n">DWORD</span>   <span class="n">TimeDateStamp</span><span class="p">;</span>                  <span class="c1">// 0 if not bound,</span>
+                                                <span class="c1">// -1 if bound, and real date\time stamp</span>
+                                                <span class="c1">//     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)</span>
+                                                <span class="c1">// O.W. date/time stamp of DLL bound to (Old BIND)</span>
+
+        <span class="n">DWORD</span>   <span class="n">ForwarderChain</span><span class="p">;</span>                 <span class="c1">// -1 if no forwarders</span>
+        <span class="n">DWORD</span>   <span class="n">Name</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">FirstThunk</span><span class="p">;</span>                     <span class="c1">// RVA to IAT (if bound this IAT has actual addresses)</span>
+    <span class="p">}</span> <span class="n">IMAGE_IMPORT_DESCRIPTOR</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>The <code class="language-plaintext highlighter-rouge">Name</code> entry describes the offset to the NULL-terminated string of the library
+name (e.g. <code class="language-plaintext highlighter-rouge">KERNEL32.DLL</code>).  The <code class="language-plaintext highlighter-rouge">OriginalFirstThunk</code> entry points to a list
+of references to the function names to import from the external library.
+<code class="language-plaintext highlighter-rouge">FirstThunk</code> points to a list of addresses that gets filled with pointers to
+the imported symbols.</p>
+
+<p>When we resolve the imports, we walk both lists in parallel, import the function
+defined by the name in the first list and store the pointer to the symbol in the
+second list::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="n">nameRef</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD</span> <span class="o">*</span><span class="p">)(</span><span class="n">baseAddress</span> <span class="o">+</span> <span class="n">importDesc</span><span class="o">-&gt;</span><span class="n">OriginalFirstThunk</span><span class="p">);</span>
+    <span class="n">symbolRef</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD</span> <span class="o">*</span><span class="p">)(</span><span class="n">baseAddress</span> <span class="o">+</span> <span class="n">importDesc</span><span class="o">-&gt;</span><span class="n">FirstThunk</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(;</span> <span class="o">*</span><span class="n">nameRef</span><span class="p">;</span> <span class="n">nameRef</span><span class="o">++</span><span class="p">,</span> <span class="n">symbolRef</span><span class="o">++</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">PIMAGE_IMPORT_BY_NAME</span> <span class="n">thunkData</span> <span class="o">=</span> <span class="p">(</span><span class="n">PIMAGE_IMPORT_BY_NAME</span><span class="p">)(</span><span class="n">codeBase</span> <span class="o">+</span> <span class="o">*</span><span class="n">nameRef</span><span class="p">);</span>
+        <span class="o">*</span><span class="n">symbolRef</span> <span class="o">=</span> <span class="p">(</span><span class="n">DWORD</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="p">(</span><span class="n">LPCSTR</span><span class="p">)</span><span class="o">&amp;</span><span class="n">thunkData</span><span class="o">-&gt;</span><span class="n">Name</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">funcRef</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">handleImportError</span><span class="p">();</span>
+            <span class="k">return</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="protect-memory">Protect memory</h2>
+
+<p>Every section specifies permission flags in it’s <code class="language-plaintext highlighter-rouge">Characteristics</code> entry.
+These flags can be one or a combination of</p>
+
+<p>IMAGE_SCN_MEM_EXECUTE
+    The section contains data that can be executed.</p>
+
+<p>IMAGE_SCN_MEM_READ
+    The section contains data that is readable.</p>
+
+<p>IMAGE_SCN_MEM_WRITE
+    The section contains data that is writeable.</p>
+
+<p>These flags must get mapped to the protection flags</p>
+
+<ul>
+  <li>PAGE_NOACCESS</li>
+  <li>PAGE_WRITECOPY</li>
+  <li>PAGE_READONLY</li>
+  <li>PAGE_READWRITE</li>
+  <li>PAGE_EXECUTE</li>
+  <li>PAGE_EXECUTE_WRITECOPY</li>
+  <li>PAGE_EXECUTE_READ</li>
+  <li>PAGE_EXECUTE_READWRITE</li>
+</ul>
+
+<p>Now, the function <code class="language-plaintext highlighter-rouge">VirtualProtect</code> can be used to limit access to the memory.
+If the program tries to access it in a unauthorized way, an exception gets
+raised by Windows.</p>
+
+<p>In addition the section flags above, the following can be added:</p>
+
+<p>IMAGE_SCN_MEM_DISCARDABLE
+    The data in this section can be freed after the import.  Usually this is
+    specified for relocation data.</p>
+
+<p>IMAGE_SCN_MEM_NOT_CACHED
+    The data in this section must not get cached by Windows.  Add the bit
+    flag <code class="language-plaintext highlighter-rouge">PAGE_NOCACHE</code> to the protection flags above.</p>
+
+<h2 id="notify-library">Notify library</h2>
+
+<p>The last thing to do is to call the DLL entry point (defined by
+<code class="language-plaintext highlighter-rouge">AddressOfEntryPoint</code>) and so notifying the library about being attached
+to a process.</p>
+
+<p>The function at the entry point is defined as</p>
+
+<p>::</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+    <span class="k">typedef</span> <span class="nf">BOOL</span> <span class="p">(</span><span class="n">WINAPI</span> <span class="o">*</span><span class="n">DllEntryProc</span><span class="p">)(</span><span class="n">HINSTANCE</span> <span class="n">hinstDLL</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">fdwReason</span><span class="p">,</span> <span class="n">LPVOID</span> <span class="n">lpReserved</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>So the last code we need to execute is</p>
+
+<p>::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	<span class="n">DllEntryProc</span> <span class="n">entry</span> <span class="o">=</span> <span class="p">(</span><span class="n">DllEntryProc</span><span class="p">)(</span><span class="n">baseAddress</span> <span class="o">+</span> <span class="n">PEHeader</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">AddressOfEntryPoint</span><span class="p">);</span>
+	<span class="p">(</span><span class="o">*</span><span class="n">entry</span><span class="p">)((</span><span class="n">HINSTANCE</span><span class="p">)</span><span class="n">baseAddress</span><span class="p">,</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Afterwards we can use the exported functions as with any normal library.</p>
+
+<h1 id="exported-functions">Exported functions</h1>
+
+<p>If you want to access the functions that are exported by the library, you need to find the entry
+point to a symbol, i.e. the name of the function to call.</p>
+
+<p>The directory entry 0 of the DataDirectory_ in the OptionalHeader_ contains informations about
+the exported functions. It’s defined as follows::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_EXPORT_DIRECTORY</span> <span class="p">{</span>
+        <span class="n">DWORD</span>   <span class="n">Characteristics</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">TimeDateStamp</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">MajorVersion</span><span class="p">;</span>
+        <span class="n">WORD</span>    <span class="n">MinorVersion</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">Name</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">Base</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">NumberOfFunctions</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">NumberOfNames</span><span class="p">;</span>
+        <span class="n">DWORD</span>   <span class="n">AddressOfFunctions</span><span class="p">;</span>     <span class="c1">// RVA from base of image</span>
+        <span class="n">DWORD</span>   <span class="n">AddressOfNames</span><span class="p">;</span>         <span class="c1">// RVA from base of image</span>
+        <span class="n">DWORD</span>   <span class="n">AddressOfNameOrdinals</span><span class="p">;</span>  <span class="c1">// RVA from base of image</span>
+    <span class="p">}</span> <span class="n">IMAGE_EXPORT_DIRECTORY</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>First thing to do, is to map the name of the function to the ordinal number of the exported
+symbol. Therefore, just walk the arrays defined by <code class="language-plaintext highlighter-rouge">AddressOfNames</code> and <code class="language-plaintext highlighter-rouge">AddressOfNameOrdinals</code>
+parallel until you found the required name.</p>
+
+<p>Now you can use the ordinal number to read the address by evaluating the n-th element of the
+<code class="language-plaintext highlighter-rouge">AddressOfFunctions</code> array.</p>
+
+<h1 id="freeing-the-library">Freeing the library</h1>
+
+<p>To free the custom loaded library, perform the steps</p>
+
+<ul>
+  <li>
+    <p>Call entry point to notify library about being detached::</p>
+
+    <p>DllEntryProc entry = (DllEntryProc)(baseAddress + PEHeader-&gt;OptionalHeader.AddressOfEntryPoint);
+  (*entry)((HINSTANCE)baseAddress, DLL_PROCESS_ATTACH, 0);</p>
+  </li>
+  <li>Free external libraries used to resolve imports.</li>
+  <li>Free allocated memory.</li>
+</ul>
+
+<h1 id="memorymodule">MemoryModule</h1>
+
+<p>MemoryModule is a C-library that can be used to load a DLL from memory.</p>
+
+<p>The interface is very similar to the standard methods for loading of libraries::</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">typedef</span> <span class="kt">void</span> <span class="o">*</span><span class="n">HMEMORYMODULE</span><span class="p">;</span>
+
+    <span class="n">HMEMORYMODULE</span> <span class="nf">MemoryLoadLibrary</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="kt">size_t</span><span class="p">);</span>
+    <span class="n">FARPROC</span> <span class="nf">MemoryGetProcAddress</span><span class="p">(</span><span class="n">HMEMORYMODULE</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">MemoryFreeLibrary</span><span class="p">(</span><span class="n">HMEMORYMODULE</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="downloads">Downloads</h2>
+
+<p>The latest development release can always be grabbed from Github at
+http://github.com/fancycode/MemoryModule/</p>
+
+<h2 id="known-issues">Known issues</h2>
+
+<ul>
+  <li>All memory that is not protected by section flags is gets committed using <code class="language-plaintext highlighter-rouge">PAGE_READWRITE</code>.
+I don’t know if this is correct.</li>
+</ul>
+
+<h2 id="license">License</h2>
+
+<p>Since version 0.0.2, the MemoryModule library is released under the Mozilla Public License (MPL).
+Version 0.0.1 has been released unter the Lesser General Public License (LGPL).</p>
+
+<p>It is provided as-is without ANY warranty.  You may use it at your own risk.</p>
+
+<h1 id="copyright">Copyright</h1>
+
+<p>The MemoryModule library and this tutorial are
+Copyright (c) 2004-2015 by Joachim Bauch.</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

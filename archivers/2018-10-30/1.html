@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>解决Mac OS挂载NTFS格式硬盘无法读写 « 倾旋的博客</title>
+  <meta name="description" content="本文介绍一下解决Mac OS挂载NTFS格式硬盘无法读写的问题">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-10-30/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">解决Mac OS挂载NTFS格式硬盘无法读写</h1>
+    <p class="post-meta">Oct 30, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文介绍一下解决Mac OS挂载NTFS格式硬盘无法读写的问题
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li><a href="#%E6%9F%A5%E7%9C%8B%E5%88%86%E5%8C%BA" id="markdown-toc-查看分区">查看分区</a></li>
+  <li>
+<a href="#%E9%87%8D%E6%96%B0%E6%8C%82%E8%BD%BD" id="markdown-toc-重新挂载">重新挂载</a>    <ul>
+      <li><a href="#%E5%8D%B8%E8%BD%BD" id="markdown-toc-卸载">卸载</a></li>
+      <li><a href="#%E6%8C%82%E8%BD%BD" id="markdown-toc-挂载">挂载</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="查看分区">查看分区</h2>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rvn0xsy@Rvn0xsy ~/&gt; diskutil list
+/dev/disk0 <span class="o">(</span>internal<span class="o">)</span>:
+   <span class="c">#:                       TYPE NAME                    SIZE       IDENTIFIER</span>
+   0:      GUID_partition_scheme                         500.3 GB   disk0
+   1:                        EFI EFI                     314.6 MB   disk0s1
+   2:                 Apple_APFS Container disk1         500.0 GB   disk0s2
+
+/dev/disk1 <span class="o">(</span>synthesized<span class="o">)</span>:
+   <span class="c">#:                       TYPE NAME                    SIZE       IDENTIFIER</span>
+   0:      APFS Container Scheme -                      +500.0 GB   disk1
+                                 Physical Store disk0s2
+   1:                APFS Volume Macintosh HD            209.0 GB   disk1s1
+   2:                APFS Volume Preboot                 25.1 MB    disk1s2
+   3:                APFS Volume Recovery                515.8 MB   disk1s3
+   4:                APFS Volume VM                      3.2 GB     disk1s4
+
+/dev/disk2 <span class="o">(</span>external, physical<span class="o">)</span>:
+   <span class="c">#:                       TYPE NAME                    SIZE       IDENTIFIER</span>
+   0:                            disk                    <span class="k">*</span>2.0 TB     disk2
+
+rvn0xsy@Rvn0xsy ~/&gt;
+</code></pre></div></div>
+
+<p>那个<code class="language-plaintext highlighter-rouge">/dev/disk2</code>是我的硬盘</p>
+
+<h2 id="重新挂载">重新挂载</h2>
+
+<h3 id="卸载">卸载</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>umount /Volumes/disk
+</code></pre></div></div>
+
+<h3 id="挂载">挂载</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>mount <span class="nt">-t</span> ntfs <span class="nt">-o</span> rw,auto,nobrowse /dev/disk2 /Volumes/Mydisk/
+</code></pre></div></div>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Active Directory Domain Services - 获取域控信息 « 倾旋的博客</title>
+  <meta name="description" content="0x00 简介在内网中的域环境下，获取域控的信息有很多种，但是在此之前都是以经验来判定的。而MSDN文档的API从未接触过，因此想多扩展一下知识面。地址：https://docs.microsoft.com/zh-cn/windows/desktop/api/_ad/0x01 域用户的登录过程参考：https:/...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-04-12/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Active Directory Domain Services - 获取域控信息</h1>
+    <p class="post-meta">Apr 12, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x00-简介">0x00 简介</h2>
+
+<p>在内网中的域环境下，获取域控的信息有很多种，但是在此之前都是以经验来判定的。</p>
+
+<p>而MSDN文档的API从未接触过，因此想多扩展一下知识面。</p>
+
+<p>地址：https://docs.microsoft.com/zh-cn/windows/desktop/api/_ad/</p>
+
+<h2 id="0x01-域用户的登录过程">0x01 域用户的登录过程</h2>
+
+<p>参考：https://blog.csdn.net/jsd2honey/article/details/54340439</p>
+
+<ul>
+  <li>1、客户端发起net logon 服务会 运行DsGetDcName这个API。</li>
+  <li>2、DsGetDcName就会从客户端收集DNS和site的信息。</li>
+  <li>3、Net logon 会根据IP地址找到相应的DNS服务器，并发送一个 DNS Query的数据包，查询site内所有DC的SRV记录和A记录。</li>
+  <li>4、DNS 服务器会返回一个 response数据包，里面包含site内所有DC的一张表格。如果DNS服务器不返回这个数据包，那么locate DC就失败了。</li>
+  <li>5、然后客户端 的netlogon就根据这张表格给每台DC都发送一个 Query 数据包。如果有多台DC都给客户端返回response的数据包，那么客户端以最先返回 response 为准，即客户端成功locate 到这台DC。但是如果没有DC返回响应数据包，那么locate DC也会失败。</li>
+</ul>
+
+<h2 id="0x02-尝试学习api">0x02 尝试学习API</h2>
+
+<p>微软有一个Example：https://docs.microsoft.com/zh-cn/windows/desktop/AD/enumerating-domain-controllers</p>
+
+<p>准备花时间慢慢啃～</p>
+
+<p>第一个API - <a href="https://docs.microsoft.com/zh-cn/windows/desktop/api/dsgetdc/nf-dsgetdc-dsgetdcnamea">DsGetDcName</a></p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">DSGETDCAPI</span> <span class="n">DWORD</span> <span class="nf">DsGetDcNameA</span><span class="p">(</span>
+  <span class="n">IN</span> <span class="n">LPCSTR</span>                    <span class="n">ComputerName</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">LPCSTR</span>                    <span class="n">DomainName</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">GUID</span>                      <span class="o">*</span><span class="n">DomainGuid</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">LPCSTR</span>                    <span class="n">SiteName</span><span class="p">,</span>
+  <span class="n">IN</span> <span class="n">ULONG</span>                     <span class="n">Flags</span><span class="p">,</span>
+  <span class="n">OUT</span> <span class="n">PDOMAIN_CONTROLLER_INFOA</span> <span class="o">*</span><span class="n">DomainControllerInfo</span>
+<span class="p">);</span>
+</code></pre></div></div>
+<p>关于参数的介绍都在文档中。</p>
+
+<h2 id="0x03-获取域控信息">0x03 获取域控信息</h2>
+
+<p>我写了一个例子，获取域控的地址、GUID等信息，都保存在<code class="language-plaintext highlighter-rouge">DomainControllerInfo</code>：</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// ConsoleApplication1.cpp : 定义控制台应用程序的入口点。</span>
+<span class="c1">//</span>
+
+<span class="cp">#include "stdafx.h"
+#include &lt;Windows.h&gt;
+#include &lt;DsGetDC.h&gt;
+#include &lt;Lm.h&gt;
+#pragma  comment(lib, "NetApi32.lib")
+</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="n">PDOMAIN_CONTROLLER_INFO</span>  <span class="n">dcInfo</span><span class="p">;</span>
+	<span class="n">DWORD</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">DsGetDcName</span><span class="p">(</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="nb">NULL</span><span class="p">,</span>
+		<span class="n">DS_KDC_REQUIRED</span><span class="p">,</span>
+		<span class="o">&amp;</span><span class="n">dcInfo</span>
+	<span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="n">ERROR_SUCCESS</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">GUID</span> <span class="o">*</span> <span class="n">dc_guid</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">dcInfo</span><span class="o">-&gt;</span><span class="n">DomainGuid</span><span class="p">;</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"DomainControllerName : %s </span><span class="se">\n</span><span class="s"> "</span><span class="p">,</span> <span class="n">dcInfo</span><span class="o">-&gt;</span><span class="n">DomainControllerName</span><span class="p">);</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"DomainControllerAddress : %s </span><span class="se">\n</span><span class="s"> "</span><span class="p">,</span> <span class="n">dcInfo</span><span class="o">-&gt;</span><span class="n">DomainControllerAddress</span><span class="p">);</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"DomainGuid : %x-%x-%x-%x </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data1</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data2</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data3</span><span class="p">,</span> <span class="n">dc_guid</span><span class="o">-&gt;</span><span class="n">Data4</span><span class="p">);</span>
+		<span class="n">NetApiBufferFree</span><span class="p">(</span><span class="n">dcInfo</span><span class="p">);</span>
+	<span class="p">}</span>
+	<span class="k">else</span> <span class="p">{</span>
+		<span class="n">wprintf</span><span class="p">(</span><span class="s">L"Error : %d </span><span class="se">\n</span><span class="s"> "</span><span class="p">,</span> <span class="n">GetLastError</span><span class="p">());</span>
+	<span class="p">}</span>
+	
+	<span class="n">system</span><span class="p">(</span><span class="s">"pause"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/84414b6da3036249ed9c62cbc206e120.png" alt="2019-04-12-23-59-57"></p>
+
+<p><code class="language-plaintext highlighter-rouge">PDOMAIN_CONTROLLER_INFO</code>的信息都在这里：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/63f25b9226237c40d65babd95b9034c4.png" alt="2019-04-13-00-00-52"></p>
+
+<p>其中要注意的是，DC的这些API都需要调用<code class="language-plaintext highlighter-rouge">NetApi32.lib</code>，并且包含<code class="language-plaintext highlighter-rouge">dsgetdc.h</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/ed7cf636866d998261df774629853bac.png" alt="2019-04-13-00-02-54"></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

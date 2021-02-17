@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Linux账户登录加固 « 倾旋的博客</title>
+  <meta name="description" content="Linux账户登录加固">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-11-06/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Linux账户登录加固</h1>
+    <p class="post-meta">Nov 6, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>Linux账户登录加固
+<!--more--></p>
+
+<h2 id="0x00-用户账户添加与删除">0x00 用户账户添加与删除</h2>
+
+<h3 id="添加用户">添加用户</h3>
+
+<p><strong>useradd</strong></p>
+
+<p>参考：https://www.cnblogs.com/irisrain/p/4324593.html</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>useradd <span class="o">[</span><span class="nt">-d</span> home] <span class="o">[</span><span class="nt">-s</span> shell] <span class="o">[</span><span class="nt">-c</span> comment] <span class="o">[</span><span class="nt">-m</span> <span class="o">[</span><span class="nt">-k</span> template]] <span class="o">[</span><span class="nt">-f</span> inactive] <span class="o">[</span><span class="nt">-e</span> expire <span class="o">]</span> <span class="o">[</span><span class="nt">-p</span> passwd] <span class="o">[</span><span class="nt">-r</span><span class="o">]</span> name
+
+    <span class="nt">-c</span>：加上备注文字，备注文字保存在passwd的备注栏中。
+
+　　-d：指定用户登入时的主目录，替换系统默认值/home/&lt;用户名&gt;
+
+　　-D：变更预设值。
+
+　　-e：指定账号的失效日期，日期格式为MM/DD/YY，例如06/30/12。缺省表示永久有效。
+
+　　-f：指定在密码过期后多少天即关闭该账号。如果为0账号立即被停用；如果为-1则账号一直可用。默认值为-1.
+
+　　-g：指定用户所属的群组。值可以使组名也可以是GID。用户组必须已经存在的，期默认值为100，即users。
+
+　　-G：指定用户所属的附加群组。
+
+　　-m：自动建立用户的登入目录。
+
+　　-M：不要自动建立用户的登入目录。
+
+　　-n：取消建立以用户名称为名的群组。
+
+　　-r：建立系统账号。
+
+　　-s：指定用户登入后所使用的shell。默认值为/bin/bash。
+
+　　-u：指定用户ID号。该值在系统中必须是唯一的。0~499默认是保留给系统用户账号使用的，所以该值必须大于499。
+</code></pre></div></div>
+
+<p>添加一个user1用户：</p>
+
+<ul>
+  <li>允许shell登录</li>
+  <li>自动创建home目录</li>
+  <li>指定home目录</li>
+  <li>设置用户3天后禁止登录</li>
+  <li>设置uid为599</li>
+</ul>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>useradd <span class="nt">-d</span> /home/test <span class="nt">-m</span> <span class="nt">-u</span> 599 <span class="nt">-s</span> /bin/bash <span class="nt">-f</span> 3 user1
+</code></pre></div></div>
+
+<p><strong>adduser</strong></p>
+
+<p>参考：http://www.runoob.com/linux/linux-comm-adduser.html</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>adduser <span class="o">[</span><span class="nt">--home</span> DIR] <span class="o">[</span><span class="nt">--shell</span> SHELL] <span class="o">[</span><span class="nt">--no-create-home</span><span class="o">]</span> <span class="o">[</span><span class="nt">--uid</span> ID]
+<span class="o">[</span><span class="nt">--firstuid</span> ID] <span class="o">[</span><span class="nt">--lastuid</span> ID] <span class="o">[</span><span class="nt">--gecos</span> GECOS] <span class="o">[</span><span class="nt">--ingroup</span> GROUP | <span class="nt">--gid</span> ID]
+<span class="o">[</span><span class="nt">--disabled-password</span><span class="o">]</span> <span class="o">[</span><span class="nt">--disabled-login</span><span class="o">]</span> <span class="o">[</span><span class="nt">--encrypt-home</span><span class="o">]</span> USER
+   Add a normal user
+
+adduser <span class="nt">--system</span> <span class="o">[</span><span class="nt">--home</span> DIR] <span class="o">[</span><span class="nt">--shell</span> SHELL] <span class="o">[</span><span class="nt">--no-create-home</span><span class="o">]</span> <span class="o">[</span><span class="nt">--uid</span> ID]
+<span class="o">[</span><span class="nt">--gecos</span> GECOS] <span class="o">[</span><span class="nt">--group</span> | <span class="nt">--ingroup</span> GROUP | <span class="nt">--gid</span> ID] <span class="o">[</span><span class="nt">--disabled-password</span><span class="o">]</span>
+<span class="o">[</span><span class="nt">--disabled-login</span><span class="o">]</span> USER
+   Add a system user
+
+adduser <span class="nt">--group</span> <span class="o">[</span><span class="nt">--gid</span> ID] GROUP
+addgroup <span class="o">[</span><span class="nt">--gid</span> ID] GROUP
+   Add a user group
+
+addgroup <span class="nt">--system</span> <span class="o">[</span><span class="nt">--gid</span> ID] GROUP
+   Add a system group
+
+adduser USER GROUP
+   Add an existing user to an existing group
+
+general options:
+  <span class="nt">--quiet</span> | <span class="nt">-q</span>      don<span class="s1">'t give process information to stdout
+  --force-badname   allow usernames which do not match the
+                    NAME_REGEX[_SYSTEM] configuration variable
+  --help | -h       usage message
+  --version | -v    version number and copyright
+  --conf | -c FILE  use FILE as configuration file
+</span></code></pre></div></div>
+
+<p>添加一个user2用户：</p>
+
+<ul>
+  <li>允许shell登录</li>
+  <li>自动创建home目录</li>
+  <li>指定home目录</li>
+  <li>设置用户3天后禁止登录</li>
+  <li>设置uid为599</li>
+</ul>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>adduser <span class="nt">--shell</span> /bin/bash <span class="nt">--home</span> /home/test <span class="nt">--uid</span> 599
+</code></pre></div></div>
+
+<h3 id="删除用户">删除用户</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>userdel <span class="o">[</span>usernames]
+</code></pre></div></div>
+
+<h2 id="0x01-用户锁定与解锁">0x01 用户锁定与解锁</h2>
+
+<p>锁定：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>passwd <span class="nt">-l</span> <span class="o">[</span>usernames]
+</code></pre></div></div>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>usermod <span class="nt">-L</span> <span class="o">[</span>usernames]
+</code></pre></div></div>
+
+<p>解锁：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>usermod <span class="nt">-U</span> <span class="o">[</span>usernames]
+</code></pre></div></div>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>passwd <span class="nt">-u</span> <span class="o">[</span>usernames]
+</code></pre></div></div>
+
+<h2 id="0x02-ssh-加固">0x02 SSH 加固</h2>
+
+<p>参考：http://www.jinbuguo.com/openssh/sshd_config.html</p>
+
+<p>禁止ROOT登录：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vim /etc/ssh/sshd_config
+PermitRootLogin without-password 改为 PermitRootLogin no
+</code></pre></div></div>
+
+<p>禁止某用户登录：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>DenyUsers root    <span class="c">#Linux系统账户</span>
+</code></pre></div></div>
+
+<p>允许某用户登录：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>AllowUsers root
+</code></pre></div></div>
+
+<p>设置user1不允许登录：</p>
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>usermod <span class="nt">-s</span> /usr/sbin/nologin user1
+</code></pre></div></div>
+
+<p>不允许密码登录：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PermitRootLogin without-password
+</code></pre></div></div>
+
+<p>设置authorized_keys目录：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>AuthorizedKeysFile %h/.ssh/authorized_keys
+
+             存放该用户可以用来登录的 RSA/DSA 公钥。
+             该指令中可以使用下列根据连接时的实际情况进行展开的符号：
+             %% 表示<span class="s1">'%'</span>、%h 表示用户的主目录、%u 表示该用户的用户名。
+             经过扩展之后的值必须要么是绝对路径，要么是相对于用户主目录的相对路径。
+             默认值是<span class="s2">".ssh/authorized_keys"</span>。
+</code></pre></div></div>
+
+<p>端口：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Port 2243
+</code></pre></div></div>
+
+<p>添加公钥：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ssh-copy-id <span class="nt">-i</span> ~/.ssh/id_rsa.pub root@xxx.xxx.xxx.xxx
+</code></pre></div></div>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

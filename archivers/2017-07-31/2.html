@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>在Docker中安装openvas « 倾旋的博客</title>
+  <meta name="description" content="本文简述docker安装openvas">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-07-31/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">在Docker中安装openvas</h1>
+    <p class="post-meta">Jul 31, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文简述docker安装openvas
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#%E5%AE%89%E8%A3%85%E8%BF%87%E7%A8%8B" id="markdown-toc-安装过程">安装过程</a></li>
+  <li><a href="#%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98" id="markdown-toc-遇到的问题">遇到的问题</a></li>
+</ul>
+
+<h2 id="安装过程">安装过程</h2>
+<p>镜像是从阿里云pull下来的：<code class="language-plaintext highlighter-rouge">docker pull  registry.cn-hangzhou.aliyuncs.com/secends/openvas</code></p>
+
+<p>安装过程：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>liyingzhe@ThundeRobot:~/下载<span class="nv">$ </span>docker pull  registry.cn-hangzhou.aliyuncs.com/secends/openvas
+Using default tag: latest
+latest: Pulling from secends/openvas
+
+6599cadaf950: Pull <span class="nb">complete 
+</span>23eda618d451: Pull <span class="nb">complete 
+</span>f0be3084efe9: Pull <span class="nb">complete 
+</span>52de432f084b: Pull <span class="nb">complete 
+</span>a3ed95caeb02: Pull <span class="nb">complete 
+</span>7f9ef9bd6c98: Pull <span class="nb">complete 
+</span>323caba9d1cc: Pull <span class="nb">complete 
+</span>73a9f4a66d02: Pull <span class="nb">complete 
+</span>Digest: sha256:adaf2ce11c97e9a924a053a97edf2b159daa0c8cd575ae5c5e2fe7a7cdb2c190
+Status: Downloaded newer image <span class="k">for </span>registry.cn-hangzhou.aliyuncs.com/secends/openvas:latest
+liyingzhe@ThundeRobot:~/下载<span class="nv">$ </span>docker images
+REPOSITORY                                           TAG                 IMAGE ID            CREATED             SIZE
+registry.cn-hangzhou.aliyuncs.com/imxieke/kali       latest              6759704c31d9        4 months ago        1.668 GB
+registry.cn-hangzhou.aliyuncs.com/gengxiaoxin/lnmp   latest              4f9feeb5a907        11 months ago       318.2 MB
+registry.cn-hangzhou.aliyuncs.com/secends/openvas    latest              f254e0f3b11d        14 months ago       3.51 GB
+<span class="c">#把80映射到本机9392</span>
+liyingzhe@ThundeRobot:~/下载<span class="nv">$ </span>docker run <span class="nt">-it</span> <span class="nt">-p</span> 9392:80 f254e0f3b11d
+Starting Redis
+Starting Openvas...
+Starting gsad
+Starting rebuild process...
+This may take a minute or two...
+Checking setup
+openvas-check-setup 2.3.3
+  Test completeness and readiness of OpenVAS-8
+  <span class="o">(</span>add <span class="s1">'--v6'</span> or <span class="s1">'--v7'</span> or <span class="s1">'--v9'</span>
+   <span class="k">if </span>you want to check <span class="k">for </span>another OpenVAS version<span class="o">)</span>
+
+  Please report us any non-detected problems and
+  <span class="nb">help </span>us to improve this check routine:
+  http://lists.wald.intevation.org/mailman/listinfo/openvas-discuss
+
+  Send us the log-file <span class="o">(</span>/tmp/openvas-check-setup.log<span class="o">)</span> to <span class="nb">help </span>analyze the problem.
+
+Step 1: Checking OpenVAS Scanner ... 
+        OK: OpenVAS Scanner is present <span class="k">in </span>version 5.0.5.
+        OK: OpenVAS Scanner CA Certificate is present as /var/lib/openvas/CA/cacert.pem.
+        OK: redis-server is present <span class="k">in </span>version <span class="nv">v</span><span class="o">=</span>2.8.4.
+        OK: scanner <span class="o">(</span>kb_location setting<span class="o">)</span> is configured properly using the redis-server socket: /var/run/redis/redis.sock
+        OK: redis-server is running and listening on socket: /var/run/redis/redis.sock.
+        OK: redis-server configuration is OK and redis-server is running.
+        OK: NVT collection <span class="k">in</span> /var/lib/openvas/plugins contains 47056 NVTs.
+        WARNING: Signature checking of NVTs is not enabled <span class="k">in </span>OpenVAS Scanner.
+        SUGGEST: Enable signature checking <span class="o">(</span>see http://www.openvas.org/trusted-nvts.html<span class="o">)</span><span class="nb">.</span>
+        OK: The NVT cache <span class="k">in</span> /var/cache/openvas contains 47056 files <span class="k">for </span>47056 NVTs.
+Step 2: Checking OpenVAS Manager ... 
+        OK: OpenVAS Manager is present <span class="k">in </span>version 6.0.8.
+        OK: OpenVAS Manager client certificate is present as /var/lib/openvas/CA/clientcert.pem.
+        OK: OpenVAS Manager database found <span class="k">in</span> /var/lib/openvas/mgr/tasks.db.
+        OK: Access rights <span class="k">for </span>the OpenVAS Manager database are correct.
+        OK: sqlite3 found, extended checks of the OpenVAS Manager installation enabled.
+        OK: OpenVAS Manager database is at revision 146.
+        OK: OpenVAS Manager expects database at revision 146.
+        OK: Database schema is up to date.
+        OK: OpenVAS Manager database contains information about 47056 NVTs.
+        OK: At least one user exists.
+        OK: OpenVAS SCAP database found <span class="k">in</span> /var/lib/openvas/scap-data/scap.db.
+        OK: OpenVAS CERT database found <span class="k">in</span> /var/lib/openvas/cert-data/cert.db.
+        OK: xsltproc found.
+Step 3: Checking user configuration ... 
+        WARNING: Your password policy is empty.
+        SUGGEST: Edit the /etc/openvas/pwpolicy.conf file to <span class="nb">set </span>a password policy.
+Step 4: Checking Greenbone Security Assistant <span class="o">(</span>GSA<span class="o">)</span> ... 
+        OK: Greenbone Security Assistant is present <span class="k">in </span>version 6.0.10.
+Step 5: Checking OpenVAS CLI ... 
+        SKIP: Skipping check <span class="k">for </span>OpenVAS CLI.
+Step 6: Checking Greenbone Security Desktop <span class="o">(</span>GSD<span class="o">)</span> ... 
+        SKIP: Skipping check <span class="k">for </span>Greenbone Security Desktop.
+Step 7: Checking <span class="k">if </span>OpenVAS services are up and running ... 
+        OK: netstat found, extended checks of the OpenVAS services enabled.
+        ERROR: OpenVAS Scanner is NOT running!
+        FIX: Start OpenVAS Scanner <span class="o">(</span>openvassd<span class="o">)</span><span class="nb">.</span>
+        OK: OpenVAS Manager is running and listening on all interfaces.
+        OK: OpenVAS Manager is listening on port 9390, which is the default port.
+        OK: Greenbone Security Assistant is listening on port 80, which is the default port.
+
+ ERROR: Your OpenVAS-8 installation is not yet <span class="nb">complete</span><span class="o">!</span>
+
+Please follow the instructions marked with FIX above and run this
+script again.
+
+If you think this result is wrong, please report your observation
+and <span class="nb">help </span>us to improve this check routine:
+http://lists.wald.intevation.org/mailman/listinfo/openvas-discuss
+Please attach the log-file <span class="o">(</span>/tmp/openvas-check-setup.log<span class="o">)</span> to <span class="nb">help </span>us analyze the problem.
+
+Done.
+Starting infinite loop...
+Press <span class="o">[</span>CTRL+C] to stop..
+</code></pre></div></div>
+<h2 id="遇到的问题">遇到的问题</h2>
+
+<p>openvas密码忘记问题：</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>liyingzhe@ThundeRobot:~/下载<span class="nv">$ </span>docker <span class="nb">exec </span>9a57ef793c73 openvasmd <span class="nt">--delete-user</span><span class="o">=</span>admin  <span class="c">#删除用户admin</span>
+User deleted.
+liyingzhe@ThundeRobot:~/下载<span class="nv">$ </span>docker <span class="nb">exec </span>9a57ef793c73 openvasmd <span class="nt">--create-user</span><span class="o">=</span>admin  <span class="c">#创建用户，并且生产密码</span>
+User created with password <span class="s1">'4fb3b80b-c1e8-413d-985f-9574c6aca9b5'</span><span class="nb">.</span>
+</code></pre></div></div>
+
+<p>此时就可以愉快的使用了！</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

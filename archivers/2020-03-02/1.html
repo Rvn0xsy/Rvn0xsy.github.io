@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>通过反射DLL注入来构建后渗透模块（第一课） « 倾旋的博客</title>
+  <meta name="description" content="Aggressor ScriptAggressor Script是Cobalt Strike 3.0版本以上的一个内置脚本语言，由Sleep语言解析，Cobalt Strike 3.0以上版本的菜单、选项、事件都由default.cna构建。红队人员可以通过它来调用一些IRC、Webhook接口去对接机器人，实现...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-03-02/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">通过反射DLL注入来构建后渗透模块（第一课）</h1>
+    <p class="post-meta">Mar 2, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="aggressor-script">Aggressor Script</h2>
+
+<p>Aggressor Script是Cobalt Strike 3.0版本以上的一个内置脚本语言，由<a href="http://sleep.dashnine.org/manual">Sleep</a>语言解析，Cobalt Strike 3.0以上版本的菜单、选项、事件都由default.cna构建。红队人员可以通过它来调用一些IRC、Webhook接口去对接机器人，实现自动化渗透与监控，Aggressor Script是Cobalt Strike这款C2平台的画龙点睛之笔。</p>
+
+<p>对于Python、C/C++爱好者来说，Sleep语言一开始接触的时候感觉很奇怪，会有很多想吐槽的点，但久而久之，就会发现它的便捷之处。</p>
+
+<h2 id="反射-dll注入">反射 DLL注入</h2>
+
+<p>Aggressor Script脚本提供了一些关于反射DLL的接口：https://cobaltstrike.com/aggressor-script/functions.html#bdllspawn</p>
+
+<p>话不多说，先上代码：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">BOOL</span> <span class="n">WINAPI</span> <span class="nf">DllMain</span><span class="p">(</span> <span class="n">HINSTANCE</span> <span class="n">hinstDLL</span><span class="p">,</span> <span class="n">DWORD</span> <span class="n">dwReason</span><span class="p">,</span> <span class="n">LPVOID</span> <span class="n">lpReserved</span> <span class="p">)</span> <span class="p">{</span>
+	<span class="n">BOOL</span> <span class="n">bReturnValue</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>
+	<span class="k">switch</span><span class="p">(</span> <span class="n">dwReason</span> <span class="p">)</span> <span class="p">{</span>
+		<span class="k">case</span> <span class="n">DLL_QUERY_HMODULE</span><span class="p">:</span>
+			<span class="k">if</span><span class="p">(</span> <span class="n">lpReserved</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="p">)</span>
+				<span class="o">*</span><span class="p">(</span><span class="n">HMODULE</span> <span class="o">*</span><span class="p">)</span><span class="n">lpReserved</span> <span class="o">=</span> <span class="n">hAppInstance</span><span class="p">;</span>
+			<span class="k">break</span><span class="p">;</span>
+		<span class="k">case</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">:</span>
+			<span class="n">hAppInstance</span> <span class="o">=</span> <span class="n">hinstDLL</span><span class="p">;</span>
+	
+			<span class="cm">/* print some output to the operator */</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">lpReserved</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">printf</span><span class="p">(</span><span class="s">"Hello from test.dll. Parameter is '%s'</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">lpReserved</span><span class="p">);</span>
+			<span class="p">}</span>
+			<span class="k">else</span> <span class="p">{</span>
+				<span class="n">printf</span><span class="p">(</span><span class="s">"Hello from test.dll. There is no parameter</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+			<span class="p">}</span>
+
+			<span class="cm">/* flush STDOUT */</span>
+			<span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+			<span class="cm">/* we're done, so let's exit */</span>
+			<span class="n">ExitProcess</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+			<span class="k">break</span><span class="p">;</span>
+		<span class="k">case</span> <span class="n">DLL_PROCESS_DETACH</span><span class="p">:</span>
+		<span class="k">case</span> <span class="n">DLL_THREAD_ATTACH</span><span class="p">:</span>
+		<span class="k">case</span> <span class="n">DLL_THREAD_DETACH</span><span class="p">:</span>
+			<span class="k">break</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">bReturnValue</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>很明显，这是一个DLL的主函数，在经过DLL_PROCESS_ATTACH的时候，开始执行代码。程序通过DLLMain函数的lpReserved来当做参数传递。</p>
+
+<p>但光看一个DLLMain是看不出后面的奇妙的，我们把目光转向反射DLL注入技术的作者：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5f04c037dcc364ac784c0a54a52bf0b3.png" alt="2020-03-01-11-25-55"></p>
+
+<p>这里有一个完整示例。</p>
+
+<p>通过跟踪代码：https://github.com/stephenfewer/ReflectiveDLLInjection/blob/master/inject/src/LoadLibraryR.c</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/891f72baec3849d1f8cae20763e00556.png" alt="2020-03-01-11-26-06"></p>
+
+<p>发现该函数会寻找ReflectiveLoader这个导出函数的地址，然后直接创建一个远程线程执行这个函数，这个函数本身又会自动模拟整个LoadLibrary API，从而执行DLLMain，最终完成代码执行。</p>
+
+<h2 id="开发自己的反射dll">开发自己的反射DLL</h2>
+
+<p>首先，可以直接将反射DLL注入作者的项目拿过来使用：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/8aa910e95941f5934e2a98b3a9ab2d27.png" alt="2020-03-01-11-26-50"></p>
+
+<p>接着就要编写cna脚本了。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/81ccd8a3292c89c284c7e12918c7cc8f.png" alt="2020-03-01-11-27-00"></p>
+
+<p>文件目录：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/33f98e3b30ff382ecceb8bea12117c78.png" alt="2020-03-01-11-27-08"></p>
+
+<p>通过Cobaltstrike加载后，可以执行reflective_dll在客户端弹出一个信息框。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/f7f4ecea6989b990e7994eeee82a6e0e.png" alt="2020-03-01-11-27-21"></p>
+
+<p>整个过程是拥有极少的敏感行为特征，因此可以非常容易的绕过一些反病毒查杀。</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

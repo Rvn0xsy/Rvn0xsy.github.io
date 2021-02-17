@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Github搜索语法-信息搜集指南 « 倾旋的博客</title>
+  <meta name="description" content="您可以在所有公共GitHub存储库中搜索以下类型的信息，以及您有权访问的所有私有GitHub存储库：  Repositories  Topics  Issues and pull requests  Code  Commits  Users  Wikis参考：  Searching for repositorie...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-01-31/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Github搜索语法-信息搜集指南</h1>
+    <p class="post-meta">Jan 31, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <p>您可以在所有公共GitHub存储库中搜索以下类型的信息，以及您有权访问的所有私有GitHub存储库：</p>
+
+<ul>
+  <li><a href="https://help.github.com/articles/searching-for-repositories">Repositories</a></li>
+  <li><a href="https://help.github.com/articles/searching-topics">Topics</a></li>
+  <li><a href="https://help.github.com/articles/searching-issues-and-pull-requests">Issues and pull requests</a></li>
+  <li><a href="https://help.github.com/articles/searching-code">Code</a></li>
+  <li><a href="https://help.github.com/articles/searching-commits">Commits</a></li>
+  <li><a href="https://help.github.com/articles/searching-users">Users</a></li>
+  <li><a href="https://help.github.com/articles/searching-wikis">Wikis</a></li>
+</ul>
+
+<p>参考：</p>
+<ul>
+  <li><a href="https://help.github.com/articles/searching-for-repositories">Searching for repositories</a></li>
+  <li><a href="https://help.github.com/articles/searching-topics">Searching topics</a></li>
+  <li><a href="https://help.github.com/articles/searching-code">Searching code</a></li>
+  <li><a href="https://help.github.com/articles/searching-commits">Searching commits</a></li>
+  <li><a href="https://help.github.com/articles/searching-issues-and-pull-requests">Searching issues and pull requests</a></li>
+  <li><a href="https://help.github.com/articles/searching-users">Searching users</a></li>
+  <li><a href="https://help.github.com/articles/searching-wikis">Searching wikis</a></li>
+  <li><a href="https://help.github.com/articles/searching-in-forks">Searching in forks</a></li>
+</ul>
+
+<p>您可以使用<a href="https://github.com/search">搜索</a>页面或<a href="https://github.com/search/advanced">高级搜索</a>页面搜索GitHub 。</p>
+
+<p>您可以使用<code class="language-plaintext highlighter-rouge">&gt;</code>，<code class="language-plaintext highlighter-rouge">&gt;=</code>，<code class="language-plaintext highlighter-rouge">&lt;</code>，和<code class="language-plaintext highlighter-rouge">&lt;=</code>搜索是大于，大于或等于，小于和小于或等于另一个值的值。</p>
+
+<h3 id="搜索仓库">搜索仓库</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Query</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">&gt;_n_</code></td>
+      <td>
+<strong><a href="https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A%3E1000&amp;type=Repositories">cats stars:&gt;1000</a></strong> 匹配关键字”cats”且star大于1000的仓库</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">&gt;=_n_</code></td>
+      <td>
+<strong><a href="https://github.com/search?utf8=%E2%9C%93&q=cats+topics%3A%3E%3D5&amp;type=Repositories">cats topics:&gt;=5</a></strong> 匹配关键字”cats”且标签数量大于等于5的仓库</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">&lt;_n_</code></td>
+      <td>
+<strong><a href="https://github.com/search?utf8=%E2%9C%93&q=cats+size%3A%3C10000&amp;type=Code">cats size:&lt;10000</a></strong> 匹配关键字”cats”且文件小于10KB的仓库</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">&lt;=_n_</code></td>
+      <td>
+<strong><a href="https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A%3C%3D50&amp;type=Repositories">cats stars:&lt;=50</a></strong> 匹配关键字”cats”且star小于等于50的仓库</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">_n_..*</code></td>
+      <td>
+<strong>[cats stars:10..<em>](https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A10..</em>&amp;type=Repositories)</strong> 匹配关键字”cats”且star大于等于10的仓库</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">*.._n_</code></td>
+      <td>
+<strong>[cats stars:<em>..10](https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A%22</em>..10%22&amp;type=Repositories)</strong> 匹配关键字”cats”且star小于等于10的仓库</td>
+    </tr>
+    <tr>
+      <td>
+<em>n</em>..<em>n</em>
+</td>
+      <td>
+<strong><a href="https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A10..50&amp;type=Repositories">cats stars:10..50</a></strong> 匹配关键字”cats”且star大于10且小于50的仓库</td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Query</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">_n_..*</code></td>
+      <td>
+<strong>[cats stars:10..<em>](https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A10..</em>&amp;type=Repositories)</strong> 匹配关键字”cats”且star大于等于10的仓库</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">*.._n_</code></td>
+      <td>
+<strong>[cats stars:<em>..10](https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A%22</em>..10%22&amp;type=Repositories)</strong> 匹配关键字”cats”且star小于等于10的仓库</td>
+    </tr>
+    <tr>
+      <td>
+<em>n</em>..<em>n</em>
+</td>
+      <td>
+<strong><a href="https://github.com/search?utf8=%E2%9C%93&q=cats+stars%3A10..50&amp;type=Repositories">cats stars:10..50</a></strong> 匹配关键字”cats”且star大于10且小于50的仓库</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>以下搜索语法与上面差不多，故此不贴表格了。</p>
+<h3 id="搜索代码">搜索代码</h3>
+
+<h4 id="注意事项">注意事项</h4>
+<ul>
+  <li>只能搜索小于384 KB的文件。</li>
+  <li>只能搜索少于500,000个文件的存储库。</li>
+  <li>登录的用户可以搜索所有公共存储库。</li>
+  <li>除<code class="language-plaintext highlighter-rouge">filename</code>搜索外，搜索源代码时必须至少包含一个搜索词。例如，搜索<code class="language-plaintext highlighter-rouge">language:javascript</code>无效，而是这样：<code class="language-plaintext highlighter-rouge">amazing language:javascript</code>。</li>
+  <li>搜索结果最多可以显示来自同一文件的两个片段，但文件中可能会有更多结果。</li>
+  <li>您不能将以下通配符用作搜索查询的一部分：<code class="language-plaintext highlighter-rouge">. , : ; / \ ' " = * ! ? # $ &amp; + ^ | ~ &lt; &gt; ( ) { } [ ]</code>。搜索将忽略这些符号。</li>
+</ul>
+
+<h4 id="日期条件">日期条件</h4>
+<p><code class="language-plaintext highlighter-rouge">cats pushed:&lt;2012-07-05</code> 搜索在2012年07月05日前push代码，且cats作为关键字<br><code class="language-plaintext highlighter-rouge">cats pushed:2016-04-30..2016-07-04</code> 日期区间<br><code class="language-plaintext highlighter-rouge">cats created:&gt;=2017-04-01 </code> 创建时间</p>
+
+<h4 id="逻辑运算">逻辑运算</h4>
+<p>AND、OR、NOT</p>
+
+<h4 id="排除运算">排除运算</h4>
+
+<p><code class="language-plaintext highlighter-rouge">cats pushed:&lt;2012-07-05 -language:java</code> 搜索在2012年07月05日前push代码，且cats作为关键字，排除<code class="language-plaintext highlighter-rouge">java</code>语言仓库。</p>
+
+<h4 id="包含搜索">包含搜索</h4>
+
+<p><code class="language-plaintext highlighter-rouge">cats in:file</code> 搜索文件中包含cats的代码<br><code class="language-plaintext highlighter-rouge">cats in:path</code> 搜索路径中包含cats的代码<br><code class="language-plaintext highlighter-rouge">cats in:path,file</code> 搜索路径、文件中包含cats的代码<br><code class="language-plaintext highlighter-rouge">console path:app/public language:javascript </code> 搜索关键字console，且语言为javascript，在app/public下的代码</p>
+
+<h4 id="主体搜索">主体搜索</h4>
+
+<p><code class="language-plaintext highlighter-rouge">user:USERNAME</code>_ _用户名搜索<br><code class="language-plaintext highlighter-rouge">org:</code><code class="language-plaintext highlighter-rouge">ORGNAME</code> 组织搜索<br><code class="language-plaintext highlighter-rouge">repo:USERNAME/REPOSITORY</code> 指定仓库搜索</p>
+
+<h4 id="文件大小">文件大小</h4>
+
+<p><code class="language-plaintext highlighter-rouge">size:&gt;1000</code> 搜索大小大于1KB的文件</p>
+
+<h4 id="文件名称">文件名称</h4>
+<p><code class="language-plaintext highlighter-rouge">filename:config.php language:php</code> 搜索文件名为config.php，且语言为php的代码</p>
+
+<p>例如搜索Java项目配置文件：<code class="language-plaintext highlighter-rouge">mail filename:.properties</code></p>
+
+<p><img src="https://cdn.nlark.com/yuque/0/2019/png/258066/1548771143207-436988a2-c654-4e91-a0ab-46c7ced96594.png#align=left&amp;display=inline&amp;height=838&amp;linkTarget=_blank&amp;name=image.png&amp;originHeight=1676&amp;originWidth=2708&amp;size=552282&amp;width=1354" alt="image.png"></p>
+
+<h4 id="扩展名">扩展名</h4>
+
+<p><code class="language-plaintext highlighter-rouge">extension:EXTENSION</code> 指定扩展名搜索</p>
+
+<p>例如：<code class="language-plaintext highlighter-rouge">extension:</code><code class="language-plaintext highlighter-rouge">properties jdbc</code></p>
+
+<p><strong>仅供技术研究！</strong></p>
+
+<h3 id="自动化工具">自动化工具</h3>
+
+<p><a href="https://github.com/UnkL4b/GitMiner">https://github.com/UnkL4b/GitMiner</a></p>
+
+<p><img src="https://cdn.nlark.com/yuque/0/2019/png/258066/1548771561076-d661712c-56cc-4c48-b37b-c7b6bcae6f88.png#align=left&amp;display=inline&amp;height=871&amp;linkTarget=_blank&amp;name=image.png&amp;originHeight=1742&amp;originWidth=1576&amp;size=257832&amp;width=788" alt="image.png"></p>
+
+<p><code class="language-plaintext highlighter-rouge">python3 gitminer-v2.0.py -c cookie.txt -q 'extension:properties jdbc' -r 'password(.*)' -m passwords</code></p>
+
+<p><img src="https://cdn.nlark.com/yuque/0/2019/png/258066/1548771909677-18c7f6da-b232-47c2-a860-629a8e5c32db.png#align=left&amp;display=inline&amp;height=878&amp;linkTarget=_blank&amp;name=image.png&amp;originHeight=1756&amp;originWidth=3350&amp;size=452529&amp;width=1675" alt="image.png"><br><img src="https://cdn.nlark.com/yuque/0/2019/png/258066/1548771893576-424c7172-bd59-409b-a89e-9a96778e2b5f.png#align=left&amp;display=inline&amp;height=937&amp;linkTarget=_blank&amp;name=image.png&amp;originHeight=1874&amp;originWidth=2708&amp;size=411022&amp;width=1354" alt="image.png"></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

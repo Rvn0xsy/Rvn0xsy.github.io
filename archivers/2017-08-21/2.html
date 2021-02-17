@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>几个扫描https漏洞的工具 « 倾旋的博客</title>
+  <meta name="description" content="总结几个扫描https漏洞的工具">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-08-21/2">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">几个扫描https漏洞的工具</h1>
+    <p class="post-meta">Aug 21, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>总结几个扫描https漏洞的工具
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#%E6%9F%A5%E7%9C%8B%E7%BD%91%E7%AB%99%E4%BD%BF%E7%94%A8%E7%9A%84%E8%AF%81%E4%B9%A6" id="markdown-toc-查看网站使用的证书">查看网站使用的证书</a></li>
+  <li><a href="#%E6%B5%8B%E8%AF%95%E6%98%AF%E5%90%A6%E6%94%AF%E6%8C%81%E6%9F%90%E5%8D%8F%E8%AE%AE%E6%9F%90%E4%BD%8E%E7%89%88%E6%9C%AC%E5%8D%8F%E8%AE%AE" id="markdown-toc-测试是否支持某协议某低版本协议">测试是否支持某协议（某低版本协议）</a></li>
+  <li><a href="#%E6%B5%8B%E8%AF%95%E6%98%AF%E5%90%A6%E6%89%80%E6%9C%89%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84ciphers-suite%E9%83%BD%E4%B8%8D%E6%94%AF%E6%8C%81" id="markdown-toc-测试是否所有不安全的ciphers-suite都不支持">测试是否所有不安全的ciphers suite都不支持</a></li>
+  <li><a href="#%E6%9F%A5%E7%9C%8B%E7%9B%AE%E5%89%8D%E5%8F%AF%E8%A2%AB%E7%A0%B4%E8%A7%A3%E7%9A%84cipher-suiteopenssl" id="markdown-toc-查看目前可被破解的cipher-suiteopenssl">查看目前可被破解的cipher suite　　【openssl】</a></li>
+  <li><a href="#%E8%87%AA%E5%8A%A8%E8%AF%86%E5%88%ABssl%E9%85%8D%E7%BD%AE%E9%94%99%E8%AF%AF%E8%BF%87%E6%9C%9F%E5%8D%8F%E8%AE%AE%E8%BF%87%E6%97%B6cipher-suite-%E5%92%8Chash%E7%AE%97%E6%B3%95" id="markdown-toc-自动识别ssl配置错误过期协议过时cipher-suite-和hash算法">自动识别SSL配置错误、过期协议，过时cipher suite 和hash算法</a></li>
+  <li><a href="#%E5%88%86%E6%9E%90%E8%AF%81%E4%B9%A6%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF" id="markdown-toc-分析证书详细信息">分析证书详细信息</a></li>
+  <li><a href="#%E9%AA%8C%E8%AF%81https%E7%9B%B8%E5%85%B3%E6%BC%8F%E6%B4%9E" id="markdown-toc-验证https相关漏洞">验证https相关漏洞</a></li>
+  <li><a href="#%E6%A3%80%E6%9F%A5%E6%98%AF%E5%90%A6%E6%94%AF%E6%8C%81%E4%BC%9A%E8%AF%9D%E6%81%A2%E5%A4%8D" id="markdown-toc-检查是否支持会话恢复">检查是否支持会话恢复</a></li>
+  <li><a href="#namp%E6%9E%9A%E4%B8%BEssl%E8%84%9A%E6%9C%AC" id="markdown-toc-namp枚举ssl脚本">NAMP枚举SSL脚本</a></li>
+  <li><a href="#%E5%9C%A8%E7%BA%BF%E7%BD%91%E7%AB%99" id="markdown-toc-在线网站">在线网站</a></li>
+</ul>
+
+<h2 id="查看网站使用的证书">查看网站使用的证书</h2>
+
+<p><code class="language-plaintext highlighter-rouge">openssl s_client -connect www.baidu.com:443</code></p>
+
+<ul>
+  <li>【s_client:作为一个客户端 -connect：连接 +服务器域名:端口】</li>
+</ul>
+
+<h2 id="测试是否支持某协议某低版本协议">测试是否支持某协议（某低版本协议）</h2>
+
+<p><code class="language-plaintext highlighter-rouge">openssl s_client -tls1_2 -cipher 'ECDH-RSA-RC4-SHA' -connect www.taobao.com:443</code></p>
+
+<h2 id="测试是否所有不安全的ciphers-suite都不支持">测试是否所有不安全的ciphers suite都不支持</h2>
+
+<p><code class="language-plaintext highlighter-rouge">openssl s_client -tls1_2 -cipher "NULL,EXPORT,LOW,DES" -connect www.taobao.com:443</code></p>
+
+<h2 id="查看目前可被破解的cipher-suiteopenssl">查看目前可被破解的cipher suite　　【openssl】</h2>
+
+<p><code class="language-plaintext highlighter-rouge">openssl ciphers -v "NULL,EXPORT,LOW,DES"</code></p>
+
+<h2 id="自动识别ssl配置错误过期协议过时cipher-suite-和hash算法">自动识别SSL配置错误、过期协议，过时cipher suite 和hash算法</h2>
+
+<p><code class="language-plaintext highlighter-rouge">sslscan --tlsall www.taobao.com:443</code></p>
+
+<h2 id="分析证书详细信息">分析证书详细信息</h2>
+
+<p><code class="language-plaintext highlighter-rouge">sslscan --show-certificate --no-ciphersuites www.taobao.com:443</code></p>
+
+<h2 id="验证https相关漏洞">验证https相关漏洞</h2>
+
+<table>
+  <tbody>
+    <tr>
+      <td>受戒礼漏洞</td>
+      <td>openssl s_client -connect zp.czbank.com.cn:443 -cipher RC4</td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <tbody>
+    <tr>
+      <td>贵宾犬漏洞</td>
+      <td>openssl s_client -ssl3 -connect zp.czbank.com.cn:443</td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <tbody>
+    <tr>
+      <td>SSL中间人劫持</td>
+      <td>openssl s_client -connect zp.czbank.com.cn:443 -cipher EXPORT</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="检查是否支持会话恢复">检查是否支持会话恢复</h2>
+
+<p><code class="language-plaintext highlighter-rouge">sslyze --regular www.taobao.com:443</code></p>
+
+<h2 id="namp枚举ssl脚本">NAMP枚举SSL脚本</h2>
+
+<p><code class="language-plaintext highlighter-rouge">nmap --script=ssl-enum-ciphers.nse www.taobao.com</code></p>
+
+<h2 id="在线网站">在线网站</h2>
+
+<p>https://www.ssllabs.com/ssltest</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

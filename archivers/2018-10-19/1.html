@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>xssValidator « 倾旋的博客</title>
+  <meta name="description" content="本文记录一下xss Validator的使用方法">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-10-19/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">xssValidator</h1>
+    <p class="post-meta">Oct 19, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一下xss Validator的使用方法
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li><a href="#0x00-%E5%89%8D%E8%A8%80" id="markdown-toc-0x00-前言">0x00 前言</a></li>
+  <li>
+<a href="#0x01-%E5%AE%89%E8%A3%85" id="markdown-toc-0x01-安装">0x01 安装</a>    <ul>
+      <li><a href="#%E5%AE%89%E8%A3%85%E6%8F%92%E4%BB%B6" id="markdown-toc-安装插件">安装插件</a></li>
+      <li><a href="#%E5%AE%89%E8%A3%85phantomjs" id="markdown-toc-安装phantomjs">安装phantomjs</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x02-%E6%B5%8B%E8%AF%95%E4%B9%8B%E5%89%8D%E7%9A%84%E6%AD%A5%E9%AA%A4" id="markdown-toc-0x02-测试之前的步骤">0x02 测试之前的步骤</a></li>
+  <li><a href="#0x03-%E6%B5%8B%E8%AF%95%E6%BC%94%E7%A4%BA" id="markdown-toc-0x03-测试演示">0x03 测试演示</a></li>
+</ul>
+
+<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>xss Validator是一个Burp商店的一个高分插件，该插件依赖于<a href="http://phantomjs.org">phantomjs</a>项目以及Burp的Intruder模块。</p>
+
+<h2 id="0x01-安装">0x01 安装</h2>
+
+<h3 id="安装插件">安装插件</h3>
+
+<p>打开Burp，点击“Extender”-&gt;“BApp Store”-&gt;”XSS Validator”-&gt;“install”</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-10-19/0x01.png" alt=""></p>
+
+<h3 id="安装phantomjs">安装phantomjs</h3>
+
+<p>下载页面：http://phantomjs.org/download.html</p>
+
+<p>可根据自己的操作系统类型，选择对应的版本，我这里是Mac OSX</p>
+
+<p>然后下载<a href="https://github.com/PortSwigger/xss-validator/raw/master/xss-detector/xss.js">xss.js</a>，将它放入phantomjs的执行目录。</p>
+
+<h2 id="0x02-测试之前的步骤">0x02 测试之前的步骤</h2>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rvn0xsy@Rvn0xsy ~/G/p/bin&gt; <span class="nb">pwd</span>
+/Users/rvn0xsy/GitProject/phantomjs-2.1.1-macosx/bin
+rvn0xsy@Rvn0xsy ~/G/p/bin&gt; <span class="nb">ls
+</span>phantomjs xss.js
+rvn0xsy@Rvn0xsy ~/G/p/bin&gt; ./phantomjs xss.js <span class="c"># 启动监听</span>
+</code></pre></div></div>
+
+<p>这时回到Burp的xss Validator插件页面：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-10-19/0x02.png" alt=""></p>
+
+<p>其中：</p>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">Grep Phrase</code>是XSS执行成功后，能够解析出的字符串，支持自定义。</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">Javascript function</code>是验证函数，会被解析的时候调用。</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">Javascript event handlers</code>是监听事件。</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">Payloads</code>是测试XSS的模板，必须包含<code class="language-plaintext highlighter-rouge">{JAVASCRIPT}</code>，否则无法判断状态</li>
+</ul>
+
+<h2 id="0x03-测试演示">0x03 测试演示</h2>
+
+<video src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-10-19/xssValidator.mp4" controls="controls" width="500px">
+哎呀~ 换个浏览器试试吧！
+</video>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

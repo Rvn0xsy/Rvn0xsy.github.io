@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>渗透测试中的Bypass技巧（二） « 倾旋的博客</title>
+  <meta name="description" content="第二篇 应用层过WAF">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-03-06/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">渗透测试中的Bypass技巧（二）</h1>
+    <p class="post-meta">Mar 6, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>第二篇 应用层过WAF
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li><a href="#0x01-http%E4%B8%8D%E5%90%8C%E7%9A%84%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95%E6%B1%A1%E6%9F%93" id="markdown-toc-0x01-http不同的请求方法污染">0x01 HTTP不同的请求方法污染</a></li>
+  <li><a href="#0x02-get%E4%B8%8Epost%E7%9A%84%E5%8C%BA%E5%88%AB" id="markdown-toc-0x02-get与post的区别">0x02 GET与POST的区别</a></li>
+  <li><a href="#0x03-%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0" id="markdown-toc-0x03-文件上传">0x03 文件上传</a></li>
+</ul>
+
+<h2 id="0x01-http不同的请求方法污染">0x01 HTTP不同的请求方法污染</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>方法</th>
+      <th>解释</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GET</td>
+      <td>请求指定的页面信息，并返回实体主体。</td>
+    </tr>
+    <tr>
+      <td>HEAD</td>
+      <td>类似于GET请求，只不过返回的响应中没有具体的内容，用于获取报头</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td>向指定资源提交数据进行处理请求（例如提交表单或者上传文件）。数据被包含在请求体中。POST请求可能会导致新的资源的建立和/或已有资源的修改。</td>
+    </tr>
+    <tr>
+      <td>PUT</td>
+      <td>从客户端向服务器传送的数据取代指定的文档的内容。</td>
+    </tr>
+    <tr>
+      <td>DELETE</td>
+      <td>请求服务器删除指定的页面。</td>
+    </tr>
+    <tr>
+      <td>CONNECT</td>
+      <td>HTTP/1.1协议中预留给能够将连接改为管道方式的代理服务器。</td>
+    </tr>
+    <tr>
+      <td>OPTIONS</td>
+      <td>允许客户端查看服务器的性能。</td>
+    </tr>
+    <tr>
+      <td>TRACE</td>
+      <td>回显服务器收到的请求，主要用于测试或诊断。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>我们可以先看一个请求：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-a383bd9ca01df5357360bec985619334_r.jpg" alt="enter description here"></p>
+
+<p>可见是一个GET请求，此服务器是一个Apache+PHP的环境。</p>
+
+<p>假设服务器只拦截GET/POST请求，那么根据Apache服务器的特性，发送其他请求只要脚本接收的是GET参数，那么也是可以传递参数值的。</p>
+
+<p>如图：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-3f85682eab332c0efe97874e8f30dc18_r.jpg" alt="enter description here"></p>
+
+<p>此知识点需要先知道各个Web服务器环境的特性，然后再针对特性去做测试。</p>
+
+<h2 id="0x02-get与post的区别">0x02 GET与POST的区别</h2>
+
+<p>Http定义了与服务器交互的不同方法，最基本的方法有4种，分别是GET，POST，PUT，DELETE。URL全称是资源描述符，我们可以这样认为：一个URL地址，它用于描述一个网络上的资源，而HTTP中的GET，POST，PUT，DELETE就对应着对这个资源的查，改，增，删4个操作。到这里，大家应该有个大概的了解了，GET一般用于获取/查询资源信息，而POST一般用于更新资源信息。</p>
+
+<p>在网上已经有很多朋友写过了其问题的答案，但是对于WAF，我们就要转变角度去看了，第一点就是要看数据包的区别。</p>
+
+<div class="language-http highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">GET</span> <span class="nn">/sql/index2.php?id=2</span> <span class="k">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="p">:</span> <span class="s">192.168.1.102</span>
+<span class="na">User-Agent</span><span class="p">:</span> <span class="s">Mozilla/5.0 (Windows NT 10.0; WOW64; rv:51.0) Gecko/20100101 Firefox/51.0</span>
+<span class="na">Accept</span><span class="p">:</span> <span class="s">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</span>
+<span class="na">Accept-Language</span><span class="p">:</span> <span class="s">zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3</span>
+<span class="na">Accept-Encoding</span><span class="p">:</span> <span class="s">gzip, deflate</span>
+<span class="na">Cookie</span><span class="p">:</span> <span class="s">yunsuo_session_verify=a89786c1a180124a6820b6387b85b693</span>
+<span class="na">Connection</span><span class="p">:</span> <span class="s">keep-alive</span>
+<span class="na">Upgrade-Insecure-Requests</span><span class="p">:</span> <span class="s">1</span>
+<span class="na">Cache-Control</span><span class="p">:</span> <span class="s">max-age=0</span>
+
+</code></pre></div></div>
+
+<div class="language-http highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">POST</span> <span class="nn">/sql/search.php</span> <span class="k">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="p">:</span> <span class="s">192.168.1.102</span>
+<span class="na">User-Agent</span><span class="p">:</span> <span class="s">Mozilla/5.0 (Windows NT 10.0; WOW64; rv:51.0) Gecko/20100101 Firefox/51.0</span>
+<span class="na">Accept</span><span class="p">:</span> <span class="s">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</span>
+<span class="na">Accept-Language</span><span class="p">:</span> <span class="s">zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3</span>
+<span class="na">Accept-Encoding</span><span class="p">:</span> <span class="s">gzip, deflate</span>
+<span class="na">Referer</span><span class="p">:</span> <span class="s">http://192.168.1.102/sql/search.php</span>
+<span class="na">Cookie</span><span class="p">:</span> <span class="s">yunsuo_session_verify=a89786c1a180124a6820b6387b85b693</span>
+<span class="na">Connection</span><span class="p">:</span> <span class="s">keep-alive</span>
+<span class="na">Upgrade-Insecure-Requests</span><span class="p">:</span> <span class="s">1</span>
+<span class="na">Content-Type</span><span class="p">:</span> <span class="s">application/x-www-form-urlencoded</span>
+<span class="na">Content-Length</span><span class="p">:</span> <span class="s">10</span>
+
+keywords=t
+</code></pre></div></div>
+
+<p>可见在请求的数据包中，POST比GET多了一个Content-Type: application/x-www-form-urlencoded</p>
+
+<p>这个是将提交数据变成url编码来传递给服务器，那么如此说来，也有的WAF会解析这行Content-Type去识别是否是POST注入，因为要防止方法污染。</p>
+
+<p>如图：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-891cdb4612a620ab66c2ba574cd581a6_hd.jpg" alt="enter description here"></p>
+
+<p>这样也可以有几率扰乱WAF的判断。</p>
+
+<h2 id="0x03-文件上传">0x03 文件上传</h2>
+
+<p>关于文件上传我们来分享几点，用于延伸下方HPP这一点。
+先看一个上传数据包。</p>
+
+<div class="language-http highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">POST</span> <span class="nn">/upload.php</span> <span class="k">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="p">:</span> <span class="s">192.168.1.100</span>
+<span class="na">User-Agent</span><span class="p">:</span> <span class="s">Mozilla/5.0 (Windows NT 10.0; WOW64; rv:51.0) Gecko/20100101 Firefox/51.0</span>
+<span class="na">Accept</span><span class="p">:</span> <span class="s">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</span>
+<span class="na">Accept-Language</span><span class="p">:</span> <span class="s">zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3</span>
+<span class="na">Accept-Encoding</span><span class="p">:</span> <span class="s">gzip, deflate</span>
+<span class="na">Referer</span><span class="p">:</span> <span class="s">http://192.168.1.100/</span>
+<span class="na">Cookie</span><span class="p">:</span><span class="s">yunsuo_session_verify=1a9c7117538a7a9bce39a4695ff3f0cc; safedog-flow-item=</span>
+<span class="na">X-Forwarded-For</span><span class="p">:</span> <span class="s">1.1.1.1</span>
+<span class="na">CLIENT_IP</span><span class="p">:</span> <span class="s">2.2.2.2</span>
+<span class="na">Connection</span><span class="p">:</span> <span class="s">keep-alive</span>
+<span class="na">Upgrade-Insecure-Requests</span><span class="p">:</span> <span class="s">1</span>
+<span class="na">Content-Type</span><span class="p">:</span><span class="s">multipart/form-data; boundary=---------------------------440470572354</span>
+<span class="na">Content-Length</span><span class="p">:</span> <span class="s">1089</span>
+
+-----------------------------440470572354
+Content-Disposition: form-data; name="file"; filename="n.php"
+Content-Type: application/octet-stream
+
+&lt;?php
+phpinfo();
+?&gt;
+-----------------------------440470572354
+Content-Disposition: form-data; name="submit"
+
+Submit
+-----------------------------440470572354--
+
+
+Content-Type:multipart/form-data; 指代的是这个数据是来自表单提交的
+
+</code></pre></div></div>
+
+<p>某些WAF是通过Content-Type识别是否是文件上传数据包。假设我们将Content-Type更改，数据包也是正常提交过去的。这个就完成了一次bypass。</p>
+
+<p>还有的时候就是Content-Disposition: form-data;，也有某些WAF是根据Content-Disposition匹配filename的（Safe Dog 3.5/4.0通杀），用于验证黑名单。我们经过混淆大小写也是可以bypass的。</p>
+
+<p>拦截：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-20da9f1c3ae2f0a737742537bb00e2e9_hd.jpg" alt="enter description here"></p>
+
+<p>Bypass:</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-500c45055dd17ed446ff94d224524fdc_r.jpg" alt="enter description here"></p>
+
+<p>具体看关于Safe DOG的文件上传bypass
+0x04 HTTP参数污染（HPP）
+上一节已经讲过了文件上传，在HPP中最典型的的例子就是“双文件上传”。</p>
+
+<p>就是在协议中，提交两个相同的值，达到欺骗WAF一次匹配的目的。在这里提点一下http协议中参数名与参数值的结构。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[参数名]=“参数值”; 或者 
+
+[参数名]=“参数值”亦或者
+
+[参数名]=参数值 亦或者
+
+[参数名]=参数值;
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-b7d3cd2ebbebb9fc926c95c9aca66416_r.jpg" alt="enter description here"></p>
+
+<p>这类都会被解析，只要根据正规协议数据结构去构造数据包即可bypass。</p>
+
+<p>我们来看一个例子：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-dba7b7f3bd2777bf95a0e4ceb0f67a47_r.jpg" alt="enter description here"></p>
+
+<p>这里已经被拦截，我们根据上述条件来修改数据包：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-11-2/v2-20e328e31e0e28bb1490df5191630a59_r.jpg" alt="enter description here"></p>
+
+<p>已经bypass成功了。此文涉及的知识面并不广，只是有些小技巧，如果你还有更好的研究方法，可以一同交流。</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Python virtualenv « 倾旋的博客</title>
+  <meta name="description" content="本文记录virtualenv的使用。">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-08-16/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Python virtualenv</h1>
+    <p class="post-meta">Aug 15, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录virtualenv的使用。
+<!--more--></p>
+<ul id="markdown-toc">
+  <li><a href="#0x00-virtualenv-%E7%AE%80%E4%BB%8B" id="markdown-toc-0x00-virtualenv-简介">0x00 virtualenv 简介</a></li>
+  <li>
+<a href="#0x01-virtualenv-%E5%AE%89%E8%A3%85" id="markdown-toc-0x01-virtualenv-安装">0x01 virtualenv 安装</a>    <ul>
+      <li><a href="#%E9%80%9A%E7%94%A8%E5%AE%89%E8%A3%85%E6%96%B9%E6%B3%95" id="markdown-toc-通用安装方法">通用安装方法</a></li>
+      <li><a href="#ubuntukalidebian" id="markdown-toc-ubuntukalidebian">Ubuntu/Kali/Debian</a></li>
+    </ul>
+  </li>
+  <li>
+<a href="#0x02-virtualenv-%E4%BD%BF%E7%94%A8" id="markdown-toc-0x02-virtualenv-使用">0x02 virtualenv 使用</a>    <ul>
+      <li><a href="#%E5%B8%AE%E5%8A%A9%E4%BF%A1%E6%81%AF" id="markdown-toc-帮助信息">帮助信息</a></li>
+      <li><a href="#%E6%9F%A5%E7%9C%8B%E5%BD%93%E5%89%8D%E7%89%88%E6%9C%AC" id="markdown-toc-查看当前版本">查看当前版本</a></li>
+      <li><a href="#%E9%85%8D%E7%BD%AE%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E7%8E%AF%E5%A2%83" id="markdown-toc-配置一个新的环境">配置一个新的环境</a></li>
+      <li><a href="#%E9%80%80%E5%87%BA%E7%8E%AF%E5%A2%83" id="markdown-toc-退出环境">退出环境</a></li>
+      <li><a href="#%E4%BD%BF%E7%94%A8%E5%B7%B2%E6%9C%89%E7%9A%84%E7%8E%AF%E5%A2%83" id="markdown-toc-使用已有的环境">使用已有的环境</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="0x00-virtualenv-简介">0x00 virtualenv 简介</h2>
+
+<p>virtualenv 用来建立一个虚拟的python环境，为了解决Python各种库的冲突问题。</p>
+
+<h2 id="0x01-virtualenv-安装">0x01 virtualenv 安装</h2>
+
+<h3 id="通用安装方法">通用安装方法</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install </span>virtualenv
+</code></pre></div></div>
+
+<h3 id="ubuntukalidebian">Ubuntu/Kali/Debian</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt-get upgrade <span class="o">&amp;&amp;</span> apt-get update
+apt-get <span class="nb">install </span>virtualenv
+</code></pre></div></div>
+
+<h2 id="0x02-virtualenv-使用">0x02 virtualenv 使用</h2>
+
+<h3 id="帮助信息">帮助信息</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~<span class="nv">$ </span>virtualenv <span class="nt">-h</span>
+Usage: virtualenv <span class="o">[</span>OPTIONS] DEST_DIR
+
+Options:
+  <span class="nt">--version</span>             显示程序的版本号并退出
+  <span class="nt">-h</span>, <span class="nt">--help</span>            显示程序的帮助信息并退出
+  <span class="nt">-v</span>, <span class="nt">--verbose</span>         增强输出
+  <span class="nt">-q</span>, <span class="nt">--quiet</span>           减少输出
+  <span class="nt">-p</span> PYTHON_EXE, <span class="nt">--python</span><span class="o">=</span>PYTHON_EXE   Python的可执行路径<span class="o">(</span>/usr/bin/python<span class="o">)</span>
+  <span class="nt">--clear</span>               清除安装的库
+  <span class="nt">--no-site-packages</span>    给出一个干净的环境，不包含系统已安装的库
+  <span class="nt">--system-site-packages</span> 包含系统库
+  <span class="nt">--always-copy</span>         始终复制文件而不是符号链接。
+  <span class="nt">--relocatable</span>         使一个现有的virtualenv环境这会修复脚本并生成所有.pth文件
+  <span class="nt">--no-setuptools</span>       不要在新的virtualenv中安装setuptools
+  <span class="nt">--no-pip</span>              不要在新的virtualenv中安装pip
+  <span class="nt">--no-wheel</span>            不要在新的virtualenv中安装wheel
+  <span class="nt">--extra-search-dir</span><span class="o">=</span>DIR 在DIR中寻找setuptools/pip
+  <span class="nt">--download</span>            从PyPI下载预安装的软件包
+  <span class="nt">--no-download</span>, <span class="nt">--never-download</span> 不要从PyPI下载预安装的软件包
+  <span class="nt">--prompt</span><span class="o">=</span>PROMPT       为此环境提供备用提示前缀
+  <span class="nt">--setuptools</span>          已废弃
+  <span class="nt">--distribute</span>          已废弃
+  <span class="nt">--unzip-setuptools</span>    已废弃
+</code></pre></div></div>
+
+<h3 id="查看当前版本">查看当前版本</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~<span class="nv">$ </span>virtualenv <span class="nt">--version</span>
+16.0.0
+</code></pre></div></div>
+
+<h3 id="配置一个新的环境">配置一个新的环境</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~<span class="nv">$ </span>which python <span class="c"># 查看Python路径</span>
+/usr/bin/python
+~<span class="nv">$ </span>virtualenv <span class="nt">--no-site-packages</span> <span class="nt">-p</span> /usr/bin/python MyNewEnv <span class="c"># 创建环境目录</span>
+Running virtualenv with interpreter /usr/bin/python
+New python executable <span class="k">in</span> /home/liyingzhe/MyNewEnv/bin/python
+Installing setuptools, pip, wheel...done.
+~<span class="nv">$ </span><span class="nb">ls </span>MyNewEnv/ <span class="c"># 查看环境目录</span>
+bin  include  lib  <span class="nb">local  </span>pip-selfcheck.json
+~<span class="nv">$ </span><span class="nb">source </span>MyNewEnv/bin/activate <span class="c"># 将环境生效</span>
+<span class="o">(</span>MyNewEnv<span class="o">)</span>
+<span class="o">(</span>MyNewEnv<span class="o">)</span> ~<span class="nv">$ </span>pip list <span class="c"># 查看已安装的库</span>
+Package    Version
+<span class="nt">----------</span> <span class="nt">-------</span>
+pip        18.0
+setuptools 40.0.0
+wheel      0.31.1
+</code></pre></div></div>
+
+<p>此时我们可以安装一些新的库</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>MyNewEnv<span class="o">)</span> ~<span class="nv">$ </span>pip <span class="nb">install </span>requests
+Collecting requests
+  Using cached https://files.pythonhosted.org/packages/65/47/7e02164a2a3db50ed6d8a6ab1d6d60b69c4c3fdf57a284257925dfc12bda/requests-2.19.1-py2.py3-none-any.whl
+Collecting idna&lt;2.8,&gt;<span class="o">=</span>2.5 <span class="o">(</span>from requests<span class="o">)</span>
+  Using cached https://files.pythonhosted.org/packages/4b/2a/0276479a4b3caeb8a8c1af2f8e4355746a97fab05a372e4a2c6a6b876165/idna-2.7-py2.py3-none-any.whl
+Collecting certifi&gt;<span class="o">=</span>2017.4.17 <span class="o">(</span>from requests<span class="o">)</span>
+  Using cached https://files.pythonhosted.org/packages/16/1f/50d729c104b21c1042aa51560da6141d1cab476ba7015d92b2111c8db841/certifi-2018.8.13-py2.py3-none-any.whl
+Collecting chardet&lt;3.1.0,&gt;<span class="o">=</span>3.0.2 <span class="o">(</span>from requests<span class="o">)</span>
+  Using cached https://files.pythonhosted.org/packages/bc/a9/01ffebfb562e4274b6487b4bb1ddec7ca55ec7510b22e4c51f14098443b8/chardet-3.0.4-py2.py3-none-any.whl
+Collecting urllib3&lt;1.24,&gt;<span class="o">=</span>1.21.1 <span class="o">(</span>from requests<span class="o">)</span>
+  Using cached https://files.pythonhosted.org/packages/bd/c9/6fdd990019071a4a32a5e7cb78a1d92c53851ef4f56f62a3486e6a7d8ffb/urllib3-1.23-py2.py3-none-any.whl
+Installing collected packages: idna, certifi, chardet, urllib3, requests
+Successfully installed certifi-2018.8.13 chardet-3.0.4 idna-2.7 requests-2.19.1 urllib3-1.23
+<span class="o">(</span>MyNewEnv<span class="o">)</span> ~<span class="err">$</span>
+</code></pre></div></div>
+
+<h3 id="退出环境">退出环境</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span>MyNewEnv<span class="o">)</span> ~<span class="nv">$ </span>deactivate
+</code></pre></div></div>
+
+<h3 id="使用已有的环境">使用已有的环境</h3>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 假设 MyNewEnv已经被创建</span>
+~<span class="nv">$ </span><span class="nb">source </span>MyNewEnv/bin/activate <span class="c"># 将环境生效</span>
+</code></pre></div></div>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

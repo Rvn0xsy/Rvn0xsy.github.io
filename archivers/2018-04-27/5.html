@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>OpenSSL心脏滴血漏洞 « 倾旋的博客</title>
+  <meta name="description" content="《Web安全测试学习手册》- OpenSSL心脏滴血漏洞">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-04-27/5">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">OpenSSL心脏滴血漏洞</h1>
+    <p class="post-meta">Apr 27, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>《Web安全测试学习手册》- OpenSSL心脏滴血漏洞
+<!--more--></p>
+
+<ul id="markdown-toc">
+  <li>
+<a href="#0x00-openssl%E5%BF%83%E8%84%8F%E6%BB%B4%E8%A1%80%E6%BC%8F%E6%B4%9E" id="markdown-toc-0x00-openssl心脏滴血漏洞">0x00 OpenSSL心脏滴血漏洞</a>    <ul>
+      <li><a href="#1%E4%BB%80%E4%B9%88%E6%98%AFopenssl%E5%BF%83%E8%84%8F%E6%BB%B4%E8%A1%80%E6%BC%8F%E6%B4%9E" id="markdown-toc-1什么是openssl心脏滴血漏洞">1）什么是OpenSSL心脏滴血漏洞</a></li>
+      <li><a href="#2openssl%E5%BF%83%E8%84%8F%E6%BB%B4%E8%A1%80%E6%BC%8F%E6%B4%9E%E7%9A%84%E7%89%B9%E7%82%B9" id="markdown-toc-2openssl心脏滴血漏洞的特点">2）OpenSSL心脏滴血漏洞的特点</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x01-openssl%E5%BF%83%E8%84%8F%E6%BB%B4%E8%A1%80%E6%BC%8F%E6%B4%9E---%E9%A3%8E%E9%99%A9%E7%AD%89%E7%BA%A7" id="markdown-toc-0x01-openssl心脏滴血漏洞---风险等级">0x01 OpenSSL心脏滴血漏洞 - 风险等级</a></li>
+  <li><a href="#0x02-openssl%E5%BF%83%E8%84%8F%E6%BB%B4%E8%A1%80%E6%BC%8F%E6%B4%9E---%E5%8E%9F%E7%90%86" id="markdown-toc-0x02-openssl心脏滴血漏洞---原理">0x02 OpenSSL心脏滴血漏洞 - 原理</a></li>
+  <li><a href="#0x03-openssl%E5%BF%83%E8%84%8F%E6%BB%B4%E8%A1%80%E6%BC%8F%E6%B4%9E---%E5%B8%B8%E8%A7%81%E5%9C%BA%E6%99%AF" id="markdown-toc-0x03-openssl心脏滴血漏洞---常见场景">0x03 OpenSSL心脏滴血漏洞 - 常见场景</a></li>
+  <li>
+<a href="#0x04-%E6%B5%8B%E8%AF%95%E6%96%B9%E6%A1%88" id="markdown-toc-0x04-测试方案">0x04 测试方案</a>    <ul>
+      <li><a href="#%E6%96%B9%E6%A1%88%E4%B8%80" id="markdown-toc-方案一">方案一</a></li>
+      <li><a href="#%E6%96%B9%E6%A1%88%E4%BA%8C" id="markdown-toc-方案二">方案二</a></li>
+      <li><a href="#%E6%96%B9%E6%A1%88%E4%B8%89" id="markdown-toc-方案三">方案三</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x05-%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88" id="markdown-toc-0x05-修复方案">0x05 修复方案</a></li>
+</ul>
+
+<h2 id="0x00-openssl心脏滴血漏洞">0x00 OpenSSL心脏滴血漏洞</h2>
+
+<h3 id="1什么是openssl心脏滴血漏洞">1）什么是OpenSSL心脏滴血漏洞</h3>
+
+<p>2014年4月8日，互联网上曝出了严重一个漏洞称为Heartbleed，该漏洞由安全公司Codenomicon和谷歌安全工程师发现。Heartbleed漏洞，造成许任何人在互联网上阅读系统的内存保护脆弱的OpenSSL的软件版本。 这种妥协密钥用于识别服务提供者和加密流量,用户名和密码的和实际的内容。 这允许攻击者窃听通信、窃取数据直接从服务和用户和模拟服务和用户。</p>
+
+<h3 id="2openssl心脏滴血漏洞的特点">2）OpenSSL心脏滴血漏洞的特点</h3>
+
+<ul>
+  <li>服务器端必须支持openssl加密协议，如：https</li>
+  <li>危害大</li>
+</ul>
+
+<h2 id="0x01-openssl心脏滴血漏洞---风险等级">0x01 OpenSSL心脏滴血漏洞 - 风险等级</h2>
+
+<p><strong>高</strong></p>
+
+<h2 id="0x02-openssl心脏滴血漏洞---原理">0x02 OpenSSL心脏滴血漏洞 - 原理</h2>
+
+<p>2014年4月7日OpenSSL发布了安全公告，在OpenSSL1.0.1版本中存在严重漏洞（CVE-2014-0160），此次漏洞问题存在于ssl/dl_both.c文件中。</p>
+
+<p>OpenSSL在实现TLS和DTLS的心跳处理逻辑时，存在编码缺陷。OpenSSL的心跳处理逻辑没有检测心跳包中的长度字段是否和后续的数据字段相符合，攻击者可以利用这点，构造异常的数据包，来获取心跳数据所在的内存区域的后续数据。这些数据中可能包含了证书私钥、用户名、用户密码、用户邮箱等敏感信息。该漏洞允许攻击者，从内存中读取多达64KB的数据。</p>
+
+<h2 id="0x03-openssl心脏滴血漏洞---常见场景">0x03 OpenSSL心脏滴血漏洞 - 常见场景</h2>
+
+<ul>
+  <li>使用了openssl扩展库加密的网络协议</li>
+  <li>https</li>
+  <li>SSL VPN</li>
+  <li>邮件服务器</li>
+</ul>
+
+<h2 id="0x04-测试方案">0x04 测试方案</h2>
+
+<h3 id="方案一">方案一</h3>
+
+<p>使用Nmap扩展脚本进行扫描</p>
+
+<p>命令：<code class="language-plaintext highlighter-rouge">nmap -sV -p 443 --script ssl-heartbleed.nse [Target]</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-04-27/0x06.png" alt="OpenSSL心脏滴血漏洞"></p>
+
+<h3 id="方案二">方案二</h3>
+
+<p>https://filippo.io/Heartbleed/</p>
+
+<h3 id="方案三">方案三</h3>
+
+<p>http://wangzhan.360.cn/heartbleed/</p>
+
+<h2 id="0x05-修复方案">0x05 修复方案</h2>
+
+<ul>
+  <li>1.将受影响的服务器下线，避免它继续泄露敏感信息。</li>
+  <li>2.停止旧版的 openssl 服务，升级 openssl 到新版本，并重新启动。</li>
+  <li>3.生成新密钥。（因为攻击者可能通过漏洞获取私钥。）将新密钥提交给你的CA，获得新的认证之后在服务器上安装新密钥。</li>
+  <li>4.服务器上线。</li>
+  <li>5.撤销旧认证。</li>
+  <li>6.撤销现有的会话cookies。</li>
+  <li>7.要求用户修改密码。</li>
+</ul>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

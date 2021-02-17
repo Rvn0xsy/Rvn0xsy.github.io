@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Windows 2019 Bypass (UAC、Defender) to Metasploit « 倾旋的博客</title>
+  <meta name="description" content="0x00 前言昨天下午在小密圈看到一篇文章：https://egre55.github.io/system-properties-uac-bypass/文中指出 SystemPropertiesAdvanced.exe 有DLL劫持漏洞，经过分析，在Windows 10下无法复现之前也做过关于DLL劫持、Bypa...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-01-26/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Windows 2019 Bypass (UAC、Defender) to Metasploit</h1>
+    <p class="post-meta">Jan 26, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x00-前言">0x00 前言</h2>
+
+<p>昨天下午在小密圈看到一篇文章：https://egre55.github.io/system-properties-uac-bypass/</p>
+
+<p>文中指出 <code class="language-plaintext highlighter-rouge">SystemPropertiesAdvanced.exe</code> 有DLL劫持漏洞，经过分析，在Windows 10下无法复现</p>
+
+<p>之前也做过关于DLL劫持、Bypass UAC的议题：<a href="https://payloads.online/archivers/2018-12-22/1">DLL Hijacking &amp; COM Hijacking ByPass UAC - 议题解读</a></p>
+
+<p>在向下阅读前，请先掌握DLL劫持和Bypass UAC的基本知识。</p>
+
+<p>微信交流群，加我微信：Guest_Killer_0nlis。</p>
+
+<h2 id="0x01-cooolis">0x01 Cooolis</h2>
+
+<p>Cooolis是我写的一个支持MSF与Cobaltstrike上线的加载器，能够100%绕过绝大部分杀软，包含国内90%以上、Windows Defender等。</p>
+
+<p>之前发出了演示视频，在这里可以看到：<a href="https://payloads.online/archivers/2019-01-21/1">Cobalt Strike - Metasploit Bypass AV</a></p>
+
+<p>然后这个操作系统缺陷由于拥有自动权限提升的权限 <code class="language-plaintext highlighter-rouge">autoElevate</code>属性，我们可以利用它来执行Cooolis，使得Coolis上线的会话同样拥有管理员权限。</p>
+
+<p>关于Bypass UAC的挖掘方法与原理，我的议题已经转化成了视频：</p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1ErymFEn3rg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="0x02-效果演示">0x02 效果演示</h2>
+
+<p>Windows 2019中的<code class="language-plaintext highlighter-rouge">C:\Windows\SysWOW64\SystemPropertiesAdvanced.exe</code>在运行时，会寻找<code class="language-plaintext highlighter-rouge">srrstr.dll</code>，这个DLL文件并不存在于：</p>
+
+<ul>
+  <li>C:\Windows\SysWOW64\srrstr.dll</li>
+  <li>C:\Windows\System\srrstr.dll</li>
+  <li>C:\Windows\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\wbem\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\WindowsPowershell\v1.0\srrstr.dll</li>
+  <li>C:\Users&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps\srrstr.dll</li>
+</ul>
+
+<p>在最后它会寻找`C:\Users&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps## 0x00 前言</p>
+
+<p>昨天下午在小密圈看到一篇文章：https://egre55.github.io/system-properties-uac-bypass/</p>
+
+<p>文中指出 &lt;!JEKYLL@5920@0&gt; 有DLL劫持漏洞，经过分析，在Windows 10下无法复现</p>
+
+<p>之前也做过关于DLL劫持、Bypass UAC的议题：<a href="https://payloads.online/archivers/2018-12-22/1">DLL Hijacking &amp; COM Hijacking ByPass UAC - 议题解读</a></p>
+
+<p>在向下阅读前，请先掌握DLL劫持和Bypass UAC的基本知识。</p>
+
+<p>微信交流群，加我微信：Guest_Killer_0nlis。</p>
+
+<h2 id="0x01-cooolis-1">0x01 Cooolis</h2>
+
+<p>Cooolis是我写的一个支持MSF与Cobaltstrike上线的加载器，能够100%绕过绝大部分杀软，包含国内90%以上、Windows Defender等。</p>
+
+<p>之前发出了演示视频，在这里可以看到：<a href="https://payloads.online/archivers/2019-01-21/1">Cobalt Strike - Metasploit Bypass AV</a></p>
+
+<p>然后这个操作系统缺陷由于拥有自动权限提升的权限 &lt;!JEKYLL@5920@1&gt;属性，我们可以利用它来执行Cooolis，使得Coolis上线的会话同样拥有管理员权限。</p>
+
+<p>关于Bypass UAC的挖掘方法与原理，我的议题已经转化成了视频：</p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1ErymFEn3rg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="0x02-效果演示-1">0x02 效果演示</h2>
+
+<p>Windows 2019中的&lt;!JEKYLL@5920@2&gt;在运行时，会寻找&lt;!JEKYLL@5920@3&gt;，这个DLL文件并不存在于：</p>
+
+<ul>
+  <li>C:\Windows\SysWOW64\srrstr.dll</li>
+  <li>C:\Windows\System\srrstr.dll</li>
+  <li>C:\Windows\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\wbem\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\WindowsPowershell\v1.0\srrstr.dll</li>
+  <li>C:\Users&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps\srrstr.dll</li>
+</ul>
+
+<p>在最后它会寻找这个目录，而这个目录的读写是不需要触发UAC获得管理员权限来操作的。</p>
+
+<p>由此，可以利用该缺陷，将Coolis转换成DLL，上传至`C:\Users&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps## 0x00 前言</p>
+
+<p>昨天下午在小密圈看到一篇文章：https://egre55.github.io/system-properties-uac-bypass/</p>
+
+<p>文中指出 &lt;!JEKYLL@5920@0&gt; 有DLL劫持漏洞，经过分析，在Windows 10下无法复现</p>
+
+<p>之前也做过关于DLL劫持、Bypass UAC的议题：<a href="https://payloads.online/archivers/2018-12-22/1">DLL Hijacking &amp; COM Hijacking ByPass UAC - 议题解读</a></p>
+
+<p>在向下阅读前，请先掌握DLL劫持和Bypass UAC的基本知识。</p>
+
+<p>微信交流群，加我微信：Guest_Killer_0nlis。</p>
+
+<h2 id="0x01-cooolis-2">0x01 Cooolis</h2>
+
+<p>Cooolis是我写的一个支持MSF与Cobaltstrike上线的加载器，能够100%绕过绝大部分杀软，包含国内90%以上、Windows Defender等。</p>
+
+<p>之前发出了演示视频，在这里可以看到：<a href="https://payloads.online/archivers/2019-01-21/1">Cobalt Strike - Metasploit Bypass AV</a></p>
+
+<p>然后这个操作系统缺陷由于拥有自动权限提升的权限 &lt;!JEKYLL@5920@1&gt;属性，我们可以利用它来执行Cooolis，使得Coolis上线的会话同样拥有管理员权限。</p>
+
+<p>关于Bypass UAC的挖掘方法与原理，我的议题已经转化成了视频：</p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1ErymFEn3rg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="0x02-效果演示-2">0x02 效果演示</h2>
+
+<p>Windows 2019中的&lt;!JEKYLL@5920@2&gt;在运行时，会寻找&lt;!JEKYLL@5920@3&gt;，这个DLL文件并不存在于：</p>
+
+<ul>
+  <li>C:\Windows\SysWOW64\srrstr.dll</li>
+  <li>C:\Windows\System\srrstr.dll</li>
+  <li>C:\Windows\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\wbem\srrstr.dll</li>
+  <li>C:\Windows\SysWOW64\WindowsPowershell\v1.0\srrstr.dll</li>
+  <li>C:\Users&lt;Username&gt;\APPData\Local\Microsoft\WindowsApps\srrstr.dll</li>
+</ul>
+
+<p>在最后它会寻找&lt;!JEKYLL@5920@4&gt;这个目录，而这个目录的读写是不需要触发UAC获得管理员权限来操作的。</p>
+
+<p>由此，可以利用该缺陷，将Coolis转换成DLL，上传至，紧接着执行SystemPropertiesAdvanced.exe，它会自动将<code class="language-plaintext highlighter-rouge">srrstr.dll</code>加载至SystemPropertiesAdvanced.exe进程的内存，同样的，我们也就拥有了管理员权限。</p>
+
+<p>在此之前，我有想过在下列模块里做一些优化：</p>
+
+<ul>
+  <li>exploit/windows/local/bypassuac_fodhelper</li>
+  <li>exploit/windows/local/bypassuac_injection</li>
+  <li>exploit/windows/local/bypassuac_comhijack</li>
+</ul>
+
+<p>我觉得COM劫持的空间还是很大的，并且也一定程度上能够bypass AV。</p>
+
+<p>Demo：</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/sJvDxh63Ptg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="0x03-总结">0x03 总结</h2>
+
+<p>UAC、DLL劫持、COM劫持的问题肯定还会有很多、但是以前的轮子到现在拿起来用基本上都会被行为拦截，这就需要掌握原理去自己探索、创造。</p>
+
+<p>系统镜像：<code class="language-plaintext highlighter-rouge">ed2k://|file|cn_windows_server_2019_x64_dvd_4de40f33.iso|5086887936|7DCDDD6B0C60A0D019B6A93D8F2B6D31|/</code></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

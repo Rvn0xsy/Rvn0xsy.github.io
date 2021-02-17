@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>小型Web安全加固方案 « 倾旋的博客</title>
+  <meta name="description" content="本文介绍一下小型Web应用的加固方案，内容均为原创">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2017-11-15/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">小型Web安全加固方案</h1>
+    <p class="post-meta">Nov 15, 2017</p>
+  </header>
+
+  <article class="post-content">
+    <p>本文介绍一下小型Web应用的加固方案，内容均为原创
+<!--more--></p>
+<ul id="markdown-toc">
+  <li>
+<a href="#0x00-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86%E5%AE%89%E5%85%A8" id="markdown-toc-0x00-配置管理安全">0x00 配置管理安全</a>    <ul>
+      <li>
+<a href="#%E5%88%97%E7%9B%AE%E5%BD%95---%E6%98%BE%E7%A4%BA%E7%9B%AE%E5%BD%95%E7%B4%A2%E5%BC%95" id="markdown-toc-列目录---显示目录索引">列目录 - 显示目录索引</a>        <ul>
+          <li>
+<a href="#apache" id="markdown-toc-apache">Apache</a>            <ul>
+              <li><a href="#%E4%BF%AE%E6%94%B9%E7%AB%99%E7%82%B9%E7%9B%AE%E5%BD%95%E5%AF%B9%E5%BA%94%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-修改站点目录对应的配置文件">修改站点目录对应的配置文件</a></li>
+              <li><a href="#%E5%88%9B%E5%BB%BAdirectoryindex%E9%BB%98%E8%AE%A4%E6%96%87%E4%BB%B6" id="markdown-toc-创建directoryindex默认文件">创建DirectoryIndex默认文件</a></li>
+            </ul>
+          </li>
+          <li>
+<a href="#tomcat" id="markdown-toc-tomcat">Tomcat</a>            <ul>
+              <li><a href="#%E4%BF%AE%E6%94%B9confwebxml%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-修改confwebxml配置文件">修改conf/web.xml配置文件</a></li>
+            </ul>
+          </li>
+          <li>
+<a href="#nginx" id="markdown-toc-nginx">Nginx</a>            <ul>
+              <li><a href="#%E4%BF%AE%E6%94%B9confnginxconf%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6" id="markdown-toc-修改confnginxconf配置文件">修改conf/nginx.conf配置文件</a></li>
+            </ul>
+          </li>
+          <li><a href="#iis" id="markdown-toc-iis">IIS</a></li>
+          <li><a href="#%E8%AE%BE%E7%BD%AE%E7%9B%AE%E5%BD%95%E6%B5%8F%E8%A7%88%E6%9D%83%E9%99%90" id="markdown-toc-设置目录浏览权限">设置”目录浏览”权限</a></li>
+        </ul>
+      </li>
+      <li>
+<a href="#%E9%9A%90%E8%97%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%89%88%E6%9C%AC%E4%BF%A1%E6%81%AF" id="markdown-toc-隐藏服务器版本信息">隐藏服务器版本信息</a>        <ul>
+          <li><a href="#apache-1" id="markdown-toc-apache-1">Apache</a></li>
+          <li><a href="#php" id="markdown-toc-php">PHP</a></li>
+          <li><a href="#iis-1" id="markdown-toc-iis-1">IIS</a></li>
+          <li><a href="#nginx-1" id="markdown-toc-nginx-1">Nginx</a></li>
+          <li><a href="#tomcat-1" id="markdown-toc-tomcat-1">Tomcat</a></li>
+        </ul>
+      </li>
+      <li>
+<a href="#%E7%9B%AE%E5%BD%95%E5%AE%89%E5%85%A8" id="markdown-toc-目录安全">目录安全</a>        <ul>
+          <li><a href="#apache-2" id="markdown-toc-apache-2">Apache</a></li>
+          <li><a href="#nginx-2" id="markdown-toc-nginx-2">Nginx</a></li>
+          <li><a href="#iis-2" id="markdown-toc-iis-2">IIS</a></li>
+          <li><a href="#tomcat-2" id="markdown-toc-tomcat-2">Tomcat</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="0x00-配置管理安全">0x00 配置管理安全</h2>
+<p>即使在存在某些高危漏洞的情况下，我们只要做好配置方面的安全加固即可防御许多攻击。</p>
+
+<h3 id="列目录---显示目录索引">列目录 - 显示目录索引</h3>
+
+<h4 id="apache">Apache</h4>
+
+<h5 id="修改站点目录对应的配置文件">修改站点目录对应的配置文件</h5>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x00.png" alt="列出目录索引"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Directory /&gt;
+    Options +Indexes +FollowSymLinks # 将 "+" 与 Indexes 去掉即可限制列出目录索引
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+    Require all granted
+&lt;/Directory&gt;
+</code></pre></div></div>
+
+<p>修改后：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Directory /&gt;
+    Options FollowSymLinks
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+    Require all granted
+&lt;/Directory&gt;
+</code></pre></div></div>
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x01.png" alt="不列出目录索引"></p>
+
+<h5 id="创建directoryindex默认文件">创建DirectoryIndex默认文件</h5>
+
+<p>大家都见过很多框架的每个目录都有一个<code class="language-plaintext highlighter-rouge">index.html</code>文件，这个文件的存在是非常有意义的，很多线上的Web服务器都没有合格配置<code class="language-plaintext highlighter-rouge">列出目录索引</code>。导致网站内部许多文件都被攻击者查看到，泄漏大量信息。</p>
+
+<p>为了防止列出目录索引，我们可以在站点的每个文件夹中创建一个<code class="language-plaintext highlighter-rouge">index.html</code>，这个文件内容是什么都无所谓了。当攻击者想通过列目录的手法访问你站点文件夹的时候，Web服务器将会判断当前目录下有没有<code class="language-plaintext highlighter-rouge">DirectoryIndex</code>默认首页，如果存在就显示<code class="language-plaintext highlighter-rouge">DirectoryIndex</code>对应的文件名的内容，这样攻击者就无法查看该目录下有什么文件了。</p>
+
+<h4 id="tomcat">Tomcat</h4>
+
+<h5 id="修改confwebxml配置文件">修改conf/web.xml配置文件</h5>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x02.png" alt="列出目录索引"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;init-param&gt;
+            &lt;param-name&gt;listings&lt;/param-name&gt; 
+            &lt;param-value&gt;true&lt;/param-value&gt; &lt;!-- 将true改为false --&gt;
+&lt;/init-param&gt;
+</code></pre></div></div>
+
+<p>修改后：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;init-param&gt;
+            &lt;param-name&gt;listings&lt;/param-name&gt; 
+            &lt;param-value&gt;false&lt;/param-value&gt;
+&lt;/init-param&gt;
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x03.png" alt="不列出目录索引"></p>
+
+<h4 id="nginx">Nginx</h4>
+
+<h5 id="修改confnginxconf配置文件">修改conf/nginx.conf配置文件</h5>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x05.png" alt="列出目录索引"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location / {
+            index  index.html index.htm index.php l.php;
+           autoindex on;  
+}
+</code></pre></div></div>
+
+<p>修改后：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location / {
+            index  index.html index.htm index.php l.php;
+           autoindex off;  
+}
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x04.png" alt="不列出目录索引"></p>
+
+<h4 id="iis">IIS</h4>
+
+<h4 id="设置目录浏览权限">设置”目录浏览”权限</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x06.png" alt="列出目录索引"></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x08.png" alt="设置目录索引"></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x07.png" alt="不列出目录索引"></p>
+
+<h3 id="隐藏服务器版本信息">隐藏服务器版本信息</h3>
+
+<h4 id="apache-1">Apache</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x09.png" alt="存在信息"></p>
+
+<p>将以下配置加入<code class="language-plaintext highlighter-rouge">conf/httpd.conf</code>：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ServerTokens Prod
+ServerSignature Off
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x10.png" alt="不存在信息"></p>
+
+<h4 id="php">PHP</h4>
+
+<p>修改<code class="language-plaintext highlighter-rouge">php.ini</code>，将<code class="language-plaintext highlighter-rouge">expose_php On</code>改为：<code class="language-plaintext highlighter-rouge">expose_php Off</code></p>
+
+<h4 id="iis-1">IIS</h4>
+
+<p>找到<code class="language-plaintext highlighter-rouge">HTTP响应头</code>设置响应报文内容，可以将<code class="language-plaintext highlighter-rouge">ASP.NET</code>随意更改，甚至删除</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x11.png" alt="IIS"></p>
+
+<h4 id="nginx-1">Nginx</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x12.png" alt="存在信息"></p>
+
+<p>在加入<code class="language-plaintext highlighter-rouge">conf/nginx.conf</code>一行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>server_tokens off;
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x13.png" alt="不存在信息"></p>
+
+<h4 id="tomcat-1">Tomcat</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x15.png" alt="存在信息"></p>
+
+<p>到apache-tomcat安装目录下的lib子文件夹，找到catalina.jar这包，并进行解解压</p>
+
+<p>修改:<code class="language-plaintext highlighter-rouge">lib\catalina.zip\org\apache\catalina\util\ServerInfo.properties</code></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>server.info=X
+server.number=5.5
+server.built=Dec 1 2015 22\:30\:46 UTC
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x14.png" alt="更改文件"></p>
+
+<p>或者直接更改<code class="language-plaintext highlighter-rouge">web.xml</code>，找到<code class="language-plaintext highlighter-rouge">Connector</code>，添加一个<code class="language-plaintext highlighter-rouge">server</code>属性：</p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;Connector</span> <span class="na">connectionTimeout=</span><span class="s">"20000"</span> <span class="na">port=</span><span class="s">"8080"</span> <span class="na">protocol=</span><span class="s">"HTTP/1.1"</span> <span class="na">redirectPort=</span><span class="s">"8443"</span> <span class="na">server=</span><span class="s">"IIS Server"</span> <span class="nt">/&gt;</span>
+</code></pre></div></div>
+
+<h3 id="目录安全">目录安全</h3>
+
+<p>攻击者上传恶意脚本（Webshell）到服务器端后，该脚本会被当做可信任的代码执行，这并不是我们想看到的。</p>
+
+<h4 id="apache-2">Apache</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x16.png" alt="脚本被执行"></p>
+
+<p>更改配置文件：</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Directory "C:/phpstudy2/WWW/uploads"&gt;
+    &lt;FilesMatch "\.(?i:php|php3|php4|php5)$"&gt; 
+    Order allow,deny
+    Deny from all
+    &lt;/FilesMatch&gt;
+&lt;/Directory&gt;
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">C:/phpstudy2/WWW/uploads</code> 为要禁止执行的目录，<code class="language-plaintext highlighter-rouge">\.(?i:php|php3|php4|php5)$</code>中可以添加多个文件扩展名，例如：<code class="language-plaintext highlighter-rouge">.htaccess</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x17.png" alt="脚本不执行"></p>
+
+<p>上面的方法已经杜绝了Webshell的执行，但是如果 - 在根目录创建 <code class="language-plaintext highlighter-rouge">.htaccess</code>分布式部署文件，也能够执行脚本。</p>
+
+<p>服务器端配置必须满足以下三个条件：</p>
+
+<ul>
+  <li>能够在目录中写入任意文件</li>
+  <li>AllowOverride 为 All</li>
+  <li>开启modules/mod_rewrite.so</li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x18.png" alt="脚本被执行"></p>
+
+<p>我们现在先来做一个加固：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;Files ~ "^.(htaccess|htpasswd)$"&gt;
+deny from all
+&lt;/Files&gt;
+</code></pre></div></div>
+
+<p>禁止所有人访问<code class="language-plaintext highlighter-rouge">.htaccess</code>和<code class="language-plaintext highlighter-rouge">.htpasswd</code>文件。</p>
+
+<p>接下来要做的就是设置<code class="language-plaintext highlighter-rouge">AllowOverride</code>为<code class="language-plaintext highlighter-rouge">None</code></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x19.png" alt="脚本不执行"></p>
+
+<h4 id="nginx-2">Nginx</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x20.png" alt="脚本被执行"></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location ~* ^/uploads/.*.(php|php5)$ {
+      deny all;
+}
+</code></pre></div></div>
+
+<p>注意事项：</p>
+<ul>
+  <li>$ 与 { 之间有空格</li>
+  <li>以上的配置文件代码需要放到 <code class="language-plaintext highlighter-rouge">location ~ .php {...}</code>上面，如果放到下面是无效的</li>
+  <li>uploads需要写相对路径，不能写绝对路径</li>
+  <li>修改后重启Nginx</li>
+</ul>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x21.png" alt="脚本不执行"></p>
+
+<h4 id="iis-2">IIS</h4>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x22.png" alt="脚本被执行"></p>
+
+<p>设置<code class="language-plaintext highlighter-rouge">处理程序映射</code>即可：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x23.png" alt="设置脚本不执行"></p>
+
+<p>设置后：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2017-11-15/0x24.png" alt="脚本不执行"></p>
+
+<h4 id="tomcat-2">Tomcat</h4>
+
+<p>可以采用Apache配置，后续再更新关于Tomcat的配置</p>
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

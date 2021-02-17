@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Web正向代理的思考 « 倾旋的博客</title>
+  <meta name="description" content="0x01 背景假设获取Webshell后，但是机器不出网（DNS、TCP、UDP）等常规端口都进行了尝试。不出网的解释：内部的Webshell服务器无法连接互联网。尝试过的方案有：title 出网探测方式state TCP {WindowsHttp : certutil -f -split -urlcache h...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2020-11-01/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Web正向代理的思考</h1>
+    <p class="post-meta">Nov 1, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <h2 id="0x01-背景假设">0x01 背景假设</h2>
+
+<p>获取Webshell后，但是机器不出网（DNS、TCP、UDP）等常规端口都进行了尝试。</p>
+
+<p>不出网的解释：内部的Webshell服务器无法连接互联网。</p>
+
+<p>尝试过的方案有：</p>
+
+<p><img class="plantuml" src="http://www.plantuml.com/plantuml/svg/~h407374617274756d6c0a7469746c6520e587bae7bd91e68ea2e6b58be696b9e5bc8f0a737461746520544350207b0a57696e646f777348747470203a20636572747574696c202d66202d73706c6974202d75726c636163686520687474703a2f2f646f6d61696e2f636f6d0a4c696e7578487474703a2077676574203c55524c3e0a7d0a7374617465205544507b0a444e53203a206e736c6f6f6b757020646f6d61696e2e636f6d0a7d0a73746174652049434d507b0a2020202049434d503a2070696e6720646f6d61696e2e636f6d0a7d0a40656e64756d6c"></p>
+
+<p>那么，一般我们会尝试：</p>
+
+<ul>
+  <li><a href="https://github.com/sensepost/reGeorg">reGeorg</a></li>
+  <li><a href="https://github.com/L-codes/Neo-reGeorg">Neo-reGeorg</a></li>
+  <li><a href="https://github.com/sensepost/reDuh">reDuh</a></li>
+  <li><a href="https://github.com/blackarrowsec/pivotnacci">pivotnacci</a></li>
+  <li>…</li>
+</ul>
+
+<p>这种类型的工具往往都有一个特性：通过脚本帮助我们把HTTP协议转换成Socks，由于HTTP协议无状态，因此需要发送大量数据包。</p>
+
+<p><img class="plantuml" src="http://www.plantuml.com/plantuml/svg/~h407374617274756d6c0a7469746c6520e8849ae69cace4bba3e790860ae6b58fe8a788e599a820202d3e20e69cace59cb0536f636b73e4bba3e79086e69c8de58aa1203a20efbc8831efbc89e8bf9ee68ea50ae69cace59cb0536f636b73e4bba3e79086e69c8de58aa1203c2d2d3e20e69cace59cb048545450e5aea2e688b7e7abaf3a20efbc8832efbc89e8bdace68da2e58d8fe8aeae0ae69cace59cb048545450e5aea2e688b7e7abaf202d3e20576562e69c8de58aa1e599a8e8849ae69cac3a20efbc8833efbc89e4b88de696ade8afb7e6b1820ae69cace59cb048545450e5aea2e688b7e7abaf203c2d2d20576562e69c8de58aa1e599a8e8849ae69cac3a20efbc8834efbc89e58f91e98081e5938de5ba940ae69cace59cb0536f636b73e4bba3e79086e69c8de58aa13c2d2d3e20e69cace59cb048545450e5aea2e688b7e7abaf3a20efbc8835efbc89e58d8fe8aeaee8bdace68da20ae69cace59cb0536f636b73e4bba3e79086e69c8de58aa1202d2d3e20e6b58fe8a788e599a83a20efbc8836efbc89e58f91e98081e695b0e68dae0a6e6f74652072696768743a20e580bee6978be79a84e58d9ae5aea23a68747470733a2f2f7061796c6f6164732e6f6e6c696e650a40656e64756d6c"></p>
+
+<p>但是这个场景以上方案都使用起来都不能给出一个很好的效果，因为网络延迟、系统卡顿等等问题，想要传递工具到服务器上变得困难。</p>
+
+<h2 id="0x02-尝试理解目标网络架构">0x02 尝试理解目标网络架构</h2>
+
+<p>这里我画了一个简单的架构图：</p>
+
+<p><img class="plantuml" src="http://www.plantuml.com/plantuml/svg/~h407374617274756d6c0a7469746c6520e79baee6a087e7bd91e7bb9ce69eb6e69e840ae6b58fe8a788e599a820202d3e20e998b2e781abe5a299203a20efbc8831efbc89e8bf9ee68ea5203830383020e7abafe58fa30ae998b2e781abe5a299203c2d3e20e58685e7bd91576562e69c8de58aa1e599a83a20efbc8832efbc894e4154e8bdace58f9138303830e7abafe58fa30ae998b2e781abe5a299202d3e20e6b58fe8a788e599a83a20efbc8833efbc89e5b086e7bb93e69e9ce695b0e68daee8bdace58f910a6e6f74652072696768743a20e580bee6978be79a84e58d9ae5aea23a68747470733a2f2f7061796c6f6164732e6f6e6c696e650a40656e64756d6c"></p>
+
+<p>类似这种场景在企业种非常的常见，网络管理员应业务部门的要求，利用NAT端口映射的技术可以直接将DMZ区域的某台机器上的某个端口对外网开放。</p>
+
+<p>这里我使用Docker搭建了一个简单的靶场：</p>
+
+<p><img class="plantuml" src="http://www.plantuml.com/plantuml/svg/~h407374617274756d6c0a7469746c6520e99db6e59cbae7bb93e69e840a0a0a737461746520e4ba92e88194e7bd91e998b2e781abe5a2993137322e31372e302e327b0a202020205b2a5d202d2d3e20e998b2e781abe5a299e8a784e58899310a202020205b2a5d202d2d3e20e998b2e781abe5a299e8a784e58899320ae998b2e781abe5a299e8a784e5889931203a203137322e31372e302e323a383038300ae998b2e781abe5a299e8a784e58899323a203137322e31372e302e323a383038310a6e6f7465206c6566743a20e58187e8aebe3137322e31372e302e32e698afe585ace7bd91e69c8de58aa1e599a80a7d0a0a737461746520444d5ae58cbae59f9f7b0a20202020444d5ae7bd91e7ab99e4b89ae58aa1313a203139322e3136382e312e3132383a383038300a202020206e6f7465206c6566743a20e58685e7bd910a20202020444d5ae7bd91e7ab99e4b89ae58aa1323a203139322e3136382e312e3132353a383038300a7d0a737461746520e5a496e7bd91e694bbe587bbe88085207b0ae694bbe587bbe8808549503a3137322e31372e302e310a6e6f7465206c6566743a20e58187e8aebe3137322e31372e302e31e698afe694bbe587bbe88085e587bae58fa30a7d0a0a0ae694bbe587bbe880854950202d2d3e20e998b2e781abe5a299e8a784e5889931203a20e8aebfe997aee7acace4b880e4b8aae4b89ae58aa10ae998b2e781abe5a299e8a784e5889931202d3e20444d5ae7bd91e7ab99e4b89ae58aa1313a204e41540ae694bbe587bbe880854950202d3e20e998b2e781abe5a299e8a784e58899320ae998b2e781abe5a299e8a784e5889932202d3e20444d5ae7bd91e7ab99e4b89ae58aa1323a204e41540a40656e64756d6c"></p>
+
+<p>对应的NAT 端口转发情况：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.125:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.125 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8081
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables-save
+</code></pre></div></div>
+
+<p>如果攻击者访问172.17.0.2的8080端口，流量将会被转发到192.168.1.128上，那么设想一下，NAT规则在生产的场景中会不会产生规则滥用的情况？</p>
+
+<p>我猜想有以下几种情况：</p>
+
+<ol>
+  <li>业务下线了，NAT规则没有来得及删除</li>
+  <li>某个规则指向的端口服务暂时停止了</li>
+  <li>网络管理员觉得流程麻烦，遂开放了一段端口，如：8080-8090</li>
+</ol>
+
+<h2 id="0x03-利用nat规则实现内网漫游">0x03 利用NAT规则实现内网漫游</h2>
+
+<p>理清楚网络结构后，可以开始寻找有用的NAT规则了，我总结了两个办法：</p>
+
+<ol>
+  <li>结束正在占用NAT端口的程序</li>
+  <li>寻找未被使用的NAT端口</li>
+</ol>
+
+<p>如何判断目标正在使用这个NAT端口，我的办法是使用Nmap进行扫描。一些NAT规则大多数会采用相同端口映射的关系，比如：8080:8080。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/4177c26e5b36be59f6fb04e9a065ef89.png" alt="2020-11-01-22-31-26"></p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/51330e9e0c0d862859468f98cba68cab.png" alt="2020-11-01-22-32-56"></p>
+
+<p>通过信息收集，了解到内网IP端口是192.168.1.128。</p>
+
+<p>映射关系：</p>
+
+<p><img class="plantuml" src="http://www.plantuml.com/plantuml/svg/~h407374617274756d6c0a7469746c6520e99db6e59cbae7bb93e69e840a0a737461746520e4ba92e88194e7bd91e998b2e781abe5a2993137322e31372e302e327b0a202020205b2a5d202d2d3e20e998b2e781abe5a299e8a784e58899310ae998b2e781abe5a299e8a784e5889931203a203137322e31372e302e323a383038300a6e6f7465206c6566743a20e58187e8aebe3137322e31372e302e32e698afe585ace7bd91e69c8de58aa1e599a80a7d0a0a737461746520444d5ae58cbae59f9f7b0a20202020444d5ae7bd91e7ab99e4b89ae58aa1313a203139322e3136382e312e3132383a383038300a202020206e6f7465206c6566743a20e58685e7bd910a7d0a737461746520e5a496e7bd91e694bbe587bbe88085207b0ae694bbe587bbe8808549503a3137322e31372e302e310a6e6f7465206c6566743a20e58187e8aebe3137322e31372e302e31e698afe694bbe587bbe88085e587bae58fa30a7d0a0ae694bbe587bbe880854950202d2d3e20e998b2e781abe5a299e8a784e5889931203a20e8aebfe997aee7acace4b880e4b8aae4b89ae58aa10ae998b2e781abe5a299e8a784e5889931202d3e20444d5ae7bd91e7ab99e4b89ae58aa1313a204e41540a40656e64756d6c"></p>
+
+<p>这个时候扫描172.17.0.2查看开放状态：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/e371feffc3460b67740da6806cb0519f.png" alt="2020-11-01-22-36-44"></p>
+
+<p>我为了模拟真实环境，还映射了其他端口：8081。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/bce334e86115fadb4963a8cdaa409128.png" alt="2020-11-01-22-38-21"></p>
+
+<p>真实场景下，如果是非映射端口，将会是filtered，这种的情况是数据包到达防火墙后就被DROP掉了。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/48d002a99bbf98eb2ea4d93d1d85af4a.png" alt="2020-11-01-22-42-16"></p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.125:8080
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.125 <span class="nt">--dport</span> 8080 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> PREROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 172.17.0.2 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> DNAT <span class="nt">--to-destination</span> 192.168.1.128:8081
+iptables <span class="nt">-t</span> nat <span class="nt">-A</span> POSTROUTING <span class="nt">-p</span> tcp <span class="nt">-d</span> 192.168.1.128 <span class="nt">--dport</span> 8081 <span class="nt">-j</span> SNAT <span class="nt">--to-source</span> 192.168.1.129
+iptables <span class="nt">-P</span> INPUT DROP
+iptables-save
+</code></pre></div></div>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/a74ede94f9c8c01b663e60550499847d.png" alt="2020-11-01-23-10-02"></p>
+
+<p>倘若在8081 closed情况下，我们可以直接nc监听起来进行测试：</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/190df37938b39aea055cc83808cb351c.png" alt="2020-11-01-23-12-54"></p>
+
+<p>这个时候，内网的服务器监听了8081端口，成功的利用NAT规则使得我们可以直接正向连接到NC。</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/7091e7b3063f741e7c602605482c2bee.png" alt="2020-11-01-23-14-06"></p>
+
+<h3 id="如何利用">如何利用？</h3>
+
+<p>我们可以将nc这个程序换成别的，比如：socks5的服务端程序，监听8081端口，如此一来就能够直接连接 <code class="language-plaintext highlighter-rouge">socks5:172.17.0.2:8081</code>作为内网的入口。</p>
+
+<p><img class="plantuml" src="http://www.plantuml.com/plantuml/svg/~h407374617274756d6c0a7469746c6520e588a9e794a8e59bbe0a0a737461746520e4ba92e88194e7bd91e998b2e781abe5a2993137322e31372e302e327b0a202020205b2a5d202d2d3e20e998b2e781abe5a299e8a784e58899310a202020205b2a5d202d2d3e20534f434b5335e69c8de58aa14e41540ae998b2e781abe5a299e8a784e5889931203a203137322e31372e302e323a383038300a534f434b5335e69c8de58aa14e4154203a203137322e31372e302e323a383038310a6e6f7465206c6566743a20e58187e8aebe3137322e31372e302e32e698afe585ace7bd91e69c8de58aa1e599a80a7d0a0a737461746520444d5ae58cbae59f9f7b0a20202020444d5ae7bd91e7ab99e4b89ae58aa1313a203139322e3136382e312e3132383a383038300a20202020534f434b5335e69c8de58aa1e7abafe58fa33a203139322e3136382e312e3132383a383038310a202020206e6f7465206c6566743a20e58685e7bd910a7d0a737461746520e5a496e7bd91e694bbe587bbe88085207b0ae694bbe587bbe8808549503a3137322e31372e302e310a6e6f7465206c6566743a20e58187e8aebe3137322e31372e302e31e698afe694bbe587bbe88085e587bae58fa30a7d0a0ae694bbe587bbe880854950202d2d3e20534f434b5335e69c8de58aa14e4154203a20e8aebfe997aee7acace4b880e4b8aae4b89ae58aa10a534f434b5335e69c8de58aa14e4154202d3e20444d5ae7bd91e7ab99e4b89ae58aa1313a20e9809ae8bf87536f636b7335e58fafe4bba5e79bb4e8bebee58685e7bd910a40656e64756d6c"></p>
+
+<h2 id="0x04-总结">0x04 总结</h2>
+
+<p>本文主要在防火墙规则上做了一些思考，并且进行了环境的模拟搭建，与实战环境相同，因此得出以下结论：</p>
+
+<ol>
+  <li>通过分析NAT规则，能够构建一个稳定代理。</li>
+  <li>测试NAT只能使用端口监听工具，然后在外网进行连接测试。</li>
+  <li>Filtered是DROP，ACCEPT是Open，未被使用Closed也是能够ACCEPT。</li>
+  <li>通过这种方案可以提升效率。</li>
+  <li>在非不得已的情况下，最好不要结束占用了NAT端口的进程。</li>
+</ol>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>

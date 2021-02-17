@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>服务器启用了不安全的HTTP方法 « 倾旋的博客</title>
+  <meta name="description" content="《Web安全测试学习手册》- 服务器启用了不安全的HTTP方法">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://payloads.online/archivers/2018-04-18/1">
+  <link rel="alternate" type="application/rss+xml" title="倾旋的博客" href="https://payloads.online/feed.xml">
+</head>
+
+
+  <body>
+
+    <div class="header-placeholder"></div>
+<header class="header">
+  <div class="wrapper">
+    <div id="sidebar-toggle">TOC</div>
+    <a class="site-title" href="/">倾旋的博客</a>
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">About</a>
+      
+        
+        <a class="page-link" href="/posts/">Posts</a>
+      
+        
+        <a class="page-link" href="/links/">Links</a>
+      
+        
+        <a class="page-link" href="https://cooolis.payloads.online/">Cooolis</a>
+      
+        
+        <a class="page-link" href="/feed.xml">RSS</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="col-main">
+          <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">服务器启用了不安全的HTTP方法</h1>
+    <p class="post-meta">Apr 18, 2018</p>
+  </header>
+
+  <article class="post-content">
+    <p>《Web安全测试学习手册》- 服务器启用了不安全的HTTP方法
+<!--more--></p>
+<ul id="markdown-toc">
+  <li>
+<a href="#0x00-%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84http%E6%96%B9%E6%B3%95" id="markdown-toc-0x00-不安全的http方法">0x00 不安全的HTTP方法</a>    <ul>
+      <li><a href="#1%E4%BB%80%E4%B9%88%E6%98%AF%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84http%E6%96%B9%E6%B3%95" id="markdown-toc-1什么是不安全的http方法">1）什么是不安全的HTTP方法</a></li>
+      <li><a href="#2%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84http%E6%96%B9%E6%B3%95%E7%89%B9%E7%82%B9" id="markdown-toc-2不安全的http方法特点">2）不安全的HTTP方法特点</a></li>
+    </ul>
+  </li>
+  <li><a href="#0x01-%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84http%E6%96%B9%E6%B3%95---%E9%A3%8E%E9%99%A9%E7%AD%89%E7%BA%A7" id="markdown-toc-0x01-不安全的http方法---风险等级">0x01 不安全的HTTP方法 - 风险等级</a></li>
+  <li><a href="#0x02-%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84http%E6%96%B9%E6%B3%95---%E5%8E%9F%E7%90%86" id="markdown-toc-0x02-不安全的http方法---原理">0x02 不安全的HTTP方法 - 原理</a></li>
+  <li><a href="#0x03-%E4%B8%8D%E5%AE%89%E5%85%A8%E7%9A%84http%E6%96%B9%E6%B3%95---%E5%B8%B8%E8%A7%81%E5%9C%BA%E6%99%AF" id="markdown-toc-0x03-不安全的http方法---常见场景">0x03 不安全的HTTP方法 - 常见场景</a></li>
+  <li><a href="#0x04-%E6%B5%8B%E8%AF%95%E6%96%B9%E6%A1%88" id="markdown-toc-0x04-测试方案">0x04 测试方案</a></li>
+  <li>
+<a href="#0x05-%E4%BF%AE%E5%A4%8D%E6%96%B9%E6%A1%88" id="markdown-toc-0x05-修复方案">0x05 修复方案</a>    <ul>
+      <li><a href="#iis" id="markdown-toc-iis">IIS</a></li>
+      <li><a href="#tomcat" id="markdown-toc-tomcat">Tomcat</a></li>
+      <li><a href="#nginx" id="markdown-toc-nginx">Nginx</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="0x00-不安全的http方法">0x00 不安全的HTTP方法</h2>
+
+<h3 id="1什么是不安全的http方法">1）什么是不安全的HTTP方法</h3>
+
+<p>开发人员、运维人员一般可能用于调试服务器，开启了一些客户端能够直接读写服务器端文件的方法，例如： DELETE, PUT, COPY, MOVE, PROPFIND, PROPPATCH, SEARCH, LOCK, UNLOCK 等HTTP协议支持的方法。</p>
+
+<h3 id="2不安全的http方法特点">2）不安全的HTTP方法特点</h3>
+
+<p>可通过浏览器直接读写服务器端文件</p>
+
+<h2 id="0x01-不安全的http方法---风险等级">0x01 不安全的HTTP方法 - 风险等级</h2>
+
+<p><strong>高</strong></p>
+
+<h2 id="0x02-不安全的http方法---原理">0x02 不安全的HTTP方法 - 原理</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>方法</th>
+      <th>说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>PUT</td>
+      <td>向指定的目录上载文件</td>
+    </tr>
+    <tr>
+      <td>DELETE</td>
+      <td>删除指定的资源</td>
+    </tr>
+    <tr>
+      <td>COPY</td>
+      <td>将指定的资源复制到Destination消息头指定的位置</td>
+    </tr>
+    <tr>
+      <td>MOVE</td>
+      <td>将指定的资源移动到Destination消息头指定的位置</td>
+    </tr>
+    <tr>
+      <td>SEARCH</td>
+      <td>在一个目录路径中搜索资源</td>
+    </tr>
+    <tr>
+      <td>PROPFIND</td>
+      <td>获取与指定资源有关的信息，如作者、大小与内容类型</td>
+    </tr>
+    <tr>
+      <td>TRACE</td>
+      <td>在响应中返回服务器收到的原始请求</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>服务器端由于配置权限不当，导致允许了客户端发送 DELETE, PUT, COPY, MOVE, PROPFIND, PROPPATCH, SEARCH, LOCK, UNLOCK等请求，并且解析请求进行操作文件。</p>
+
+<h2 id="0x03-不安全的http方法---常见场景">0x03 不安全的HTTP方法 - 常见场景</h2>
+
+<ul>
+  <li>Tomcat 中间件</li>
+  <li>IIS 中间件</li>
+</ul>
+
+<h2 id="0x04-测试方案">0x04 测试方案</h2>
+
+<p>使用CURL发送OPTIONS请求，查看响应头中的Allow行</p>
+
+<p>命令：<code class="language-plaintext highlighter-rouge">curl -I -X OPTIONS http://payloads.online</code></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  ~ curl -I -X OPTIONS http://10.211.55.16/
+HTTP/1.1 200 OK
+Date: Wed, 18 Apr 2018 02\:17\:47 GMT
+Server: Microsoft-IIS/6.0
+MS-Author-Via: DAV
+Content-Length: 0
+Accept-Ranges: none
+DASL: &lt;DAV:sql&gt;
+DAV: 1, 2
+Public: OPTIONS, TRACE, GET, HEAD, DELETE, PUT, POST, COPY, MOVE, MKCOL, PROPFIND, PROPPATCH, LOCK, UNLOCK, SEARCH
+Allow: OPTIONS, TRACE, GET, HEAD, DELETE, COPY, MOVE, PROPFIND, PROPPATCH, SEARCH, MKCOL, LOCK, UNLOCK
+Cache-Control: private
+</code></pre></div></div>
+
+<p>若出现PUT、DELETE….等方法，则存在此风险</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-04-18/0x00.png" alt="0x00"></p>
+
+<h2 id="0x05-修复方案">0x05 修复方案</h2>
+
+<h3 id="iis">IIS</h3>
+
+<p>修改站点权限，取消“写入”</p>
+
+<p><img src="https://rvn0xsy.oss-cn-shanghai.aliyuncs.com/2018-04-18/0x01.gif" alt="0x01"></p>
+
+<h3 id="tomcat">Tomcat</h3>
+
+<p>修改<code class="language-plaintext highlighter-rouge">web.xml</code></p>
+
+<div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;security-constraint&gt;</span>
+<span class="nt">&lt;web-resource-collection&gt;</span>
+<span class="nt">&lt;web-resource-name&gt;</span>fortune<span class="nt">&lt;/web-resource-name&gt;</span>
+<span class="nt">&lt;url-pattern&gt;</span>/*<span class="nt">&lt;/url-pattern&gt;</span>
+<span class="nt">&lt;http-method&gt;</span>PUT<span class="nt">&lt;/http-method&gt;</span>
+<span class="nt">&lt;http-method&gt;</span>DELETE<span class="nt">&lt;/http-method&gt;</span>
+<span class="nt">&lt;http-method&gt;</span>HEAD<span class="nt">&lt;/http-method&gt;</span>
+<span class="nt">&lt;http-method&gt;</span>OPTIONS<span class="nt">&lt;/http-method&gt;</span>
+<span class="nt">&lt;http-method&gt;</span>TRACE<span class="nt">&lt;/http-method&gt;</span>
+<span class="nt">&lt;/web-resource-collection&gt;</span>
+<span class="nt">&lt;auth-constraint&gt;&lt;/auth-constraint&gt;</span>
+<span class="nt">&lt;/security-constraint&gt;</span>
+<span class="nt">&lt;login-config&gt;</span>
+<span class="nt">&lt;auth-method&gt;</span>BASIC<span class="nt">&lt;/auth-method&gt;</span>
+<span class="nt">&lt;/login-config&gt;</span>
+</code></pre></div></div>
+
+<h3 id="nginx">Nginx</h3>
+
+<p>在 <code class="language-plaintext highlighter-rouge">server</code>代码块内写入如下代码，用于屏蔽非GET、POST请求：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>if ($request_method !~* GET|POST) {
+            return 403;
+
+   }
+</code></pre></div></div>
+
+
+  </article>
+  
+  
+
+
+
+
+</div>
+
+        </div>
+        <div class="col-second">
+          <div class="col-box col-box-author">
+  <img class="avatar" src="//avatars0.githubusercontent.com/u/19944759?s=150&v=4" alt="倾旋">
+  <div class="col-box-title name">倾旋</div>
+  <p>特点：爪子长、个子高、身体瘦弱
+</p>
+  <p class="contact">
+    
+    <a href="https://github.com/Rvn0xsy">GitHub</a>
+    
+    
+    <a href="https://twitter.com/Rvn0xsy">Twitter</a>
+    
+    
+    <a href="mailto:rvn0xsy@gmail.com">Email</a>
+    
+    <a href="#">微信</a>
+    
+  </p>
+</div>
+
+<div class="col-box">
+  <div class="col-box-title">Newest Posts</div>
+  <ul class="post-list">
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/1">Pricking 项目（一） ：使用介绍</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-18/2">Pricking 项目（二） ：JS模块开发</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-16/1">红队技巧：基于反向代理的水坑攻击</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-09/1">CVE-2021-3156 - Exploit修改</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-02-08/1">静态恶意代码逃逸（第十课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2021-01-31/1">Windows权限控制相关的防御与攻击技术</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/2">静态恶意代码逃逸（第九课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-29/1">静态恶意代码逃逸（第八课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-13/1">Linux透明代理在红队渗透中的应用</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-11-01/1">Web正向代理的思考</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-10-23/1">静态恶意代码逃逸（第七课）</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-08-24/1">这是一个充满挑战的好时代</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-07-16/1">通过OXID解析器获取Windows远程主机上网卡地址</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-06-28/1">如何实现一个Atexec</a></li>
+    
+      <li><a class="post-link" href="/archivers/2020-04-02/1">如何实现一个Psexec</a></li>
+    
+    <li><a class="post-link" href="/posts/">更多....</a></li>
+  </ul>
+</div>
+
+<div class="col-box post-toc hide">
+  <div class="col-box-title">TOC</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+<div class="wrapper">
+© 2021 倾旋
+</div>
+</footer>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158746438-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158746438-1');
+</script>
+
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});</script>
+<script src="/js/easybook.js"></script>
+
+
+  </body>
+
+</html>
