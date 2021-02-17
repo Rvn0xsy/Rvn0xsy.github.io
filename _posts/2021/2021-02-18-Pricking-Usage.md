@@ -6,6 +6,7 @@ permalink: "/archivers/2021-02-18/1"
 description:  Pricking 是一个自动化部署水坑和网页钓鱼的开源项目，本文介绍Pricking项目的安装与使用。
 ---
 
+> 视频介绍：[bv1SK4y1n7xx](https://www.bilibili.com/video/bv1SK4y1n7xx)
 
 ## 0x00 安装项目
 
